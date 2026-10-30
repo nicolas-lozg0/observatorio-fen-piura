@@ -1,0 +1,32 @@
+# Dengue 2026: lee cada semana la sala situacional de la DIRESA Piura (PDF) y guarda docs/data/dengue_2026.json.
+# La DIRESA suele publicar la sala los jueves; si aún no hay una nueva, el script no cambia nada.
+name: Actualizar dengue
+
+on:
+  schedule:
+    - cron: "0 16 * * 5"  # viernes, 11:00 hora de Perú
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  dengue:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - run: python scripts/test_dengue.py
+      - run: python scripts/dengue_diresa.py
+      - run: python scripts/historial.py
+      - name: Guardar datos nuevos
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/data
+          git diff --cached --quiet || git commit -m "Actualiza dengue $(date -u +%F)"
+          git pull --rebase && git push
