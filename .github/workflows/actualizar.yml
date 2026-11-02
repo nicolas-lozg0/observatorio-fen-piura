@@ -23,10 +23,10 @@ jobs:
       - run: pip install -r requirements.txt
       - run: python scripts/test_gasto_mef.py
       - run: python scripts/gasto_mef.py
-      - run: python scripts/inversiones_mef.py
       # Si una fuente secundaria falla, se conservan sus datos anteriores (con su propia fecha)
-      - run: python scripts/infobras.py
+      - run: python scripts/infobras.py  # antes de inversiones_mef.py, que usa sus CUI
         continue-on-error: true
+      - run: python scripts/inversiones_mef.py
       - run: python scripts/fen_mef.py
         continue-on-error: true
       - run: python scripts/camas_susalud.py  # dato mensual: vuelve a leer el último mes publicado

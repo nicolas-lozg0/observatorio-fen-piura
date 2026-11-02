@@ -19,8 +19,8 @@ pip install -r requirements.txt
 cd scripts
 python3 test_gasto_mef.py && python3 test_dengue.py   # pruebas rápidas (deben decir OK)
 python3 gasto_mef.py            # ~6 min
+python3 infobras.py             # antes de inversiones_mef.py, que usa sus CUI
 python3 inversiones_mef.py
-python3 infobras.py
 python3 fen_mef.py
 python3 camas_susalud.py
 python3 dengue_diresa.py        # sala situacional más reciente; si ya está procesada, no hace nada
@@ -69,7 +69,7 @@ El objetivo es que alguien entre y en pocos segundos sepa cómo está Piura fren
 | Fallecidos | La página muestra una sola cifra: **15**, de la tabla de defunciones por tipo de diagnóstico (10 confirmadas y 5 probables). Sigue el mismo criterio que los casos. "Fuentes y método" explica que la tabla por provincias de la misma sala suma 14. El historial también guarda 15. |
 | Mapa | Lleva título, una leyenda con rangos ("175 a 323 casos", etc.) y distingue **"0 casos"** (gris) de **"sin dato"** (rayado). En 2026, "sin dato" son los distritos que la DIRESA agrupa en "otros distritos"; en años anteriores, un distrito que no figura tiene 0 casos. El mapa indica que el color es el número de casos y no la tasa. **Población de la tasa:** la tasa por 10 mil habitantes la calcula la DIRESA, y su sala situacional no dice qué población usa. Revisé el PDF de la SE 42 y no lo indica. La página lo dice así. |
 | Refinería de Talara | Sale de los totales y se muestra aparte con una nota: "proyecto de Petroperú, sin relación con El Niño". Las obras en ejecución quedan en 898, con S/ 7.889,3 millones (antes, S/ 17.667 millones). La lista de excluidas es la constante `APARTE` en `index.html`. |
-| Infobras desactualizado | La tabla muestra la fecha del último registro de avance y marca las que tienen más de 6 meses. **Resultado: las 953 obras en ejecución o paralizadas están marcadas.** El archivo de Infobras se publica a diario, pero el registro de avance más reciente de todas las obras de Piura es de marzo de 2026, y 219 no tienen ninguno. Una nueva tarjeta lo muestra. |
+| Infobras desactualizado | **Reemplazado en la tercera ronda** (ver abajo): el retraso es del archivo de datos abiertos, no de las entidades. El avance físico ahora viene del MEF. |
 | Camas | La sección se llama ahora "Capacidad hospitalaria" y dice que no existe un dato público de camas libres en tiempo real. **Se calcula la ocupación:** el diccionario de SUSALUD (DICCIONARIO_TABLA_D1_2026.pdf) define `NRO_TOTAL_PACIENTES_CAMAS` como la suma de pacientes que ocuparon las camas, es decir, los pacientes-día. Ocupación = pacientes-día / días-cama disponibles. En setiembre de 2026 fue de **58,7 %** en los 40 establecimientos que reportaron. Un centro de salud sale con 103,2 % y se marca para revisar. `camas_susalud.py` ahora guarda `pacientes_dia`. |
 | Tablas cortadas | Las tablas anchas tienen un ancho mínimo y, en pantallas angostas, se desplazan dentro de su caja. El texto ya no se corta, y la página no se desplaza de lado. |
 
@@ -189,9 +189,53 @@ No hay una fuente abierta. Solo encontré notas de prensa con cifras de REUNIS, 
    - **(a)** el SISAP del MIDAGRI, con precios por producto y ciudad, incluida Piura, pero sin descarga, así que habría que automatizar un navegador o copiar a mano;
    - **(b)** el IPC de Piura del INEI, mensual y menos detallado, pero que podría actualizarse solo. **Todavía no verifiqué** que el INEI publique el IPC de Piura en un archivo descargable.
 8. **Reconstrucción:** ¿basta con ANIN o hay que sumar proyectos de otras entidades marcados como "Reconstrucción con Cambios"? Infobras tiene esa marca por obra.
-9. **Alerta de brecha:** el umbral es de 30 puntos, y hoy ningún proyecto lo supera (el máximo es 27,4). ¿Lo bajamos, por ejemplo a 20 puntos? ¿O cruzamos el avance financiero del MEF con el físico de Infobras? Esa segunda opción mezcla fechas distintas, porque Infobras no se actualiza desde marzo.
+9. **Alerta de brecha:** el umbral es de 30 puntos, y hoy ningún proyecto lo supera (el máximo es 27,4). ¿Lo bajamos, por ejemplo a 20 puntos? (Cruzar con el avance físico de Infobras quedó descartado: su archivo no se actualiza desde marzo de 2026.)
 10. **Megaproyectos excluidos:** por ahora solo la Refinería de Talara. ¿Hay otros que excluir? Por ejemplo, las obras de banda ancha o de irrigación del Alto Piura.
-11. **Infobras desactualizado:** todas las obras activas tienen su último avance en marzo de 2026 o antes. ¿Seguimos mostrando su avance físico o consultamos a la Contraloría por qué el archivo diario no trae avances recientes?
+11. **Infobras desactualizado:** resuelto en la tercera ronda: el avance físico viene del MEF e Infobras queda solo para estado y causa. Sigue abierta la opción de preguntar a la Contraloría por qué el archivo diario no se actualiza.
+12. **Fecha del avance del MEF:** el archivo del MEF no dice de qué mes es el avance físico, y el significado de `ULT_FEC_DECLA_ESTIM` no está confirmado (no hay diccionario). ¿Lo consultamos al MEF?
+13. **CUI con varias obras:** el avance del MEF es de toda la inversión. En el CUI 2392435 (4 obras) el MEF da 19,6 % y la ficha de Infobras de la obra 4 da 92,69 %. La página lo indica en la celda.
+
+## Tercera ronda: Infobras y avance físico (2 de noviembre de 2026)
+
+**Diagnóstico.** Se compararon cuatro fichas web de Infobras con el archivo de datos abiertos del 02/11/2026:
+
+| Código Infobras | CUI | Ficha web | Archivo de datos abiertos |
+| --- | --- | --- | --- |
+| 542437 | 2392435 | 92,69 %, setiembre de 2026 | 44,74 %, enero de 2026 (registrado el 19/02/2026) |
+| 566350 | 2328427 | 54,89 %, setiembre de 2026 | no está |
+| 563640 | 2702385 | 45,64 %, julio de 2026 | no está |
+| 562977 | 2643165 | sin avance | no está |
+
+- El script leía la columna correcta ("Avance Físico Real Acumulado (%)"): para 542437 coincide con el archivo y con el avance de enero que muestra la propia ficha.
+- El archivo está congelado: su código Infobras más alto es el 556525 (las obras más nuevas no aparecen) y casi no tiene avances posteriores a marzo de 2026. Solo cambia la fecha de consulta.
+- Infobras no ofrece otro archivo descargable (solo Obras Públicas y Asociaciones Público-Privadas). Se decidió no leer las fichas web de forma automática porque son direcciones internas de la aplicación, que pueden cambiar sin aviso.
+- **robots.txt (revisado el 02/11/2026).** No prohíbe la lectura automática de las fichas:
+  - `https://apps.contraloria.gob.pe/robots.txt`: no existe (HTTP 404).
+  - `https://apps.contraloria.gob.pe/infobras/robots.txt` (versión antigua de Infobras) dice, textualmente:
+    ```
+    User-agent: *
+    Crawl-delay: 60
+    Disallow: /wfm_info_sugerencias.aspx
+    ```
+    Pide 60 segundos entre consultas y solo bloquea la página de sugerencias.
+  - `https://infobras.contraloria.gob.pe/robots.txt` y `https://infobras.contraloria.gob.pe/InfobrasWeb/robots.txt` (sitio actual, donde están las fichas y el archivo de datos): no existen (HTTP 404).
+  - En una versión anterior de este documento se dijo que el `robots.txt` no admitía lecturas automáticas; eso no era correcto.
+
+**Cambios.**
+
+| Qué | Detalle |
+| --- | --- |
+| Avance físico de obras | Viene del MEF (Detalle de inversiones, Formato 12-B), unido por código único de inversión. Columna de las tablas de obras: "Avance físico de la inversión (MEF)". La línea de fuente dice "Datos MEF al 31/10/2026" (fecha del archivo del MEF). `inversiones_mef.py` ahora también guarda los CUI de las obras activas de Infobras (575 de 809 encontrados). |
+| CUI con varias obras | Cuando varias obras comparten un CUI, la celda lo indica: "19,6 % (inversión de 4 obras)". El número de obras se cuenta en todo el archivo de Infobras (todo el país y todos los estados), en `obras_en_cui`. Hoy son 166 de las 954 obras activas de Piura. |
+| CUI 2392435 en el MEF | Avance físico **19,59 %**, avance de ejecución 19,81 % (archivo del MEF modificado el 31/10/2026). **El archivo no trae el mes al que corresponde el avance.** Es el avance de toda la inversión (11 puentes, 4 obras en Infobras, costo actualizado S/ 679,4 millones), no de la obra 4. |
+| Columna `ULT_FEC_DECLA_ESTIM` del MEF | Es la única fecha cercana al avance (para el CUI 2392435: 27/10/2026), pero el MEF no publica el diccionario de este archivo (404) y su significado no está confirmado. **No se usa en la página.** |
+| Infobras | Solo estado (en ejecución o paralizada) y causa de paralización. `infobras.py` ya no guarda avance ni mes de avance. |
+| Tarjeta | La tarjeta "Avance sin actualizar hace más de 6 meses" se reemplazó por la nota: "Archivo de datos abiertos de Infobras sin actualizar desde marzo de 2026; obras registradas después no aparecen". El mes sale de los datos (`ultimo_avance`: el avance más reciente de Piura en el archivo). La nota se repite en el aviso de obras paralizadas y en la fuente. |
+| Fechas futuras | Se excluyen las filas cuyo mes de avance aún no termina a la fecha del archivo (mes de la consulta o posterior). En el archivo del 02/11/2026 fueron **10 filas**, ninguna de Piura (3 de noviembre y 7 de diciembre de 2026). La cifra se guarda en `excluidas_fecha_futura` y se muestra en "Fuentes y método". Hay una undécima fila con avance de octubre de 2026 registrado en marzo: no es una fecha futura, así que no se excluye. Hay además 427 filas (16 de Piura) cuyo mes de avance es posterior a su fecha de registro; no se excluyen, porque la página ya no usa el avance de Infobras. |
+| Obra 566350 | No está en nuestros datos (no aparece en el archivo de Infobras), así que no hay nada que corregir. Su ficha la ubica en Aramango (Bagua, Amazonas), pero el CUI 2328427 es, según el MEF, una obra de agua y alcantarillado en la Urb. San José, Veintiséis de Octubre, Piura, y el contrato de la ficha es de la "MDVO". Lo más probable es que el error esté en la ubicación de la ficha. |
+| Workflow | `infobras.py` corre antes de `inversiones_mef.py`. |
+
+**Verificación.** Se corrieron `infobras.py` e `inversiones_mef.py` con los archivos del día. La página se revisó en Chrome, en local, sin errores en la consola: la tarjeta y el aviso muestran la nota, y las obras de los puentes muestran "19,6 % (inversión de 4 obras)". La fuente dice "Datos MEF al 31/10/2026".
 
 ## Pendiente o por verificar
 
@@ -201,7 +245,7 @@ No hay una fuente abierta. Solo encontré notas de prensa con cifras de REUNIS, 
   - Darle a `gh` el permiso `workflow`.
 - **Workflows:** ninguno de los dos se ha corrido en GitHub, porque no hay repositorio. Ambos hacen `git pull --rebase` antes del push, para no chocar entre sí.
 - **Infobras:**
-  - El archivo de datos subió de 29 KB a 496 KB, porque ahora guarda las 954 obras en ejecución y paralizadas.
+  - El archivo de datos subió de 29 KB a 496 KB, porque ahora guarda las 954 obras en ejecución y paralizadas (441 KB desde la tercera ronda, sin campos de avance; 457 KB con `obras_en_cui`).
   - Infobras pierde la Ñ en algunos textos: en el distrito se corrige "PARI AS" a "PARIÑAS"; en los nombres de obra se deja como viene.
   - Una obra domina el costo de las que están en ejecución: la modernización de la Refinería Talara, de S/ 9.778 millones.
 - **Tabla de gasto en celular:** resuelto en la segunda ronda; ahora muestra 10 filas y un botón "Ver más".

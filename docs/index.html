@@ -251,7 +251,7 @@
     <p style="margin-top:16px"><strong>Obras paralizadas.</strong> <span id="paral-resumen"></span></p>
     <div class="tabla"><table class="ancha">
       <thead><tr><th class="nombre">Obra</th><th>Entidad</th><th>Distrito</th><th class="n">Costo (S/)</th>
-        <th class="n">Avance físico</th><th>Paralizada desde</th><th>Causa</th></tr></thead>
+        <th class="n">Avance físico de la inversión (MEF)</th><th>Paralizada desde</th><th>Causa</th></tr></thead>
       <tbody id="paralizadas"></tbody>
     </table></div>
     <button type="button" class="mas" id="paralizadas-mas" hidden></button>
@@ -270,7 +270,7 @@
     <p id="obras-resumen"></p>
     <div class="tabla"><table class="ancha">
       <thead><tr><th class="nombre">Obra</th><th>Estado</th><th>Entidad</th><th>Distrito</th><th class="n">Costo (S/)</th>
-        <th class="n">Avance físico</th><th>Último registro de avance</th></tr></thead>
+        <th class="n">Avance físico de la inversión (MEF)</th></tr></thead>
       <tbody id="obras-cuerpo"></tbody>
     </table></div>
     <button type="button" class="mas" id="obras-cuerpo-mas" hidden></button>
@@ -344,8 +344,12 @@
         la DIRESA Piura. Los fallecidos siguen el mismo criterio. <span id="m-fallecidos"></span></li>
       <li><strong>Obras ligadas a El Niño.</strong> El costo total de las obras en ejecución no incluye megaproyectos sin
         relación con El Niño (por ahora, la Refinería de Talara); se muestran aparte con una nota.</li>
-      <li><strong>Avance desactualizado.</strong> Infobras muestra el avance que registra cada entidad. Se marca cuando el
-        último registro tiene más de 6 meses respecto de la fecha de los datos.</li>
+      <li><strong>Avance físico de obras.</strong> Se toma del MEF (Detalle de inversiones, Formato 12-B) por código único
+        de inversión, no de Infobras: el archivo de datos abiertos de Infobras no trae avances posteriores a
+        marzo de 2026 ni las obras registradas después, aunque sus fichas web sí están al día. Una inversión puede agrupar
+        varias obras; en ese caso el avance del MEF es el de toda la inversión, no el de cada obra, y la celda lo indica
+        (por ejemplo, "inversión de 4 obras"). El archivo del MEF no indica el mes al que corresponde el avance; se
+        muestra la fecha del archivo.</li>
       <li><strong>Ocupación de camas.</strong> Pacientes-día del mes / días-cama disponibles del mes (SUSALUD). Es un
         promedio mensual, no la ocupación de hoy.</li>
     </ul>
@@ -357,8 +361,9 @@
         no se publica y se indica. <span id="m-validaciones"></span></li>
       <li><strong>Dengue 2000–2025 (CDC-Minsa).</strong> Cada fila del archivo es un caso; se comprueba que la suma del
         resumen sea igual al número de filas de Piura, sin descartar filas idénticas.</li>
-      <li><strong>Obras (Infobras).</strong> Se publica lo que registra cada entidad, sin corrección; por eso se muestra la
-        fecha del último registro.</li>
+      <li><strong>Obras (Infobras).</strong> Se usa solo el estado (en ejecución o paralizada) y la causa de paralización,
+        tal como los registra cada entidad. Se excluyen las filas cuyo mes de avance aún no termina a la fecha del
+        archivo (fechas futuras). <span id="m-obras"></span></li>
       <li><strong>Camas (SUSALUD).</strong> Los establecimientos que no reportaron en el mes se muestran como tales; una
         ocupación mayor a 100 % se marca para revisar.</li>
     </ul>
@@ -378,7 +383,6 @@ const EXPLICA = {
 const ANIOS_BROTE = [2017, 2023, 2024];  // años de brote con los que se compara 2026
 const COLORES = ["var(--s1)", "var(--s2)", "var(--s3)", "var(--s4)"];
 const BRECHA = 30;  // puntos de diferencia entre avance financiero y físico para alertar
-const MESES_VIEJO = 6;  // meses sin registrar avance para marcar una obra
 // Megaproyectos sin relación con El Niño: fuera del costo total de obras (código Infobras → motivo)
 const APARTE = { "42412": "proyecto de Petroperú, sin relación con El Niño" };
 const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "setiembre", "octubre", "noviembre", "diciembre"];
@@ -572,13 +576,11 @@ function pintarResumen() {
 }
 
 /* ---------- Obras ---------- */
-const corteObras = () => { const [, m, a] = String(D.obras.fecha_corte).split("/").map(Number); return a * 12 + m; };
-function ultimoRegistro(x) {
-  if (!x.anio_avance) return `<span class="revisar">sin registro</span>`;
-  const meses = corteObras() - (Number(x.anio_avance) * 12 + Number(x.mes_avance)), txt = `${x.mes_avance}/${x.anio_avance}`;
-  return meses > MESES_VIEJO ? `<span class="revisar" title="Más de ${MESES_VIEJO} meses sin actualizar">${txt} (hace ${meses} meses)</span>` : txt;
-}
-const viejo = x => !x.anio_avance || corteObras() - (Number(x.anio_avance) * 12 + Number(x.mes_avance)) > MESES_VIEJO;
+const invObra = x => D.inv?.[String(x.cui ?? "").trim()];  // avance del MEF por código único de inversión
+const avanceObra = x => { const v = invObra(x)?.avance_fisico;
+  return v == null ? "—" : fisTxt(v) + (x.obras_en_cui > 1 ? ` (inversión de ${x.obras_en_cui} obras)` : ""); };
+const notaInfobras = o => o.ultimo_avance ? `Archivo de datos abiertos de Infobras sin actualizar desde
+  ${MESES[o.ultimo_avance.mes - 1]} de ${o.ultimo_avance.anio}; obras registradas después no aparecen.` : "";
 const distritoTxt = x => `${esc(x.distrito)} (${esc(x.provincia)})`;
 
 function pintarObras() {
@@ -586,15 +588,11 @@ function pintarObras() {
   if (!o) { $("obras-estado").innerHTML = `<p class="nota">No se pudieron cargar los datos de Infobras.</p>`; return; }
   const activas = o.obras.filter(x => !APARTE[x.codigo_infobras]), aparte = o.obras.filter(x => APARTE[x.codigo_infobras]);
   const de = e => activas.filter(x => x.estado === e);
-  const viejas = activas.filter(viejo);
-  const ultimo = activas.filter(x => x.anio_avance).reduce((m, x) => Math.max(m, Number(x.anio_avance) * 12 + Number(x.mes_avance) - 1), 0);
   $("obras-estado").innerHTML = [["En Ejecución", "En ejecución"], ["Paralizada", "Paralizadas"]].map(([e, t]) =>
     `<div class="tile"><div class="etiqueta">${t}</div><div class="valor">${num(de(e).length)}</div>
       <p class="nota">Costo total ${millones(suma(de(e), "costo_et"))}</p></div>`).join("") +
-    `<div class="tile"><div class="etiqueta">Avance sin actualizar hace más de ${MESES_VIEJO} meses</div>
-      <div class="valor">${num(viejas.length)}</div><p class="nota">de ${num(activas.length)} obras en ejecución o paralizadas
-      (incluye ${num(viejas.filter(x => !x.anio_avance).length)} sin ningún registro de avance). El registro más reciente
-      de todas es de ${ultimo % 12 + 1}/${Math.floor(ultimo / 12)}.</p></div>`;
+    `<div class="tile"><div class="etiqueta">Archivo de Infobras</div>
+      <p class="revisar">${notaInfobras(o)}</p><p class="nota">El avance físico de cada obra se toma del MEF.</p></div>`;
   $("obras-aparte").innerHTML = aparte.length ? "Aparte, fuera de los totales: " + aparte.map(x =>
     `${esc(x.obra)} (${x.estado === "Paralizada" ? "paralizada" : "en ejecución"}, ${x.costo_et ? millones(x.costo_et) : "costo no registrado"}): ${esc(APARTE[x.codigo_infobras])}`).join("; ") + "." : "";
   $("obras-otras").textContent = "Otras obras registradas en Piura: " +
@@ -606,18 +604,17 @@ function pintarObras() {
     <p style="margin-top:8px">Las 5 de mayor costo:</p>
     <ol>${porCosto.slice(0, 5).map(x => `<li><strong>${x.costo_et == null ? "Costo no registrado" : millones(x.costo_et)}</strong> ·
       ${esc(x.obra)} · ${distritoTxt(x)} · Causa: ${esc(x.causal || "no registrada")}</li>`).join("")}</ol>
-    <p><strong>Ninguna de las ${num(activas.length)} obras en ejecución o paralizadas tiene avance registrado después de
-      ${MESES[ultimo % 12]} de ${Math.floor(ultimo / 12)}</strong>; ${num(viejas.filter(x => !x.anio_avance).length)} no tienen ningún
-      registro de avance.</p>
+    <p><strong>${notaInfobras(o)}</strong></p>
     <p class="nota">${fuente(o)}</p>`;
   $("paral-resumen").innerHTML = `Lista completa, ordenada por costo.`;
   llenar("paralizadas", porCosto, x =>
     `<tr><td>${esc(x.obra)}</td><td>${esc(x.entidad)}</td><td>${distritoTxt(x)}</td>
-      <td class="n">${x.costo_et == null ? "—" : num(x.costo_et)}</td><td class="n">${pctTxt(x.avance_fisico)}</td>
+      <td class="n">${x.costo_et == null ? "—" : num(x.costo_et)}</td><td class="n">${avanceObra(x)}</td>
       <td>${esc(x.fecha_paralizacion || "—")}</td><td>${esc(x.causal || "—")}</td></tr>`, 7);
   pintarListaObras();
-  $("fuente-obras").innerHTML = fuente(o) +
-    " Estado y avance según lo registrado por cada entidad en Infobras.";
+  $("fuente-obras").innerHTML = fuente(o) + " Estado y causa según lo registrado por cada entidad en Infobras. " +
+    notaInfobras(o) + (D.invMeta ? ` Avance físico de la inversión: ${enlace(D.invMeta)}. Datos MEF al ${fecha(D.invMeta.fecha_corte)}.` : "");
+  $("m-obras").textContent = `En el archivo del ${o.fecha_corte} se excluyeron ${num(o.excluidas_fecha_futura ?? 0)} filas de todo el país.`;
 }
 
 function pintarListaObras() {
@@ -629,7 +626,7 @@ function pintarListaObras() {
   llenar("obras-cuerpo", lista, x =>
     `<tr><td>${esc(x.obra)}</td><td>${x.estado === "Paralizada" ? "Paralizada" : "En ejecución"}</td><td>${esc(x.entidad)}</td>
       <td>${distritoTxt(x)}</td><td class="n">${x.costo_et == null ? "—" : num(x.costo_et)}</td>
-      <td class="n">${pctTxt(x.avance_fisico)}</td><td>${ultimoRegistro(x)}</td></tr>`, 7);
+      <td class="n">${avanceObra(x)}</td></tr>`, 6);
 }
 
 function pintarBrecha() {
