@@ -31,6 +31,8 @@ jobs:
         continue-on-error: true
       - run: python scripts/camas_susalud.py  # dato mensual: vuelve a leer el último mes publicado
         continue-on-error: true
+      - run: python scripts/ipc_inei.py  # dato mensual: solo descarga el informe del INEI si hay uno nuevo
+        continue-on-error: true
       - run: python scripts/historial.py
       - name: Guardar datos nuevos
         run: |
