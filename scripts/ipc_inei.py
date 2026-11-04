@@ -167,14 +167,19 @@ def main():
     avisos = verificar(lista)
     for a in avisos:
         print("  AVISO", a)
-    guardar("ipc_piura.json", {
+    datos = {
         "fuente": "INEI, Informe Técnico de Variación de los Indicadores de Precios de la Economía (Cuadro 2)",
         "url": LISTA.format(1),
         "fecha_corte": lista[-1]["publicado"],
         "ultimo_mes": lista[-1]["mes"],
         "avisos": avisos,
         "serie": lista,
-    })
+    }
+    # Sin cambios en los datos no se reescribe el archivo: evita commits que solo cambian la hora de proceso
+    if {k: v for k, v in previo.items() if k != "procesado"} == datos:
+        print("Sin informes nuevos: ipc_piura.json no cambia.")
+        return
+    guardar("ipc_piura.json", datos)
 
 
 if __name__ == "__main__":

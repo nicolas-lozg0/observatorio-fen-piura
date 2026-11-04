@@ -8,12 +8,12 @@ disponibles se puede calcular la ocupación del mes; no existe un dato público 
 marcan como "no reportó". Resultado: docs/data/camas_piura.json.
 """
 import re
-import urllib.request
+import urllib.error
 from datetime import date
 
 import pandas as pd
 
-from comun import fecha_modificacion, guardar, verificar_espacio
+from comun import abrir, fecha_modificacion, guardar, verificar_espacio
 
 DATASET = "http://datos.susalud.gob.pe/dataset/consulta-d1-producci%C3%B3n-asistencial-en-hospitalizaci%C3%B3n-{anio}"
 MONTOS = {"NRO_TOTAL_CAMAS": "camas", "DIAS_CAMA_DISPONIBLE": "dias_cama", "NRO_TOTAL_HOSPIT_ING": "ingresos",
@@ -26,14 +26,17 @@ def ultimo_csv():
     """URL del CSV del último mes publicado (del año en curso o, en enero, del anterior)."""
     for anio in (date.today().year, date.today().year - 1):
         try:
-            pagina = urllib.request.urlopen(DATASET.format(anio=anio), timeout=60).read().decode("utf-8", "replace")
-        except OSError:
-            continue
+            pagina = abrir(DATASET.format(anio=anio)).read().decode("utf-8", "replace")
+        except urllib.error.HTTPError as e:
+            if e.code == 404:  # el conjunto del año aún no existe (enero): se prueba el año anterior
+                continue
+            raise
+        # un error de conexión (tiempo agotado, conexión rechazada) no se oculta: se informa tal cual
         enlaces = set(re.findall(r'http[^"]*Consulta_D1_Hospitalizaciones_(\d{4})_(\d+)\.csv', pagina))
         if enlaces:
             a, m = max(enlaces, key=lambda e: (int(e[0]), int(e[1])))
             return f"http://datos.susalud.gob.pe/sites/default/files/Consulta_D1_Hospitalizaciones_{a}_{m}.csv"
-    raise SystemExit("No se encontró ningún CSV de la Consulta D1 de SUSALUD.")
+    raise SystemExit("La página de SUSALUD respondió, pero no tiene enlaces a CSV de la Consulta D1.")
 
 
 def resumir(d):
@@ -54,7 +57,8 @@ def main():
     verificar_espacio()
     url = ultimo_csv()
     print("Leyendo", url)
-    d = pd.read_csv(url, sep=";", dtype=str, encoding="utf-8")
+    with abrir(url) as r:
+        d = pd.read_csv(r, sep=";", dtype=str, encoding="utf-8")
     anio, mes = int(d["ANHO"].iloc[0]), int(d["MES"].iloc[0])
     filas = resumir(d)
     assert filas, "no hay establecimientos de Piura"

@@ -12,13 +12,12 @@ nombres de personas (supervisores, residentes). Resultado: docs/data/infobras_pi
 import html
 import re
 import tempfile
-import urllib.request
 from collections import Counter
 from pathlib import Path
 
 import openpyxl
 
-from comun import descargar, guardar, verificar_espacio
+from comun import abrir, descargar, guardar, verificar_espacio
 
 BASE = "https://infobras.contraloria.gob.pe"
 PAGINA = BASE + "/InfobrasWeb/DataSets"
@@ -72,7 +71,7 @@ assert not avance_futuro(None, None, "02/11/2026")
 
 
 def enlace_descarga():
-    pagina = urllib.request.urlopen(PAGINA, timeout=60).read().decode("utf-8", "replace")
+    pagina = abrir(PAGINA).read().decode("utf-8", "replace")
     m = re.search(r'href="(/InfobrasWeb/Archivo/DownloadFile\?filename=DataSet-Obras-Publicas[^"]+)"', pagina)
     if not m:
         raise SystemExit("No se encontró el enlace del dataset de obras en " + PAGINA)

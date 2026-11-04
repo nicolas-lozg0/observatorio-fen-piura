@@ -82,6 +82,7 @@
   .panel .frase { font-size: .9rem; margin: 0; }
   .panel .pie { margin-top: auto; padding-top: 4px; color: var(--texto-3); font-size: .75rem; }
   .panel.alerta { border-left: 3px solid var(--texto); }
+  .vencido { margin: 0; color: var(--alerta); font-size: .8rem; font-weight: 600; }
   .panel.pendiente { border-style: dashed; }
   .panel.pendiente .cifra { font-size: 1.15rem; }
   .resumen .panel { cursor: pointer; }
@@ -425,6 +426,9 @@
             reporta la DIRESA Piura. Los fallecidos siguen el mismo criterio.</li>
           <li><strong>Ocupación de camas.</strong> Pacientes-día del mes / días-cama disponibles del mes (SUSALUD). Es un
             promedio mensual, no la ocupación de hoy.</li>
+          <li><strong>Datos no actualizados.</strong> Si una fuente pasa más días de lo esperado sin actualizarse, junto a
+            sus cifras aparece "Dato no actualizado desde [fecha]". Plazos: MEF (gasto, emergencia FEN, avance de
+            proyectos), 3 días; Infobras, 7; dengue 2026, 14; camas, 45; IPC, 45. Se cuenta desde la fecha de los datos.</li>
           <li><strong>IPC de Piura.</strong> Variaciones del Cuadro 2 del informe técnico mensual del INEI. Se validó con
             febrero de 2026 (0,48 % mensual y 2,28 % en 12 meses).</li>
         </ul>
@@ -481,6 +485,8 @@ const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "
 const PRELIMINAR = 3;  // últimas semanas de 2026 que se dibujan punteadas
 const NIVELES = [["E", "Gobierno nacional"], ["R", "Gobierno regional"], ["M", "Gobiernos locales"]];
 const PESTANAS = ["resumen", "dengue", "gasto", "obras", "salud", "precios", "fuentes"];
+// Días que puede pasar una fuente sin actualizarse antes de avisar "Dato no actualizado desde…"
+const PLAZOS = { obras: 7, camas: 45, gasto: 3, inv: 3, fen: 3, d26: 14, ipc: 45 };
 
 // Explicaciones de una línea para el ícono "?"
 const GLOSARIO = {
@@ -518,6 +524,21 @@ function fecha(iso) {
   const m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})/);
   return m ? `${m[3]}/${m[2]}/${m[1]}` : iso;
 }
+// Fecha de los datos como Date: acepta "aaaa-mm-dd…" (ISO) y "dd/mm/aaaa" (Infobras)
+function aFecha(s) {
+  const iso = String(s ?? "").match(/^(\d{4})-(\d{2})-(\d{2})/), dmy = String(s ?? "").match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+  return iso ? new Date(+iso[1], iso[2] - 1, +iso[3]) : dmy ? new Date(+dmy[3], dmy[2] - 1, +dmy[1]) : null;
+}
+const DATOS = () => ({ obras: D.obras, camas: D.camas, gasto: D.gasto, inv: D.invMeta, fen: D.fen, d26: D.d26, ipc: D.ipc });
+// Aviso si alguna de las fuentes (clave o lista de claves) pasó su plazo sin actualizarse
+function aviso(claves) {
+  return [].concat(claves || []).map(k => {
+    const d = DATOS()[k], f = d && aFecha(d.fecha_corte);
+    const hoy = new Date(); hoy.setHours(0, 0, 0, 0);  // días de calendario: el dato del 1 visto el 4 tiene 3 días
+    return f && Math.round((hoy - f) / 864e5) > PLAZOS[k]
+      ? `<p class="vencido">Dato no actualizado desde ${fecha(d.fecha_corte)}</p>` : "";
+  }).join("");
+}
 const mesTxt = am => { const [a, m] = am.split("-"); return `${MESES[+m - 1]} de ${a}`; };
 const enlace = d => `<a href="${esc(d.url)}" target="_blank" rel="noopener">${esc(d.fuente)}</a>`;
 const fuente = d => d ? `Fuente: ${enlace(d)}. Datos al ${fecha(d.fecha_corte)}.` : "";
@@ -546,9 +567,9 @@ function llenar(id, lista_, fila, cols, vacio = "Sin resultados.") {
 }
 
 // Panel: título, cifra principal, unidad, mini-gráfica, frase de interpretación y pie con fuente y fecha
-const panel = ({ id = "", titulo, cifra, ud = "", mini = "", frase = "", pie = "", clase = "", extra = "" }) =>
+const panel = ({ id = "", titulo, cifra, ud = "", mini = "", frase = "", pie = "", clase = "", extra = "", vence }) =>
   `<div class="panel ${clase}" ${id ? `id="${id}"` : ""}><h3>${titulo}</h3>${cifra != null ? `<div class="cifra">${cifra}</div>` : ""}
-    ${ud ? `<div class="ud">${ud}</div>` : ""}${mini}${frase ? `<p class="frase">${frase}</p>` : ""}${extra}
+    ${ud ? `<div class="ud">${ud}</div>` : ""}${aviso(vence)}${mini}${frase ? `<p class="frase">${frase}</p>` : ""}${extra}
     ${pie ? `<p class="pie">${pie}</p>` : ""}</div>`;
 
 // Mini-gráfica de una serie (sin ejes): la forma de la evolución; el valor exacto va en la cifra
@@ -642,14 +663,14 @@ function pintarGastoPaneles() {
   const tarjeta = ([id, titulo, sub, cond, base]) => {
     const de1 = c => gastoDe(r => cond(r) && c(r), 1), de2 = c => gastoDe(r => cond(r) && c(r), 2);
     const sinSede = !de2(() => true).pim && de1(() => true).pim > 0 && id === "reconstruccion";
-    return panel({ id, titulo, ud: sub, clase: "ancho",
+    return panel({ id, titulo, ud: sub, clase: "ancho", vence: "gasto",
       extra: `<div class="vistas">${vista("Gastado en Piura", de1, base)}${vista("Por entidades con sede en Piura", de2, base, sinSede)}</div>`,
       pie: f });
   };
   let html = conceptos.slice(0, 2).map(tarjeta).join("");
   if (D.fen) {
     const de1 = c => fenDe(1, r => c({ ...r, nivel: NIVEL_FEN[r.nivel] })), de2 = c => fenDe(2, r => c({ ...r, nivel: NIVEL_FEN[r.nivel] }));
-    html += panel({ id: "emergencia-fen-panel", titulo: `Emergencia por El Niño (${g("marco")})`, clase: "ancho",
+    html += panel({ id: "emergencia-fen-panel", titulo: `Emergencia por El Niño (${g("marco")})`, clase: "ancho", vence: "fen",
       ud: "Recursos autorizados por los decretos de emergencia.",
       extra: `<div class="vistas">${vista("Gastado en Piura", de1, "un marco de")}${vista("Por entidades con sede en Piura", de2, "un marco de", fenDe(1).pim > 0)}</div>`,
       pie: `MEF · datos al ${fecha(D.fen.fecha_corte)}` });
@@ -777,10 +798,10 @@ function pintarDenguePaneles() {
   const t = d.totales, df = d.defunciones, pie = `DIRESA Piura · ${g("se", `SE ${d.se}`)} · datos al ${fecha(d.fecha_corte)}`;
   const fr = frasesDengue();
   el.innerHTML =
-    panel({ titulo: `Casos de la semana ${d.se}`, cifra: num(t.semana), ud: g("cp"),
+    panel({ titulo: `Casos de la semana ${d.se}`, cifra: num(t.semana), ud: g("cp"), vence: "d26",
       mini: chispa((d.serie || []).map(s => s[1]), "Casos por semana en 2026"), frase: fr.semana, pie }) +
-    panel({ titulo: "Casos en el año", cifra: num(t.casos), ud: `hasta la semana ${d.se}`, frase: fr.anio, pie }) +
-    panel({ titulo: "Fallecidos en el año", cifra: df ? num(df.total) : "—",
+    panel({ titulo: "Casos en el año", cifra: num(t.casos), ud: `hasta la semana ${d.se}`, vence: "d26", frase: fr.anio, pie }) +
+    panel({ titulo: "Fallecidos en el año", cifra: df ? num(df.total) : "—", vence: "d26",
       ud: df ? `${num(df.confirmadas)} confirmados y ${num(df.probables)} probables` : "sin dato validado",
       frase: `Casos de ${g("grave", "dengue grave")} en el año: ${num(t.grave)}.`, pie });
   $("dengue-formas").innerHTML = [["Confirmados", t.confirmados], ["Probables", t.probables], ["Sin signos de alarma", t.sin_alarma],
@@ -866,7 +887,7 @@ function graficoSemanas() {
     globo.style.top = "8px";
   });
   zona.addEventListener("pointerleave", () => { globo.style.display = "none"; guia.setAttribute("visibility", "hidden"); });
-  $("pie-semanas").innerHTML = `2026: DIRESA Piura, SE ${D.d26?.se ?? "—"}, datos al ${fecha(D.d26?.fecha_corte)}.
+  $("pie-semanas").innerHTML = aviso("d26") + `2026: DIRESA Piura, SE ${D.d26?.se ?? "—"}, datos al ${fecha(D.d26?.fecha_corte)}.
     ${ANIOS_BROTE.join(", ")}: CDC-Minsa, datos al ${fecha(D.dh?.fecha_corte)}.`;
   $("nota-semanas").innerHTML =
     `Gráfico semanal. 2026: confirmados y probables, sala situacional de la DIRESA Piura (semana ${D.d26?.se ?? "—"}, datos al
@@ -975,10 +996,10 @@ function pintarSalud() {
     const e = c.establecimientos, rep = e.filter(x => x.reporto), conPd = rep.every(x => x.pacientes_dia != null);
     const oc = conPd ? pct(suma(rep, "pacientes_dia"), suma(rep, "dias_cama")) : null;
     const pie = `SUSALUD · ${esc(c.periodo)} · datos al ${fecha(c.fecha_corte)}`;
-    html += panel({ titulo: "Camas de hospitalización", cifra: num(suma(rep, "camas")),
+    html += panel({ titulo: "Camas de hospitalización", cifra: num(suma(rep, "camas")), vence: "camas",
       ud: `${num(suma(rep, "uci"))} ${g("uci", "camas UCI")}`, pie,
       frase: `En ${num(rep.length)} establecimientos de Piura que reportaron en ${esc(c.periodo)}; ${num(e.length - rep.length)} no reportaron ese mes.` });
-    html += panel({ titulo: `${g("ocupacion", "Ocupación")} de camas`, cifra: pctTxt(oc), ud: `promedio de ${esc(c.periodo)}`,
+    html += panel({ titulo: `${g("ocupacion", "Ocupación")} de camas`, cifra: pctTxt(oc), ud: `promedio de ${esc(c.periodo)}`, vence: "camas",
       mini: oc == null ? "" : medidor(oc), pie,
       frase: oc == null ? "El archivo de este mes no trae pacientes-día." :
         `En ${esc(c.periodo)}, las camas de los establecimientos que reportaron estuvieron ocupadas en promedio el ${pctTxt(oc)} de los días.
@@ -987,7 +1008,7 @@ function pintarSalud() {
   } else html += panel({ titulo: "Camas de hospitalización", cifra: "—", frase: "No se pudieron cargar los datos de SUSALUD." });
   if (h) {
     const sem = Object.keys(h.semanas).map(Number).sort((a, b) => a - b);
-    html += panel({ titulo: "Hospitalizados por dengue", cifra: num(h.total), ud: "en 2026",
+    html += panel({ titulo: "Hospitalizados por dengue", cifra: num(h.total), ud: "en 2026", vence: "d26",
       mini: chispa(sem.map(s => h.semanas[s]), "Hospitalizados por dengue por semana en 2026"),
       frase: `En la semana ${d.se}: ${num(h.semanas[d.se] ?? 0)} hospitalizados (${g("preliminar", "preliminar")}).`,
       pie: `DIRESA Piura · SE ${d.se} · datos al ${fecha(d.fecha_corte)}` });
@@ -1040,17 +1061,17 @@ function pintarObras() {
   const pie = `Infobras · datos al ${o.fecha_corte}`;
   const conMef = eje.filter(x => invObra(x)?.avance_fisico != null);
   $("obras-paneles").innerHTML =
-    panel({ titulo: g("paralizada", "Obras paralizadas"), cifra: num(par.length), ud: `costo total ${millones(suma(par, "costo_et"))}`,
+    panel({ titulo: g("paralizada", "Obras paralizadas"), cifra: num(par.length), ud: `costo total ${millones(suma(par, "costo_et"))}`, vence: "obras",
       clase: "alerta ancho", pie, frase: cs.length ? `La causa registrada con más obras es «${esc(cs[0][0])}» (${num(cs[0][1])} de ${num(par.length)}).` : "",
       extra: `<p class="nota" style="margin:4px 0 0">Las 5 de mayor costo:</p><ol class="lista-corta">${porCosto(par).slice(0, 5).map(x =>
         `<li><strong>${x.costo_et == null ? "Costo no registrado" : millones(x.costo_et)}</strong> · ${esc(x.obra)} · ${distritoTxt(x)} ·
         Causa: ${esc(x.causal || "no registrada")}</li>`).join("")}</ol>` }) +
-    panel({ titulo: "Causas de paralización", ud: "número de obras paralizadas por causa registrada", pie,
+    panel({ titulo: "Causas de paralización", ud: "número de obras paralizadas por causa registrada", pie, vence: "obras",
       extra: `<div class="barras">${[...top, ...(otras ? [["Otras causas", otras]] : [])].map(([k, n]) =>
         `<span>${esc(k)}</span><span>${num(n)}</span>${medidor(100 * n / top[0][1])}`).join("")}</div>` }) +
-    panel({ id: "brecha-panel", titulo: g("brecha", "¿Más pagado que construido?"), pie: D.invMeta ? `MEF · datos al ${fecha(D.invMeta.fecha_corte)}` : "",
+    panel({ id: "brecha-panel", titulo: g("brecha", "¿Más pagado que construido?"), vence: "inv", pie: D.invMeta ? `MEF · datos al ${fecha(D.invMeta.fecha_corte)}` : "",
       frase: fraseBrecha() }) +
-    panel({ titulo: "Obras en ejecución", cifra: num(eje.length), ud: `costo total ${millones(suma(eje, "costo_et"))}`, clase: "ancho",
+    panel({ titulo: "Obras en ejecución", cifra: num(eje.length), ud: `costo total ${millones(suma(eje, "costo_et"))}`, clase: "ancho", vence: ["obras", "inv"],
       frase: `${num(conMef.length)} de ${num(eje.length)} tienen ${g("fisico", "avance físico")} en el MEF (por código único de
         inversión). <span class="revisar">${notaInfobras(o)}</span>`,
       extra: `<p class="nota" style="margin:4px 0 0">Las 5 de mayor costo, con el avance físico de su inversión según el MEF:</p>
@@ -1189,9 +1210,9 @@ function pintarPrecios() {
   }
   const s = p.serie.slice(-24), u = p.serie.at(-1), pie = `INEI · ${mesTxt(u.mes)} · publicado el ${fecha(u.publicado)}`;
   el.innerHTML =
-    panel({ titulo: g("mensual", "Variación mensual"), cifra: pct2(u.mensual), ud: `${mesTxt(u.mes)}; nacional: ${pct2(u.nacional_mensual)}`,
+    panel({ titulo: g("mensual", "Variación mensual"), cifra: pct2(u.mensual), vence: "ipc", ud: `${mesTxt(u.mes)}; nacional: ${pct2(u.nacional_mensual)}`,
       frase: frasePrecios(u), pie }) +
-    panel({ titulo: g("doce", "Variación en 12 meses"), cifra: pct2(u.doce_meses), ud: `nacional: ${pct2(u.nacional_doce_meses)}`,
+    panel({ titulo: g("doce", "Variación en 12 meses"), cifra: pct2(u.doce_meses), ud: `nacional: ${pct2(u.nacional_doce_meses)}`, vence: "ipc",
       mini: chispa(s.map(x => x.doce_meses), "Variación en 12 meses del IPC de Piura, últimos 24 meses"),
       frase: `Acumulada en ${u.mes.slice(0, 4)}: ${pct2(u.acumulada)}.`, pie }) +
     panel({ titulo: "Variación en 12 meses: Piura y nacional", clase: "ancho", pie,
@@ -1229,20 +1250,20 @@ function pintarResumen() {
   if (d?.totales) {
     const fr = frasesDengue();
     ps.push(panel({ titulo: `<a href="#dengue">¿Cómo está el dengue?</a>`, cifra: num(d.totales.semana),
-      ud: `casos en la semana ${d.se} (confirmados y probables)`, mini: chispa(d.serie.map(s => s[1]), "Casos por semana en 2026"),
+      ud: `casos en la semana ${d.se} (confirmados y probables)`, vence: "d26", mini: chispa(d.serie.map(s => s[1]), "Casos por semana en 2026"),
       frase: fr.semana, pie: `DIRESA Piura · SE ${d.se} · ${fecha(d.fecha_corte)}` }));
   }
   if (D.gasto) {
     const t = gastoDe(() => true, 1), p = pct(t.dev, t.pim), trans = anioTranscurrido(D.gasto.fecha_corte, D.gasto.anio);
     ps.push(panel({ titulo: `<a href="#gasto">¿Cuánto se ha gastado?</a>`, cifra: pctTxt(p),
-      ud: `del presupuesto del año gastado en Piura (${millones(t.dev)} de ${millones(t.pim)})`, mini: medidor(p, trans),
+      ud: `del presupuesto del año gastado en Piura (${millones(t.dev)} de ${millones(t.pim)})`, vence: "gasto", mini: medidor(p, trans),
       frase: `Al ${fecha(D.gasto.fecha_corte)} ya pasó el ${num(trans, 0)} % del año (marca vertical): el gasto avanza en una
         proporción ${ritmo(p, trans)} a la del año transcurrido.`, pie: `MEF · ${fecha(D.gasto.fecha_corte)}` }));
   }
   if (D.obras) {
     const par = D.obras.obras.filter(x => x.estado === "Paralizada" && !APARTE[x.codigo_infobras]), cs = causas(par);
     ps.push(panel({ titulo: `<a href="#obras">¿Cómo van las obras?</a>`, cifra: num(par.length),
-      ud: `obras paralizadas, con un costo de ${millones(suma(par, "costo_et"))}`,
+      ud: `obras paralizadas, con un costo de ${millones(suma(par, "costo_et"))}`, vence: "obras",
       frase: cs.length ? `La causa registrada con más obras es «${esc(cs[0][0])}» (${num(cs[0][1])}).` : "",
       pie: `Infobras · ${D.obras.fecha_corte}` }));
   }
@@ -1250,7 +1271,7 @@ function pintarResumen() {
     const rep = D.camas.establecimientos.filter(x => x.reporto), conPd = rep.every(x => x.pacientes_dia != null);
     const oc = conPd ? pct(suma(rep, "pacientes_dia"), suma(rep, "dias_cama")) : null;
     ps.push(panel({ titulo: `<a href="#salud">¿Está preparada la salud?</a>`, cifra: pctTxt(oc),
-      ud: `ocupación promedio de camas, ${esc(D.camas.periodo)}`, mini: oc == null ? "" : medidor(oc),
+      ud: `ocupación promedio de camas, ${esc(D.camas.periodo)}`, vence: "camas", mini: oc == null ? "" : medidor(oc),
       frase: `${num(suma(rep, "camas"))} camas en ${num(rep.length)} establecimientos que reportaron.` +
         (d?.hospitalizados ? ` En 2026 hubo ${num(d.hospitalizados.total)} hospitalizados por dengue.` : ""),
       pie: `SUSALUD · ${esc(D.camas.periodo)}${d?.hospitalizados ? ` · DIRESA · SE ${d.se}` : ""}` }));
@@ -1258,7 +1279,7 @@ function pintarResumen() {
   if (D.ipc?.serie?.length) {
     const u = D.ipc.serie.at(-1);
     ps.push(panel({ titulo: `<a href="#precios">¿Cómo están los precios?</a>`, cifra: pct2(u.doce_meses),
-      ud: `variación de precios en Piura en 12 meses, a ${mesTxt(u.mes)}`,
+      ud: `variación de precios en Piura en 12 meses, a ${mesTxt(u.mes)}`, vence: "ipc",
       mini: chispa(D.ipc.serie.slice(-24).map(x => x.doce_meses), "Variación en 12 meses, últimos 24 meses"),
       frase: frasePrecios(u), pie: `INEI · ${mesTxt(u.mes)}` }));
   } else ps.push(panel({ titulo: `<a href="#precios">¿Cómo están los precios?</a>`, cifra: "Pendiente", clase: "pendiente",
@@ -1273,19 +1294,20 @@ function pintarResumen() {
 /* ---------- Fuentes y método ---------- */
 function pintarFuentes() {
   const filasF = [
-    ["Gasto público, prevención (0068), salud (0017) y ANIN", D.gasto, "Diaria"],
-    ["Gasto de emergencia FEN", D.fen, "Diaria"],
-    ["Avance físico y financiero acumulado de proyectos", D.invMeta, "Diaria"],
-    ["Obras en ejecución y paralizadas", D.obras, "Diaria (archivo sin avances desde marzo de 2026)"],
-    ["Dengue 2026: casos, graves, fallecidos, hospitalizados", D.d26 && { ...D.d26, fecha_corte: `${fecha(D.d26.fecha_corte)} (semana ${D.d26.se})` }, "Semanal (viernes)"],
+    ["Gasto público, prevención (0068), salud (0017) y ANIN", D.gasto, "Diaria", "gasto"],
+    ["Gasto de emergencia FEN", D.fen, "Diaria", "fen"],
+    ["Avance físico y financiero acumulado de proyectos", D.invMeta, "Diaria", "inv"],
+    ["Obras en ejecución y paralizadas", D.obras, "Diaria (archivo sin avances desde marzo de 2026)", "obras"],
+    ["Dengue 2026: casos, graves, fallecidos, hospitalizados", D.d26 && { ...D.d26, fecha_corte: `${fecha(D.d26.fecha_corte)} (semana ${D.d26.se})` }, "Semanal (viernes)", "d26"],
     ["Dengue 2000–2025 por distrito y semana", D.dh, "Archivo fijo; se actualiza a mano"],
-    ["Capacidad hospitalaria", D.camas && { ...D.camas, fecha_corte: `${fecha(D.camas.fecha_corte)} (${D.camas.periodo})` }, "Mensual"],
-    ["IPC de Piura", D.ipc && { ...D.ipc, fecha_corte: `${fecha(D.ipc.fecha_corte)} (${mesTxt(D.ipc.ultimo_mes)})` }, "Mensual (día 1)"],
+    ["Capacidad hospitalaria", D.camas && { ...D.camas, fecha_corte: `${fecha(D.camas.fecha_corte)} (${D.camas.periodo})` }, "Mensual", "camas"],
+    ["IPC de Piura", D.ipc && { ...D.ipc, fecha_corte: `${fecha(D.ipc.fecha_corte)} (${mesTxt(D.ipc.ultimo_mes)})` }, "Mensual (día 1)", "ipc"],
     ["Límites distritales del mapa", D.mapa && { ...D.mapa, fecha_corte: "límites de 2007" }, "Fijo"],
   ];
-  $("fuentes-cuerpo").innerHTML = filasF.map(([ind, d, frec]) =>
-    `<tr><td>${ind}</td><td>${d ? enlace(d) : `<span class="revisar">no se pudo cargar</span>`}</td><td>${frec}</td>
-      <td>${d ? fecha(d.fecha_corte) : "—"}</td></tr>`).join("") +
+  $("fuentes-cuerpo").innerHTML = filasF.map(([ind, d, frec, clave]) =>
+    `<tr><td>${ind}</td><td>${d ? enlace(d) : `<span class="revisar">no se pudo cargar</span>`}</td><td>${frec}${clave ?
+      `<br><span class="nota">Aviso si pasan más de ${PLAZOS[clave]} días</span>` : ""}</td>
+      <td>${d ? fecha(d.fecha_corte) : "—"}${clave ? aviso(clave) : ""}</td></tr>`).join("") +
     `<tr><td>Vacunación contra el dengue</td><td>Pedido en trámite a la DIRESA Piura (no hay archivo abierto del Minsa)</td><td>—</td><td>—</td></tr>
      <tr><td>Precios en mercados</td><td><a href="http://sistemas.midagri.gob.pe/sisap/portal2/ciudades/" target="_blank" rel="noopener">SISAP, MIDAGRI</a>: en preparación</td><td>—</td><td>—</td></tr>`;
   const d = D.d26;

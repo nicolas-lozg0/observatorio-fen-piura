@@ -3,6 +3,7 @@ import email.utils
 import json
 import shutil
 import sys
+import time
 import urllib.request
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -20,16 +21,30 @@ def verificar_espacio():
         sys.exit(f"Detenido: quedan {libre:.0f} MB libres en disco (mínimo {MINIMO_MB} MB).")
 
 
+def abrir(url, timeout=180, intentos=3, espera=20, metodo=None):
+    """urlopen con reintentos: 3 intentos, con 20 y 40 s de espera entre ellos (espera creciente).
+    Algunos portales del Estado tardan o cortan la conexión de vez en cuando."""
+    req = urllib.request.Request(url, method=metodo, headers={"User-Agent": "Mozilla/5.0 (observatorio-fen-piura)"})
+    for i in range(1, intentos + 1):
+        try:
+            return urllib.request.urlopen(req, timeout=timeout)
+        except OSError as e:  # URLError y TimeoutError heredan de OSError
+            if i == intentos:
+                raise
+            print(f"  Intento {i} de {intentos} falló ({e}); nuevo intento en {espera * i} s", flush=True)
+            time.sleep(espera * i)
+
+
 def fecha_modificacion(url):
     """Fecha de última modificación del archivo en el servidor (hora de Perú), o None."""
-    with urllib.request.urlopen(urllib.request.Request(url, method="HEAD"), timeout=60) as r:
+    with abrir(url, metodo="HEAD", timeout=60) as r:
         lm = r.headers.get("Last-Modified")
     return email.utils.parsedate_to_datetime(lm).astimezone(PERU).isoformat(timespec="minutes") if lm else None
 
 
 def descargar(url, destino):
     """Descarga a un archivo revisando el espacio libre cada 8 MB."""
-    with urllib.request.urlopen(url, timeout=120) as r, open(destino, "wb") as f:
+    with abrir(url) as r, open(destino, "wb") as f:
         while bloque := r.read(8 * 2**20):
             f.write(bloque)
             verificar_espacio()
