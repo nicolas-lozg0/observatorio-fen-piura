@@ -28,7 +28,8 @@ fallos=""
 echo "== Infobras (descarga un Excel de ~57 MB; tarda unos 5 minutos)"
 python3 scripts/infobras.py || fallos="$fallos infobras.py"
 echo "== SUSALUD, camas (último mes publicado)"
-python3 scripts/camas_susalud.py || fallos="$fallos camas_susalud.py"
+# primero la prueba del cálculo: si SUSALUD cambió algo y la prueba falla, no se actualizan las camas
+python3 scripts/test_camas.py && python3 scripts/camas_susalud.py || fallos="$fallos camas_susalud.py"
 
 git add $ARCHIVOS
 if git diff --cached --quiet; then
