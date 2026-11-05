@@ -22,7 +22,6 @@ jobs:
       - run: pip install -r requirements.txt
       - run: python scripts/test_dengue.py
       - run: python scripts/dengue_diresa.py
-      - run: python scripts/historial.py
       - name: Guardar datos nuevos
         run: |
           git config user.name "github-actions[bot]"

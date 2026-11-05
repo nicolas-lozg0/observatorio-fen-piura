@@ -35,7 +35,6 @@ jobs:
       - id: ipc
         run: python scripts/ipc_inei.py  # dato mensual: solo descarga el informe del INEI si hay uno nuevo
         continue-on-error: true
-      - run: python scripts/historial.py
       - name: Guardar datos nuevos
         run: |
           git config user.name "github-actions[bot]"
