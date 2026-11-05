@@ -522,7 +522,7 @@ const medidor = (p, marca) => `<div class="medidor" title="${pctTxt(p)}"><div st
 function fecha(iso) {
   if (!iso) return "fecha no disponible";
   const m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})/);
-  return m ? `${m[3]}/${m[2]}/${m[1]}` : iso;
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : esc(iso);  // texto de la fuente: se escapa antes de ir a innerHTML
 }
 // Fecha de los datos como Date: acepta "aaaa-mm-dd…" (ISO) y "dd/mm/aaaa" (Infobras)
 function aFecha(s) {
@@ -1058,7 +1058,7 @@ function pintarObras() {
   const activas = o.obras.filter(x => !APARTE[x.codigo_infobras]), aparte = o.obras.filter(x => APARTE[x.codigo_infobras]);
   const de = e => activas.filter(x => x.estado === e), par = de("Paralizada"), eje = de("En Ejecución");
   const cs = causas(par), top = cs.slice(0, 5), otras = cs.slice(5).reduce((s, [, n]) => s + n, 0);
-  const pie = `Infobras · datos al ${o.fecha_corte}`;
+  const pie = `Infobras · datos al ${fecha(o.fecha_corte)}`;
   const conMef = eje.filter(x => invObra(x)?.avance_fisico != null);
   $("obras-paneles").innerHTML =
     panel({ titulo: g("paralizada", "Obras paralizadas"), cifra: num(par.length), ud: `costo total ${millones(suma(par, "costo_et"))}`, vence: "obras",
@@ -1091,7 +1091,7 @@ function pintarObras() {
   pintarListaObras();
   $("fuente-obras").innerHTML = fuente(o) + " Estado y causa según lo registrado por cada entidad en Infobras. " +
     notaInfobras(o) + (D.invMeta ? ` Avance físico de la inversión: ${enlace(D.invMeta)}. Datos MEF al ${fecha(D.invMeta.fecha_corte)}.` : "") +
-    ` En el archivo del ${o.fecha_corte} se excluyeron ${num(o.excluidas_fecha_futura ?? 0)} filas de todo el país con mes de avance futuro.`;
+    ` En el archivo del ${fecha(o.fecha_corte)} se excluyeron ${num(o.excluidas_fecha_futura ?? 0)} filas de todo el país con mes de avance futuro.`;
 }
 
 function pintarListaObras() {
@@ -1265,7 +1265,7 @@ function pintarResumen() {
     ps.push(panel({ titulo: `<a href="#obras">¿Cómo van las obras?</a>`, cifra: num(par.length),
       ud: `obras paralizadas, con un costo de ${millones(suma(par, "costo_et"))}`, vence: "obras",
       frase: cs.length ? `La causa registrada con más obras es «${esc(cs[0][0])}» (${num(cs[0][1])}).` : "",
-      pie: `Infobras · ${D.obras.fecha_corte}` }));
+      pie: `Infobras · ${fecha(D.obras.fecha_corte)}` }));
   }
   if (D.camas) {
     const rep = D.camas.establecimientos.filter(x => x.reporto), conPd = rep.every(x => x.pacientes_dia != null);
