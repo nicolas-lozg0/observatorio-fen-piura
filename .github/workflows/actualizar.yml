@@ -23,17 +23,14 @@ jobs:
       - run: pip install -r requirements.txt
       - run: python scripts/test_gasto_mef.py
       - run: python scripts/gasto_mef.py
+      # Infobras y SUSALUD no responden a los servidores de GitHub (tiempo agotado en todas las ejecuciones desde el
+      # 30/10/2026): se actualizan desde una computadora con scripts/actualizar_local.sh (ver docs/actualizacion_local.md).
+      # inversiones_mef.py usa los CUI de docs/data/infobras_piura.json tal como está en el repositorio.
+      - run: python scripts/inversiones_mef.py
       # Pasos opcionales: si una fuente falla, se conservan sus datos anteriores (con su propia fecha) y el resto
       # sigue. El último paso informa cuáles fallaron y hace fallar la ejecución para que GitHub avise por correo.
-      - id: infobras
-        run: python scripts/infobras.py  # antes de inversiones_mef.py, que usa sus CUI
-        continue-on-error: true
-      - run: python scripts/inversiones_mef.py
       - id: fen
         run: python scripts/fen_mef.py
-        continue-on-error: true
-      - id: camas
-        run: python scripts/camas_susalud.py  # dato mensual: vuelve a leer el último mes publicado
         continue-on-error: true
       - id: ipc
         run: python scripts/ipc_inei.py  # dato mensual: solo descarga el informe del INEI si hay uno nuevo
@@ -49,9 +46,7 @@ jobs:
       - name: Revisar pasos opcionales
         if: always()
         env:
-          INFOBRAS: ${{ steps.infobras.outcome }}
           FEN: ${{ steps.fen.outcome }}
-          CAMAS: ${{ steps.camas.outcome }}
           IPC: ${{ steps.ipc.outcome }}
         run: |
           fallidos=0
@@ -60,8 +55,7 @@ jobs:
             echo ""
             echo "| Fuente | Script | Resultado |"
             echo "| --- | --- | --- |"
-            for f in "Infobras|infobras.py|$INFOBRAS" "Emergencia FEN (MEF)|fen_mef.py|$FEN" \
-                     "Camas (SUSALUD)|camas_susalud.py|$CAMAS" "IPC (INEI)|ipc_inei.py|$IPC"; do
+            for f in "Emergencia FEN (MEF)|fen_mef.py|$FEN" "IPC (INEI)|ipc_inei.py|$IPC"; do
               IFS="|" read -r nombre script resultado <<< "$f"
               case "$resultado" in
                 success) txt="correcto" ;;
@@ -70,6 +64,8 @@ jobs:
               esac
               echo "| $nombre | \`$script\` | $txt |"
             done
+            echo ""
+            echo "Infobras y SUSALUD (camas) se actualizan a mano con \`scripts/actualizar_local.sh\`."
           } >> "$GITHUB_STEP_SUMMARY"
           if [ "$fallidos" -gt 0 ]; then
             echo "::error::$fallidos fuente(s) opcional(es) fallaron; ver el resumen de la ejecución."

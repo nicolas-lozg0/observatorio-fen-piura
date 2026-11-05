@@ -1297,10 +1297,10 @@ function pintarFuentes() {
     ["Gasto público, prevención (0068), salud (0017) y ANIN", D.gasto, "Diaria", "gasto"],
     ["Gasto de emergencia FEN", D.fen, "Diaria", "fen"],
     ["Avance físico y financiero acumulado de proyectos", D.invMeta, "Diaria", "inv"],
-    ["Obras en ejecución y paralizadas", D.obras, "Diaria (archivo sin avances desde marzo de 2026)", "obras"],
+    ["Obras en ejecución y paralizadas", D.obras, "Semanal, a mano (archivo sin avances desde marzo de 2026)", "obras"],
     ["Dengue 2026: casos, graves, fallecidos, hospitalizados", D.d26 && { ...D.d26, fecha_corte: `${fecha(D.d26.fecha_corte)} (semana ${D.d26.se})` }, "Semanal (viernes)", "d26"],
     ["Dengue 2000–2025 por distrito y semana", D.dh, "Archivo fijo; se actualiza a mano"],
-    ["Capacidad hospitalaria", D.camas && { ...D.camas, fecha_corte: `${fecha(D.camas.fecha_corte)} (${D.camas.periodo})` }, "Mensual", "camas"],
+    ["Capacidad hospitalaria", D.camas && { ...D.camas, fecha_corte: `${fecha(D.camas.fecha_corte)} (${D.camas.periodo})` }, "Mensual, a mano", "camas"],
     ["IPC de Piura", D.ipc && { ...D.ipc, fecha_corte: `${fecha(D.ipc.fecha_corte)} (${mesTxt(D.ipc.ultimo_mes)})` }, "Mensual (día 1)", "ipc"],
     ["Límites distritales del mapa", D.mapa && { ...D.mapa, fecha_corte: "límites de 2007" }, "Fijo"],
   ];
