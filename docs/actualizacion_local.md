@@ -76,6 +76,8 @@ python3 scripts/test_pagina.py
   - que no haya errores en la consola;
   - que el enlace antiguo `#alertas` lleve a Obras;
   - que el año de la pestaña Dengue sea el de la sala;
+  - que los rótulos del gráfico semanal de dengue no se encimen;
+  - que las pestañas midan al menos 44 px de alto, y que estén "Actualizado al", el botón de compartir y los enlaces "Siguiente";
   - que el aviso "Dato no actualizado" aparezca con una fecha simulada 60 días después.
 - **Resultado:** termina con `OK` o con la lista de lo que falló. Tarda unos 25 segundos.
 - **Requisito, una sola vez:** `pip3 install playwright`. No hace falta `playwright install`: en macOS 12 Playwright no trae navegador, y la prueba usa Brave o Chrome si están instalados. Con otro navegador basado en Chromium: `NAVEGADOR=/ruta/al/ejecutable python3 scripts/test_pagina.py`.

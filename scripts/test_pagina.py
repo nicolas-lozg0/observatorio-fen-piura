@@ -9,6 +9,7 @@ Revisa, en escritorio (1280 px) y celular (375 px):
   - que un enlace antiguo (#alertas) abra Obras con el detalle desplegado;
   - que el año de la pestaña Dengue sea el de la sala de la DIRESA;
   - que los rótulos del gráfico semanal de dengue no se encimen ni se salgan del gráfico;
+  - que las pestañas midan al menos 44 px de alto, y que estén el botón de compartir y los enlaces "Siguiente";
   - que aparezca "Dato no actualizado" si se simula una fecha 60 días después.
 
 Requiere Playwright (pip3 install playwright) y un navegador Chromium: usa Brave o Chrome si están
@@ -108,6 +109,12 @@ def main():
                 }""")
                 revisar(r["n"] >= 2 and not r["choques"] and not r["fuera"],
                         f"{ancho}px gráfico de dengue: {r['n']} rótulos, se enciman {r['choques']}, fuera {r['fuera']}")
+                r = pg.evaluate("""() => ({ alto: Math.min(...[...document.querySelectorAll('.pestanas a')].map(a => a.getBoundingClientRect().height)),
+                    compartir: !!document.getElementById('compartir'), siguientes: document.querySelectorAll('.siguiente a').length,
+                    actualizado: document.getElementById('actualizado').textContent })""")
+                revisar(r["alto"] >= 44, f"{ancho}px: pestañas de {r['alto']:.0f} px (mínimo 44)")
+                revisar(r["compartir"] and r["siguientes"] == len(PESTANAS) and r["actualizado"].startswith("Actualizado al"),
+                        f"{ancho}px: compartir {r['compartir']}, enlaces Siguiente {r['siguientes']}, «{r['actualizado']}»")
                 revisar(not errores, f"{ancho}px: errores en la consola: {errores[:3]}")
                 pg.close()
             # Aviso de datos viejos: con el reloj 60 días adelante deben aparecer avisos
@@ -123,7 +130,7 @@ def main():
     if fallos:
         print("FALLA:\n  " + "\n  ".join(fallos))
         sys.exit(1)
-    print(f"OK: {len(PESTANAS)} pestañas a 1280 y 375 px, enlace antiguo, año de Dengue, rótulos del gráfico y aviso de datos viejos")
+    print(f"OK: {len(PESTANAS)} pestañas a 1280 y 375 px, enlace antiguo, año de Dengue, rótulos del gráfico, pestañas, compartir y aviso de datos viejos")
 
 
 if __name__ == "__main__":
