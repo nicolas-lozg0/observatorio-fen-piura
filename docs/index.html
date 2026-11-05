@@ -779,9 +779,9 @@ const pico = v => Object.entries(v).reduce((m, [s, c]) => c > m[1] ? [+s, c] : m
 // Frases del dengue (reglas en "Fuentes y método")
 function frasesDengue() {
   const d = D.d26, serie = Object.fromEntries((d.serie || []).map(([s, c]) => [s, c])), se = d.se;
-  const ant = serie[se - 1], act = d.totales.semana, prelim = se - 1 > se - PRELIMINAR;
+  const ant = serie[se - 1], act = d.totales.semana;
   const semana = ant == null ? "" : `En la semana ${se} se notificaron ${num(act)} casos, ${act > ant ? "más" : act < ant ? "menos" : "igual"}
-    que en la semana ${se - 1} (${num(ant)}).${prelim ? ` Ambas cifras son ${g("preliminar", "preliminares")}.` : ""}`;
+    que en la semana ${se - 1} (${num(ant)}).${PRELIMINAR >= 2 ? ` Ambas cifras son ${g("preliminar", "preliminares")}.` : ""}`;
   let anio = "";
   if (D.dh) {
     const h = historicoPorSemana("CP");
