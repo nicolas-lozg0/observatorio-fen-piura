@@ -15,6 +15,7 @@ Uso: python3 scripts/dengue_diresa.py            (sala más reciente; no hace na
 """
 import json
 import re
+import shutil
 import sys
 import tempfile
 import urllib.request
@@ -27,7 +28,7 @@ import pypdf
 from comun import DATOS, descargar, guardar, verificar_espacio
 
 LISTADO = "https://www.gob.pe/institucion/regionpiura-diresa/informes-publicaciones?term=sala%20situacional"
-SALIDA = DATOS / "dengue_2026.json"
+SALIDA = DATOS / "dengue_2026.json"  # nombre histórico: guarda la sala del año en curso (el año va en fecha_corte)
 NUM = re.compile(r"^\d{1,3}(,\d{3})*(\.\d+)?%?$|^\d+(\.\d+)?%?$")  # 1,234 · 12.5 · 18.06%
 MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "setiembre", "octubre",
          "noviembre", "diciembre"]
@@ -324,7 +325,8 @@ def main():
         se_pub = None
     else:
         se_pub, anio, pagina, enlace = ultima_sala()
-        if SALIDA.exists() and json.loads(SALIDA.read_text())["se"] == se_pub:
+        previo = json.loads(SALIDA.read_text()) if SALIDA.exists() else {}
+        if previo.get("se") == se_pub and str(previo.get("fecha_corte", ""))[:4] == str(anio):
             print(f"La sala SE {se_pub}-{anio} ya está procesada.")
             return
     with tempfile.TemporaryDirectory() as tmp:
@@ -335,6 +337,11 @@ def main():
         se, fecha, r, val = extraer(ruta)
     for k, v in val.items():
         print(f"  {k}: {v}")
+    # Cambio de año: antes de reemplazar la última sala del año anterior, se guarda una copia de cierre
+    anio_previo = json.loads(SALIDA.read_text()).get("fecha_corte", "")[:4] if SALIDA.exists() else ""
+    if anio_previo and anio_previo != fecha[:4]:
+        shutil.copy(SALIDA, DATOS / f"dengue_{anio_previo}_cierre.json")
+        print(f"Cambio de año: copia de la última sala de {anio_previo} en dengue_{anio_previo}_cierre.json")
     total, provs = r["provincias"] or (None, None)
     dist = r["distritos"]
     guardar("dengue_2026.json", {

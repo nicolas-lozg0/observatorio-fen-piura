@@ -201,13 +201,13 @@
 
   <!-- ===================== DENGUE ===================== -->
   <section class="pestana" id="dengue" aria-labelledby="t-dengue" hidden>
-    <h2 id="t-dengue">Dengue en Piura, 2026</h2>
+    <h2 id="t-dengue">Dengue en Piura, <span class="anio-d">2026</span></h2>
     <p class="intro">Casos <span data-g="cp">confirmados y probables</span> según la sala situacional de la DIRESA Piura, por
       <span data-g="se">semana epidemiológica</span>.</p>
     <div class="paneles" id="dengue-paneles"></div>
     <div class="paneles" style="margin-top:12px">
       <div class="panel ancho" id="dengue-semanas">
-        <h3>Casos por semana: 2026 frente a años de brote</h3>
+        <h3>Casos por semana: <span class="anio-d">2026</span> frente a años de brote</h3>
         <p class="frase" id="anota-semanas"></p>
         <div class="leyenda" id="leyenda-semanas"></div>
         <div class="grafico" id="g-semanas"></div>
@@ -231,7 +231,7 @@
           <tbody id="dist-cuerpo"></tbody>
         </table></div>
         <p class="nota" id="nota-distritos"></p>
-        <h3>Gravedad y diagnóstico en 2026</h3>
+        <h3>Gravedad y diagnóstico en <span class="anio-d">2026</span></h3>
         <div class="tabla"><table style="max-width:560px"><tbody id="dengue-formas"></tbody></table></div>
         <h3>Opciones del gráfico</h3>
         <div class="filtros" style="max-width:520px">
@@ -354,7 +354,7 @@
           <tbody id="camas"></tbody>
         </table></div>
         <button type="button" class="mas" id="camas-mas" hidden></button>
-        <h3 id="dengue-hospitalizados">Hospitalizados por dengue según establecimiento (2026)</h3>
+        <h3 id="dengue-hospitalizados">Hospitalizados por dengue según establecimiento (<span class="anio-d">2026</span>)</h3>
         <div class="tabla alta"><table style="max-width:640px">
           <thead><tr><th>Establecimiento</th><th class="n">Hospitalizados en el año</th></tr></thead>
           <tbody id="hosp"></tbody>
@@ -422,13 +422,13 @@
             inversión y la celda lo indica. El archivo del MEF no indica el mes del avance; se muestra la fecha del archivo.</li>
           <li><strong>Obras ligadas a El Niño.</strong> El costo total de las obras no incluye megaproyectos sin relación con
             El Niño (por ahora, la Refinería de Talara); se mencionan aparte.</li>
-          <li><strong>Dengue: confirmados y probables.</strong> Los casos de 2026 suman confirmados y probables, como los
+          <li><strong>Dengue: confirmados y probables.</strong> Los casos del año en curso suman confirmados y probables, como los
             reporta la DIRESA Piura. Los fallecidos siguen el mismo criterio.</li>
           <li><strong>Ocupación de camas.</strong> Pacientes-día del mes / días-cama disponibles del mes (SUSALUD). Es un
             promedio mensual, no la ocupación de hoy.</li>
           <li><strong>Datos no actualizados.</strong> Si una fuente pasa más días de lo esperado sin actualizarse, junto a
             sus cifras aparece "Dato no actualizado desde [fecha]". Plazos: MEF (gasto, emergencia FEN, avance de
-            proyectos), 3 días; dengue 2026, 14; Infobras, 35; camas, 45; IPC, 45. Se cuenta desde la fecha de los datos.</li>
+            proyectos), 3 días; dengue, 14; Infobras, 35; camas, 45; IPC, 45. Se cuenta desde la fecha de los datos.</li>
           <li><strong>IPC de Piura.</strong> Variaciones del Cuadro 2 del informe técnico mensual del INEI. Se validó con
             febrero de 2026 (0,48 % mensual y 2,28 % en 12 meses).</li>
         </ul>
@@ -437,7 +437,7 @@
         <ul class="metodo">
           <li><strong>Dengue, semana.</strong> Compara los casos de la última semana con los de la semana anterior (más,
             menos o igual) y avisa si alguna de las dos está entre las <span class="n-prelim"></span> últimas, que son preliminares.</li>
-          <li><strong>Dengue, año.</strong> Suma los casos de 2026 hasta la última semana y los compara con la suma hasta esa
+          <li><strong>Dengue, año.</strong> Suma los casos del año en curso hasta la última semana y los compara con la suma hasta esa
             misma semana en 2017, 2023 y 2024 (confirmados y probables).</li>
           <li><strong>Gasto.</strong> Compara el porcentaje gastado del PIM con el porcentaje del año ya transcurrido a la
             fecha de los datos: "menor" o "mayor" si la diferencia supera 5 puntos; si no, "similar".</li>
@@ -451,7 +451,7 @@
         <ul class="metodo">
           <li><strong>Gasto (MEF).</strong> Se suman los montos tal como vienen en el archivo oficial. El filtro de Piura y las
             sumas se prueban con datos de ejemplo en cada actualización.</li>
-          <li><strong>Dengue 2026 (DIRESA).</strong> Cada tabla del PDF se compara con los totales del propio PDF; si no cuadra,
+          <li><strong>Dengue del año en curso (DIRESA).</strong> Cada tabla del PDF se compara con los totales del propio PDF; si no cuadra,
             no se publica y se indica.</li>
           <li><strong>Dengue 2000–2025 (CDC-Minsa).</strong> Cada fila del archivo es un caso; se comprueba que la suma del
             resumen sea igual al número de filas de Piura.</li>
@@ -476,13 +476,15 @@
 <script>
 const D = {};  // datos cargados
 let ambito = 1;  // punto de vista de la tabla de proyectos: 1 = gastado en Piura, 2 = entidades con sede en Piura
-const ANIOS_BROTE = [2017, 2023, 2024];  // años de brote con los que se compara 2026
+const ANIOS_BROTE = [2017, 2023, 2024];  // años de brote con los que se compara el año en curso
+// Año de la sala de la DIRESA en pantalla (sale de su fecha de corte; el archivo se llama dengue_2026.json por historia)
+const anioD = () => String(D.d26?.fecha_corte ?? "").slice(0, 4) || "—";
 const GRISES = ["var(--g1)", "var(--g2)", "var(--g3)"];
 const BRECHA = 30;  // puntos de diferencia entre avance financiero y físico para alertar
 // Megaproyectos sin relación con El Niño: fuera del costo total de obras (código Infobras → motivo)
 const APARTE = { "42412": "proyecto de Petroperú, sin relación con El Niño" };
 const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "setiembre", "octubre", "noviembre", "diciembre"];
-const PRELIMINAR = 3;  // últimas semanas de 2026 que se dibujan punteadas
+const PRELIMINAR = 3;  // últimas semanas del año en curso que se dibujan punteadas
 const NIVELES = [["E", "Gobierno nacional"], ["R", "Gobierno regional"], ["M", "Gobiernos locales"]];
 const PESTANAS = ["resumen", "dengue", "gasto", "obras", "salud", "precios", "fuentes"];
 // Días que puede pasar una fuente sin actualizarse antes de avisar "Dato no actualizado desde…"
@@ -799,7 +801,7 @@ function pintarDenguePaneles() {
   const fr = frasesDengue();
   el.innerHTML =
     panel({ titulo: `Casos de la semana ${d.se}`, cifra: num(t.semana), ud: g("cp"), vence: "d26",
-      mini: chispa((d.serie || []).map(s => s[1]), "Casos por semana en 2026"), frase: fr.semana, pie }) +
+      mini: chispa((d.serie || []).map(s => s[1]), `Casos por semana en ${anioD()}`), frase: fr.semana, pie }) +
     panel({ titulo: "Casos en el año", cifra: num(t.casos), ud: `hasta la semana ${d.se}`, vence: "d26", frase: fr.anio, pie }) +
     panel({ titulo: "Fallecidos en el año", cifra: df ? num(df.total) : "—", vence: "d26",
       ud: df ? `${num(df.confirmadas)} confirmados y ${num(df.probables)} probables` : "sin dato validado",
@@ -816,14 +818,14 @@ function graficoSemanas() {
   const dx = $("f-dx").value;
   const hist = D.dh ? historicoPorSemana(dx) : {};
   const series = [];
-  if (D.d26?.serie) series.push({ nombre: "2026", color: "var(--acento)", ancho: 3, v: Object.fromEntries(D.d26.serie.map(([s, c]) => [s, c])) });
+  if (D.d26?.serie) series.push({ nombre: anioD(), actual: true, color: "var(--acento)", ancho: 3, v: Object.fromEntries(D.d26.serie.map(([s, c]) => [s, c])) });
   ANIOS_BROTE.forEach((a, i) => hist[a] && series.push({ nombre: String(a), color: GRISES[i], ancho: 2, v: hist[a] }));
   const W = Math.max(300, Math.min(1040, el.clientWidth || 720)), H = W < 500 ? 260 : 320, m = { l: 52, r: 40, t: 10, b: 26 };
   const maxSem = 53, maxV = Math.max(...series.flatMap(s => Object.values(s.v)));
   const paso = [10, 20, 50, 100, 200, 250, 500, 1000, 2000, 2500, 5000].find(p => maxV / p <= 5) || 10000;
   const tope = Math.ceil(maxV / paso) * paso;
   const x = s => m.l + (s - 1) * (W - m.l - m.r) / (maxSem - 1), y = v => H - m.b - v * (H - m.t - m.b) / tope;
-  const A = 2026;  // calendario para ubicar los meses en el eje (en otros años se corren uno o dos días)
+  const A = Number(anioD()) || new Date().getFullYear();  // calendario de los meses del eje (en otros años se corren uno o dos días)
   let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Casos de dengue por semana epidemiológica en Piura">`;
   // Franja con los meses en que llegó el pico en los años de brote (se calcula con los datos)
   const picos = ANIOS_BROTE.filter(a => hist[a]).map(a => { const [s] = pico(hist[a]); return { a, s, mes: mesDeSE(a, s) }; });
@@ -840,14 +842,14 @@ function graficoSemanas() {
     svg += `<line x1="${x(s0)}" x2="${x(s0)}" y1="${H - m.b}" y2="${H - m.b + 4}" stroke="var(--texto-3)"/>
       <text x="${x(semanaDe(A, k, 15))}" y="${H - m.b + 16}" text-anchor="middle">${W < 500 ? n[0].toUpperCase() : n[0].toUpperCase() + n.slice(1, 3)}</text>`;
   });
-  // Las series de años anteriores primero; 2026 encima
+  // Las series de años anteriores primero; el año en curso encima
   const rotulos = [];
   const linea = (s, ks, extra = "") => `<polyline fill="none" stroke="${s.color}" stroke-width="${s.ancho}" stroke-linejoin="round"
       stroke-linecap="round" ${extra} points="${ks.map(k => `${x(k).toFixed(1)},${y(s.v[k] || 0).toFixed(1)}`).join(" ")}"/>`;
   for (const s of [...series].reverse()) {
     const ult = Math.max(...Object.keys(s.v).map(Number));
     const llenos = []; for (let k = 1; k <= ult; k++) llenos.push(k);  // semanas sin casos = 0
-    const corte = s.nombre === "2026" ? Math.max(1, ult - PRELIMINAR) : ult;  // desde aquí, punteada (preliminar)
+    const corte = s.actual ? Math.max(1, ult - PRELIMINAR) : ult;  // desde aquí, punteada (preliminar)
     svg += linea(s, llenos.slice(0, corte));
     if (corte < ult) svg += linea(s, llenos.slice(corte - 1), `stroke-dasharray="2 5"`);
     rotulos.push({ t: s.nombre, x: x(ult) + 4, y: y(s.v[ult] || 0) });
@@ -860,15 +862,15 @@ function graficoSemanas() {
     <div class="globo" id="globo-sem"></div>`;
   el.innerHTML = svg;
   $("leyenda-semanas").innerHTML = series.map(s => `<span style="--c:${s.color}">${s.nombre}</span>`).join("") +
-    (D.d26?.serie ? `<span style="--c:repeating-linear-gradient(90deg, var(--acento) 0 3px, transparent 3px 6px)">2026, últimas
+    (D.d26?.serie ? `<span style="--c:repeating-linear-gradient(90deg, var(--acento) 0 3px, transparent 3px 6px)">${anioD()}, últimas
       ${PRELIMINAR} semanas: preliminar</span>` : "");
-  // Anotación: mes del pico de cada año de brote frente al de 2026 (se calcula con los datos)
+  // Anotación: mes del pico de cada año de brote frente al del año en curso (se calcula con los datos)
   if (D.d26?.serie && picos.length) {
-    const [s26, c26] = pico(series[0].v), mes26 = mesDeSE(2026, s26), ult26 = Math.max(...Object.keys(series[0].v).map(Number));
+    const [s26, c26] = pico(series[0].v), mes26 = mesDeSE(A, s26), ult26 = Math.max(...Object.keys(series[0].v).map(Number));
     const sMin = Math.min(...picos.map(p => p.s)), sMax = Math.max(...picos.map(p => p.s));
     const fuera = mes26 < mMin || mes26 > mMax;
     $("anota-semanas").innerHTML = `En ${lista(picos.map(p => String(p.a)))}, el pico llegó entre ${MESES[mMin]} y ${MESES[mMax]}
-      (semanas ${sMin} a ${sMax}). En 2026, la semana con más casos es la ${s26} (${num(c26)}${s26 > ult26 - PRELIMINAR ? ", preliminar" : ""}),
+      (semanas ${sMin} a ${sMax}). En ${anioD()}, la semana con más casos es la ${s26} (${num(c26)}${s26 > ult26 - PRELIMINAR ? ", preliminar" : ""}),
       en ${MESES[mes26]}${fuera ? ", fuera de esa temporada" : ""}.`;
   }
   // Globo al pasar el cursor: valores de cada año en la semana más cercana
@@ -887,10 +889,10 @@ function graficoSemanas() {
     globo.style.top = "8px";
   });
   zona.addEventListener("pointerleave", () => { globo.style.display = "none"; guia.setAttribute("visibility", "hidden"); });
-  $("pie-semanas").innerHTML = aviso("d26") + `2026: DIRESA Piura, SE ${D.d26?.se ?? "—"}, datos al ${fecha(D.d26?.fecha_corte)}.
+  $("pie-semanas").innerHTML = aviso("d26") + `${anioD()}: DIRESA Piura, SE ${D.d26?.se ?? "—"}, datos al ${fecha(D.d26?.fecha_corte)}.
     ${ANIOS_BROTE.join(", ")}: CDC-Minsa, datos al ${fecha(D.dh?.fecha_corte)}.`;
   $("nota-semanas").innerHTML =
-    `Gráfico semanal. 2026: confirmados y probables, sala situacional de la DIRESA Piura (semana ${D.d26?.se ?? "—"}, datos al
+    `Gráfico semanal. ${anioD()}: confirmados y probables, sala situacional de la DIRESA Piura (semana ${D.d26?.se ?? "—"}, datos al
      ${fecha(D.d26?.fecha_corte)}); las últimas semanas suelen corregirse al alza. ${ANIOS_BROTE.join(", ")}: ${dx === "C" ?
      "solo casos confirmados" : "confirmados y probables"}. ${D.dh ? fuente(D.dh) : ""} En el histórico casi no hay probables en
      2023 y 2024. La franja gris marca los meses en que llegó el pico en los años de brote.`;
@@ -904,17 +906,17 @@ function ubigeoPorNombre() {
 }
 
 function datosDistritos(anio) {
-  if (anio === "2026") {
+  if (anio === anioD()) {
     const d = D.d26, ub = ubigeoPorNombre();
     const fs = (d?.distritos || []).filter(f => f.provincia !== "IMPORTADO").map(f => ({
       ubigeo: ub(f.provincia, f.distrito), provincia: f.provincia, distrito: f.distrito, casos: f.total,
       tia: f.tia, ultima: f.semanas[d.se] ?? 0 }));
-    return { filas: fs, sinDato: true, cols: [["casos", "Casos 2026"], ["tia", "Tasa x 10 mil hab."], ["ultima", `Semana ${d?.se}`]],
+    return { filas: fs, sinDato: true, cols: [["casos", `Casos ${anio}`], ["tia", "Tasa x 10 mil hab."], ["ultima", `Semana ${d?.se}`]],
       nota: d?.distritos ? `La sala de la DIRESA solo detalla los distritos con más casos (${num(suma(fs, "casos"))} de
         ${num(d.totales?.casos ?? 0)} casos); el resto figura como "otros distritos" y en el mapa queda rayado (sin dato).
         La tasa por 10 mil habitantes la calcula la DIRESA Piura; su sala situacional no indica qué población usa.` +
         (d.avisos?.length ? ` <span class="revisar">${d.avisos.map(esc).join(". ")}.</span>` : "")
-        : "No hay datos validados por distrito para 2026.",
+        : `No hay datos validados por distrito para ${anio}.`,
       fuente: d ? fuenteDiresa(d) : "" };
   }
   const acc = {};
@@ -946,7 +948,7 @@ function pintarMapa(r, anio) {
   for (const f of r.filas) if (f.ubigeo) val[f.ubigeo] = (val[f.ubigeo] || 0) + f.casos;
   // Veintiséis de Octubre (200115) no existe en los límites de 2007: se suma al polígono de Piura (200101)
   if (val["200115"] != null) val["200101"] = (val["200101"] || 0) + val["200115"];
-  // Sin dato solo en 2026 (distritos agrupados como "otros"); en años anteriores, no figurar = 0 casos
+  // Sin dato solo en el año en curso (distritos agrupados como "otros"); en años anteriores, no figurar = 0 casos
   if (!r.sinDato) for (const u in m.distritos) val[u] ??= 0;
   const positivos = Object.entries(val).filter(([u, v]) => v > 0 && m.distritos[u]).map(([, v]) => v).sort((a, b) => a - b);
   // Cinco clases por quintiles de los distritos con casos
@@ -1008,8 +1010,8 @@ function pintarSalud() {
   } else html += panel({ titulo: "Camas de hospitalización", cifra: "—", frase: "No se pudieron cargar los datos de SUSALUD." });
   if (h) {
     const sem = Object.keys(h.semanas).map(Number).sort((a, b) => a - b);
-    html += panel({ titulo: "Hospitalizados por dengue", cifra: num(h.total), ud: "en 2026", vence: "d26",
-      mini: chispa(sem.map(s => h.semanas[s]), "Hospitalizados por dengue por semana en 2026"),
+    html += panel({ titulo: "Hospitalizados por dengue", cifra: num(h.total), ud: `en ${anioD()}`, vence: "d26",
+      mini: chispa(sem.map(s => h.semanas[s]), `Hospitalizados por dengue por semana en ${anioD()}`),
       frase: `En la semana ${d.se}: ${num(h.semanas[d.se] ?? 0)} hospitalizados (${g("preliminar", "preliminar")}).`,
       pie: `DIRESA Piura · SE ${d.se} · datos al ${fecha(d.fecha_corte)}` });
   }
@@ -1250,7 +1252,7 @@ function pintarResumen() {
   if (d?.totales) {
     const fr = frasesDengue();
     ps.push(panel({ titulo: `<a href="#dengue">¿Cómo está el dengue?</a>`, cifra: num(d.totales.semana),
-      ud: `casos en la semana ${d.se} (confirmados y probables)`, vence: "d26", mini: chispa(d.serie.map(s => s[1]), "Casos por semana en 2026"),
+      ud: `casos en la semana ${d.se} (confirmados y probables)`, vence: "d26", mini: chispa(d.serie.map(s => s[1]), `Casos por semana en ${anioD()}`),
       frase: fr.semana, pie: `DIRESA Piura · SE ${d.se} · ${fecha(d.fecha_corte)}` }));
   }
   if (D.gasto) {
@@ -1273,7 +1275,7 @@ function pintarResumen() {
     ps.push(panel({ titulo: `<a href="#salud">¿Está preparada la salud?</a>`, cifra: pctTxt(oc),
       ud: `ocupación promedio de camas, ${esc(D.camas.periodo)}`, vence: "camas", mini: oc == null ? "" : medidor(oc),
       frase: `${num(suma(rep, "camas"))} camas en ${num(rep.length)} establecimientos que reportaron.` +
-        (d?.hospitalizados ? ` En 2026 hubo ${num(d.hospitalizados.total)} hospitalizados por dengue.` : ""),
+        (d?.hospitalizados ? ` En ${anioD()} hubo ${num(d.hospitalizados.total)} hospitalizados por dengue.` : ""),
       pie: `SUSALUD · ${esc(D.camas.periodo)}${d?.hospitalizados ? ` · DIRESA · SE ${d.se}` : ""}` }));
   }
   if (D.ipc?.serie?.length) {
@@ -1298,7 +1300,7 @@ function pintarFuentes() {
     ["Gasto de emergencia FEN", D.fen, "Diaria", "fen"],
     ["Avance físico y financiero acumulado de proyectos", D.invMeta, "Diaria", "inv"],
     ["Obras en ejecución y paralizadas", D.obras, "Mensual, a mano (archivo sin avances desde marzo de 2026)", "obras"],
-    ["Dengue 2026: casos, graves, fallecidos, hospitalizados", D.d26 && { ...D.d26, fecha_corte: `${fecha(D.d26.fecha_corte)} (semana ${D.d26.se})` }, "Semanal (viernes)", "d26"],
+    [`Dengue ${anioD()}: casos, graves, fallecidos, hospitalizados`, D.d26 && { ...D.d26, fecha_corte: `${fecha(D.d26.fecha_corte)} (semana ${D.d26.se})` }, "Semanal (viernes)", "d26"],
     ["Dengue 2000–2025 por distrito y semana", D.dh, "Archivo fijo; se actualiza a mano"],
     ["Capacidad hospitalaria", D.camas && { ...D.camas, fecha_corte: `${fecha(D.camas.fecha_corte)} (${D.camas.periodo})` }, "Mensual, a mano", "camas"],
     ["IPC de Piura", D.ipc && { ...D.ipc, fecha_corte: `${fecha(D.ipc.fecha_corte)} (${mesTxt(D.ipc.ultimo_mes)})` }, "Mensual (día 1)", "ipc"],
@@ -1370,11 +1372,12 @@ window.addEventListener("resize", () => {
   if (fen) D.fen = { ...fen, rows: filas(fen) };
   Object.assign(D, { obras, dh, d26, camas, mapa, ipc });
 
+  document.querySelectorAll(".anio-d").forEach(e => e.textContent = anioD());
   pintarResumen();
   pintarDenguePaneles();
   if (D.d26 || D.dh) graficoSemanas();
   const anios = [...new Set((dh?.filas || []).map(f => f[0]))].sort((a, b) => b - a);
-  opciones("f-anio", [...(d26?.distritos ? [["2026", "2026 (DIRESA)"]] : []), ...anios.map(a => [String(a), String(a)])]);
+  opciones("f-anio", [...(d26?.distritos ? [[anioD(), `${anioD()} (DIRESA)`]] : []), ...anios.map(a => [String(a), String(a)])]);
   $("f-anio").onchange = pintarDistritos;
   if ($("f-anio").options.length) pintarDistritos();
   $("f-dx").onchange = graficoSemanas;
