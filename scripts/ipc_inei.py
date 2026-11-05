@@ -11,12 +11,11 @@ import html
 import json
 import re
 import tempfile
-import urllib.request
 from pathlib import Path
 
 import pdfplumber
 
-from comun import DATOS, guardar, verificar_espacio
+from comun import DATOS, abrir, guardar, verificar_espacio  # abrir envía User-Agent: el INEI lo exige
 
 BASE = "https://www.inei.gob.pe"
 LISTA = BASE + "/biblioteca-virtual/boletines/informe-de-precios/{}/"  # 10 informes por página, el más reciente primero
@@ -25,11 +24,6 @@ MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto
          "noviembre", "diciembre"]
 CONTROL = {"2026-02": (0.48, 2.28)}  # dato publicado por el INEI para Piura (mensual, 12 meses), verificado a mano
 NUM = r"(-?\d+,\d+)"
-
-
-def abrir(url):
-    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})  # el INEI rechaza clientes sin agente
-    return urllib.request.urlopen(req, timeout=120)
 
 
 def listar(pagina):

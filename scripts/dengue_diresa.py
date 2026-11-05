@@ -18,14 +18,13 @@ import re
 import shutil
 import sys
 import tempfile
-import urllib.request
 from collections import defaultdict
 from pathlib import Path
 
 import pdfplumber
 import pypdf
 
-from comun import DATOS, descargar, guardar, verificar_espacio
+from comun import DATOS, abrir, descargar, guardar, verificar_espacio
 
 LISTADO = "https://www.gob.pe/institucion/regionpiura-diresa/informes-publicaciones?term=sala%20situacional"
 SALIDA = DATOS / "dengue_2026.json"  # nombre histórico: guarda la sala del año en curso (el año va en fecha_corte)
@@ -53,14 +52,14 @@ def cuadra(nombre, a, b):
 
 def ultima_sala():
     """(número de SE, página de la publicación, enlace al PDF) de la sala más reciente del año."""
-    abrir = lambda u: urllib.request.urlopen(u, timeout=60).read().decode("utf-8", "replace")
+    leer = lambda u: abrir(u).read().decode("utf-8", "replace")
     salas = re.findall(r'href="(/institucion/regionpiura-diresa/informes-publicaciones/\d+-sala-situacional-s-e-n-0*'
-                       r'(\d+)-(\d{4})-epidemiologia)"', abrir(LISTADO))
+                       r'(\d+)-(\d{4})-epidemiologia)"', leer(LISTADO))
     if not salas:
         raise SystemExit("No se encontró ninguna sala situacional en " + LISTADO)
     ruta, se, anio = max(salas, key=lambda s: (int(s[2]), int(s[1])))
     pagina = "https://www.gob.pe" + ruta
-    pdf = re.search(r'https://cdn\.www\.gob\.pe/uploads/document/file/[^"]+\.pdf', abrir(pagina))
+    pdf = re.search(r'https://cdn\.www\.gob\.pe/uploads/document/file/[^"]+\.pdf', leer(pagina))
     if not pdf:
         raise SystemExit("No se encontró el PDF en " + pagina)
     return int(se), int(anio), pagina, pdf.group(0)

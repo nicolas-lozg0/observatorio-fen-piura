@@ -8,11 +8,10 @@ están ubicadas en Piura y tienen PIM este año.
 Resultado: docs/data/inversiones_piura.json. Requiere haber corrido antes gasto_mef.py (e infobras.py, si existe).
 """
 import json
-import urllib.request
 
 import pandas as pd
 
-from comun import DATOS, fecha_modificacion, guardar, verificar_espacio
+from comun import DATOS, abrir, fecha_modificacion, guardar, verificar_espacio
 
 URL = "https://fs.datosabiertos.mef.gob.pe/datastorefiles/DETALLE_INVERSIONES.csv"
 COLUMNAS = ["CODIGO_UNICO", "DEPARTAMENTO", "PROVINCIA", "DISTRITO", "COSTO_ACTUALIZADO",
@@ -30,7 +29,7 @@ def main():
     fecha = fecha_modificacion(URL)
     print(f"Leyendo {URL} (modificado {fecha})")
     partes, n = [], 0
-    with urllib.request.urlopen(URL, timeout=120) as r:
+    with abrir(URL) as r:  # los reintentos cubren la conexión, no un corte a mitad de la descarga
         for ch in pd.read_csv(r, dtype=str, encoding="utf-8-sig", usecols=COLUMNAS, chunksize=50_000):
             verificar_espacio()
             n += len(ch)

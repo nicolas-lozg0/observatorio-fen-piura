@@ -17,12 +17,11 @@ por eso la entidad es el pliego (nacional y regional) o la ejecutora (local).
 """
 import time
 import urllib.error
-import urllib.request
 from datetime import datetime
 
 import pandas as pd
 
-from comun import PERU, fecha_modificacion, guardar, verificar_espacio
+from comun import PERU, abrir, fecha_modificacion, guardar, verificar_espacio
 
 ANIO = datetime.now(PERU).year
 ARCHIVO = "https://fs.datosabiertos.mef.gob.pe/datastorefiles/{}-Gasto-Diario.csv"
@@ -84,7 +83,7 @@ def main():
     anio, url, fecha = archivo_del_anio()
     print(f"Leyendo {url} (modificado {fecha})")
     partes, nombres, n, t0 = [], {k: {} for k in NOMBRES}, 0, time.time()
-    with urllib.request.urlopen(url, timeout=120) as r:
+    with abrir(url) as r:  # los reintentos cubren la conexión, no un corte a mitad de la descarga
         for i, ch in enumerate(pd.read_csv(r, dtype=str, encoding="utf-8", encoding_errors="replace",
                                                usecols=COLUMNAS, chunksize=500_000)):
             if i % 4 == 0:
