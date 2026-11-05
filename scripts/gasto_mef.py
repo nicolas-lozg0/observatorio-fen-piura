@@ -16,6 +16,7 @@ Entidad: en gobiernos locales PLIEGO viene vacío y cada municipalidad es una un
 por eso la entidad es el pliego (nacional y regional) o la ejecutora (local).
 """
 import time
+import urllib.error
 import urllib.request
 from datetime import datetime
 
@@ -24,7 +25,7 @@ import pandas as pd
 from comun import PERU, fecha_modificacion, guardar, verificar_espacio
 
 ANIO = datetime.now(PERU).year
-URL = f"https://fs.datosabiertos.mef.gob.pe/datastorefiles/{ANIO}-Gasto-Diario.csv"
+ARCHIVO = "https://fs.datosabiertos.mef.gob.pe/datastorefiles/{}-Gasto-Diario.csv"
 CLAVE = ["NIVEL_GOBIERNO", "ENTIDAD", "PROGRAMA_PPTO", "TIPO_ACT_PROY", "PRODUCTO_PROYECTO"]
 NOMBRES = {
     "NIVEL_GOBIERNO": "NIVEL_GOBIERNO_NOMBRE",
@@ -64,12 +65,26 @@ def resumen(agr, ambito=LUGAR):
     return t
 
 
+def archivo_del_anio():
+    """(año, URL, fecha) del archivo diario del año en curso; si el MEF aún no lo publica (404, por ejemplo
+    a inicios de enero), el del año anterior. La página muestra el año y la fecha, y avisa si el dato envejece."""
+    for anio in (ANIO, ANIO - 1):
+        url = ARCHIVO.format(anio)
+        try:
+            return anio, url, fecha_modificacion(url)
+        except urllib.error.HTTPError as e:
+            if e.code != 404:
+                raise
+            print(f"El MEF aún no publica {url}.")
+    raise SystemExit("No hay archivo de gasto diario del MEF ni del año en curso ni del anterior.")
+
+
 def main():
     verificar_espacio()
-    fecha = fecha_modificacion(URL)
-    print(f"Leyendo {URL} (modificado {fecha})")
+    anio, url, fecha = archivo_del_anio()
+    print(f"Leyendo {url} (modificado {fecha})")
     partes, nombres, n, t0 = [], {k: {} for k in NOMBRES}, 0, time.time()
-    with urllib.request.urlopen(URL, timeout=120) as r:
+    with urllib.request.urlopen(url, timeout=120) as r:
         for i, ch in enumerate(pd.read_csv(r, dtype=str, encoding="utf-8", encoding_errors="replace",
                                                usecols=COLUMNAS, chunksize=500_000)):
             if i % 4 == 0:
@@ -91,9 +106,9 @@ def main():
     agr[MONTOS] = agr[MONTOS].round(2)
     guardar("gasto_piura.json", {
         "fuente": "MEF, Presupuesto y Ejecución de Gasto (datos abiertos, archivo diario)",
-        "url": URL,
+        "url": url,
         "fecha_corte": fecha,
-        "anio": ANIO,
+        "anio": anio,
         "filas_leidas": n,
         "columnas": ["ambito", "nivel", "entidad", "programa", "tipo", "codigo", "pia", "pim", "devengado"],
         "filas": agr.values.tolist(),

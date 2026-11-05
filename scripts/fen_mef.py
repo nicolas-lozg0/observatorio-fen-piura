@@ -39,9 +39,9 @@ def campos_ocultos(pagina):
     return f
 
 
-def descargar_csv(web):
+def descargar_csv(web, anio):
     pagina = web.open(DESCARGA, timeout=60).read().decode("utf-8", "replace")
-    datos = {**campos_ocultos(pagina), P + "LstAnoEje": str(ANIO), P + "btnExportarCSV": "Exportar a CSV"}
+    datos = {**campos_ocultos(pagina), P + "LstAnoEje": str(anio), P + "btnExportarCSV": "Exportar a CSV"}
     r = web.open(DESCARGA, urllib.parse.urlencode(datos).encode(), timeout=180)
     if "csv" not in (r.headers.get("Content-Type") or "").lower():
         raise SystemExit("La consulta FEN no devolvió un CSV (puede haber cambiado el formulario).")
@@ -66,7 +66,18 @@ def total_navegador(web):
 def main():
     verificar_espacio()
     web = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(CookieJar()))
-    df = descargar_csv(web)
+    # A inicios de año la consulta puede no tener aún el año en curso: se usa el anterior.
+    # shortcut: no verificado en un mes de enero real; si el navegador del MEF muestra otro año, la comparación
+    # de totales de abajo no cuadra y el script se detiene con error (no publica cifras mezcladas).
+    anio, df = ANIO, None
+    try:
+        df = descargar_csv(web, anio)
+    except SystemExit as e:
+        print(f"Consulta FEN {anio}: {e}")
+    if df is None or df.empty:
+        anio = ANIO - 1
+        print(f"Se usa el año {anio}.")
+        df = descargar_csv(web, anio)
     total, fecha = total_navegador(web)
     for c in MONTOS:
         df[c] = pd.to_numeric(df[c])
@@ -88,7 +99,7 @@ def main():
         "fuente": "MEF, Ejecución del Gasto de Emergencia - Fenómeno El Niño (Consulta Amigable, datos abiertos)",
         "url": BASE + "/Navegador/default.aspx",
         "fecha_corte": fecha,
-        "anio": ANIO,
+        "anio": anio,
         "total_nacional": total,
         "columnas": ["ambito", "nivel", "pliego", "codigo", "nombre", *total],
         "filas": agr.values.tolist(),
