@@ -23,6 +23,8 @@
     --pista: #d6e5f7;
     --alerta: #c81e2b;  /* el rojo UDEP oscurecido para que se lea como texto sobre blanco */
     --neutro: #e4e9f0;
+    --titulo: #002856;  /* títulos y cifras: marino en claro, celeste claro en oscuro */
+    --suave: #e3ebf7; --suave-borde: #c3d3ec; --alerta-fondo: #fdecee; --alerta-borde: #f3c2c7;
     /* series de comparación (años anteriores del dengue; IPC nacional): tonos apagados; el acento queda para
        Piura y el año en curso.
        Validados con la skill dataviz (todos los pares): daltonismo ΔE 9,1, visión normal 16,5, contraste >= 3:1 */
@@ -35,7 +37,8 @@
       --fondo: #121211; --superficie: #1a1a19; --borde: #33332f;
       --texto: #f0efec; --texto-2: #c3c2b7; --texto-3: #9a998f;
       --acento: #3987e5; --pista: #23364d; --alerta: #f59e0b; --neutro: #2a2a27;
-      --comp1: #916a18; --comp2: #914766; --comp3: #5da16d;  /* oscuro: ΔE 11,0 / 15,2; rosa 2,7:1, con rótulo visible */
+      --comp1: #916a18; --comp2: #914766; --comp3: #5da16d;
+      --titulo: #9ec5f4; --suave: #23364d; --suave-borde: #33332f; --alerta-fondo: #2a2a27; --alerta-borde: #33332f;  /* oscuro: ΔE 11,0 / 15,2; rosa 2,7:1, con rótulo visible */
     }
   }
   :root[data-theme="dark"] {
@@ -44,6 +47,7 @@
     --texto: #f0efec; --texto-2: #c3c2b7; --texto-3: #9a998f;
     --acento: #3987e5; --pista: #23364d; --alerta: #f59e0b; --neutro: #2a2a27;
     --comp1: #916a18; --comp2: #914766; --comp3: #5da16d;
+      --titulo: #9ec5f4; --suave: #23364d; --suave-borde: #33332f; --alerta-fondo: #2a2a27; --alerta-borde: #33332f;
   }
   @font-face { font-family: "Montserrat"; font-weight: 700; font-display: swap; src: url(fuentes/montserrat-latin-700-normal.woff2) format("woff2"); }
   @font-face { font-family: "Montserrat"; font-weight: 800; font-display: swap; src: url(fuentes/montserrat-latin-800-normal.woff2) format("woff2"); }
@@ -55,7 +59,7 @@
   main { max-width: 1120px; margin: 0 auto; padding: 20px 16px 48px; }
   h1, h2, h3, .cifra { font-family: Montserrat, system-ui, sans-serif; }
   h1 { font-size: 1.5rem; margin: 0 0 4px; }
-  h2 { font-size: 1.45rem; font-weight: 800; color: var(--marino); margin: 0 0 4px; line-height: 1.2; }
+  h2 { font-size: 1.45rem; font-weight: 800; color: var(--titulo); margin: 0 0 4px; line-height: 1.2; }
   h3 { font-size: 1rem; font-weight: 700; margin: 0; }
   :focus-visible { outline: 2px solid var(--celeste); outline-offset: 2px; }
   /* Encabezado: banda marino de lado a lado */
@@ -127,7 +131,7 @@
   @media (max-width: 760px) { .mapa-y-top { grid-template-columns: minmax(0, 1fr); } }
   .panel h3 { font-size: .95rem; color: var(--texto-2); }
   .panel h3 a { color: inherit; text-decoration: none; }
-  .panel .cifra { font-size: 2.1rem; font-weight: 800; line-height: 1.1; color: var(--marino); }
+  .panel .cifra { font-size: 2.1rem; font-weight: 800; line-height: 1.1; color: var(--titulo); }
   .panel .ud { color: var(--texto-2); font-size: .85rem; }
   .panel .frase { font-size: .9rem; margin: 0; }
   .panel .pie { margin-top: auto; padding-top: 4px; color: var(--texto-3); font-size: .75rem; }
@@ -136,8 +140,8 @@
   .distintivo { display: inline-flex; align-items: center; gap: 6px; width: fit-content; padding: 3px 10px; border-radius: 99px;
     font-size: .8rem; font-weight: 700; line-height: 1.3; }
   .distintivo svg { width: 14px; height: 14px; flex: none; }
-  .d-desactualizado { color: var(--alerta); background: #fdecee; border: 1px solid #f3c2c7; }
-  .d-tramite { color: var(--marino); background: #e3ebf7; border: 1px solid #c3d3ec; }
+  .d-desactualizado { color: var(--alerta); background: var(--alerta-fondo); border: 1px solid var(--alerta-borde); }
+  .d-tramite { color: var(--titulo); background: var(--suave); border: 1px solid var(--suave-borde); }
   .d-pendiente { color: var(--texto-2); border: 1px dashed var(--texto-3); }
   .panel.pendiente { border-style: dashed; }
   .panel.pendiente .cifra { font-size: 1.15rem; }
@@ -150,18 +154,18 @@
   .atencion h3 { color: var(--alerta); font-size: 1rem; margin-bottom: 4px; }
   .atencion ul { margin: 0; padding-left: 18px; }
   .atencion li { margin-bottom: 2px; }
-  .atencion.calma { border-left-color: var(--marino); }
-  .atencion.calma h3 { color: var(--marino); }
+  .atencion.calma { border-left-color: var(--titulo); }
+  .atencion.calma h3 { color: var(--titulo); }
   .resumen .paneles { grid-template-columns: repeat(6, minmax(0, 1fr)); }
   .resumen .panel { grid-column: span 2; cursor: pointer; }
   .resumen .panel:nth-child(4):nth-last-child(2) { grid-column: 2 / span 2; }  /* 5 paneles: la 2.ª fila, centrada */
   @media (max-width: 760px) { .resumen .paneles { grid-template-columns: minmax(0, 1fr); }
     .resumen .panel, .resumen .panel:nth-child(4):nth-last-child(2) { grid-column: auto; } }
   .titulo-panel { display: flex; align-items: center; gap: 10px; }
-  .icono { flex: none; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: #e3ebf7; color: var(--marino); }
+  .icono { flex: none; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--suave); color: var(--titulo); }
   .icono svg { width: 24px; height: 24px; }
-  .resumen .panel:hover { border-color: var(--marino); }
-  .resumen .panel h3 { font-size: 1.1rem; color: var(--marino); }
+  .resumen .panel:hover { border-color: var(--titulo); }
+  .resumen .panel h3 { font-size: 1.1rem; color: var(--titulo); }
 
   .lista-corta { margin: 0; padding-left: 18px; font-size: .88rem; }
   .lista-corta li { margin-bottom: 6px; }
@@ -529,7 +533,7 @@
           <li><strong>Obras.</strong> Cuenta las obras paralizadas y su costo, y nombra la causa registrada con más obras.</li>
           <li><strong>Salud.</strong> Ocupación promedio del último mes publicado y número de establecimientos que reportaron.</li>
           <li><strong>Piden atención (portada).</strong> Se listan los indicadores que cumplen alguna regla: casos de dengue de la
-            última semana mayores que los de la anterior; obras paralizadas (si hay al menos una); gasto con una proporción
+            última semana mayores que los de la anterior (ambas semanas de la tabla por distrito de la DIRESA); obras paralizadas (si hay al menos una); gasto con una proporción
             "menor" que el año transcurrido (regla del gasto, arriba); fuentes que pasaron su plazo sin actualizarse. Si ninguno
             la cumple, la portada lo dice.</li>
           <li><strong>Actualizado al (barra superior).</strong> La fecha más reciente entre las fuentes; cada cifra conserva la
@@ -1404,17 +1408,19 @@ function graficosIPC() {
 
 /* ---------- Resumen ---------- */
 // Lo que pide atención hoy: reglas fijas sobre los datos (se listan en "Fuentes y método")
-function alertasHoy() {
-  const items = [], d = D.d26;
-  const ant = d?.serie?.find(x => x[0] === d.se - 1)?.[1];
-  if (d?.totales && ant != null && d.totales.semana > ant)
-    items.push(`El dengue sube: ${num(d.totales.semana)} casos en la semana ${d.se}, más que en la anterior (${num(ant)}).`);
-  if (D.obras) {
-    const par = D.obras.obras.filter(x => x.estado === "Paralizada" && !APARTE[x.codigo_infobras]);
-    if (par.length) items.push(`${num(par.length)} obras paralizadas, con un costo de ${millones(suma(par, "costo_et"))}.`);
-  }
-  if (D.gasto) {
-    const t = gastoDe(() => true, 1), p = pct(t.dev, t.pim), trans = anioTranscurrido(D.gasto.fecha_corte, D.gasto.anio);
+// Semana actual y anterior de dengue, ambas de la tabla por distrito (la de provincias puede diferir en pocos casos)
+function semanasDengue(d) {
+  const de = s => d?.serie?.find(x => x[0] === s)?.[1];
+  const act = de(d?.se), ant = de(d?.se - 1);
+  return act != null && ant != null ? { act, ant } : null;
+}
+function alertasHoy({ sem, par, gasto }) {
+  const items = [];
+  if (sem && sem.act > sem.ant)
+    items.push(`El dengue sube: ${num(sem.act)} casos en la semana ${D.d26.se}, frente a ${num(sem.ant)} en la anterior (tabla por distrito).`);
+  if (par?.length) items.push(`${num(par.length)} obras paralizadas, con un costo de ${millones(suma(par, "costo_et"))}.`);
+  if (gasto) {
+    const { p, trans } = gasto;
     if (ritmo(p, trans) === "menor")
       items.push(`El gasto público va más lento que el calendario: ${pctTxt(p)} del presupuesto con el ${num(trans, 0)} % del año transcurrido.`);
   }
@@ -1427,31 +1433,32 @@ function alertasHoy() {
 function pintarResumen() {
   const el = $("resumen-paneles"), ps = [];
   const hoy = new Date().toLocaleDateString("es-PE", { day: "numeric", month: "long", year: "numeric" });
-  const al = alertasHoy();
+  const d = D.d26, sem = semanasDengue(d);
+  const activas = D.obras ? D.obras.obras.filter(x => !APARTE[x.codigo_infobras]) : [], par = activas.filter(x => x.estado === "Paralizada");
+  const t = D.gasto && gastoDe(() => true, 1);
+  const gasto = D.gasto && { p: pct(t.dev, t.pim), trans: anioTranscurrido(D.gasto.fecha_corte, D.gasto.anio) };
+  const al = alertasHoy({ sem, par: D.obras && par, gasto });
   $("hoy").innerHTML = `<p class="fecha-hoy">Hoy, ${hoy}</p>
     <h2 class="pregunta">¿Cómo está Piura frente a El&nbsp;Niño?</h2>
     <div class="atencion${al.length ? "" : " calma"}">${al.length
       ? `<h3>Piden atención</h3><ul>${al.map(x => `<li>${x}</li>`).join("")}</ul>`
       : `<h3>Ningún indicador en alerta</h3><p class="nota">Según las reglas del observatorio, descritas en Fuentes y método.</p>`}</div>`;
   // Cada panel: ícono, pregunta, cifra, mini-gráfica, una frase y la fuente con su fecha (todos del mismo tamaño)
-  const d = D.d26;
   if (d?.totales) {
-    const ant = d.serie?.find(x => x[0] === d.se - 1)?.[1], act = d.totales.semana;
+    const act = d.totales.semana;
     ps.push(panel({ icono: "dengue", titulo: `<a href="#dengue">¿Cómo está el dengue?</a>`, cifra: num(act),
       ud: `casos en la semana ${d.se}`, vence: "d26", mini: chispa(d.serie.map(s => s[1]), `Casos por semana en ${anioD()}`),
-      frase: ant == null ? "" : `${act > ant ? "Más" : act < ant ? "Menos" : "Igual"} que en la semana ${d.se - 1} (${num(ant)}); cifras preliminares.`,
+      frase: !sem ? "" : `${sem.act > sem.ant ? "Más" : sem.act < sem.ant ? "Menos" : "Igual"} que en la semana ${d.se - 1}, según la tabla por distrito; cifras preliminares.`,
       pie: `DIRESA Piura, semana ${d.se}, datos al ${fecha(d.fecha_corte)}` }));
   }
-  if (D.gasto) {
-    const t = gastoDe(() => true, 1), p = pct(t.dev, t.pim), trans = anioTranscurrido(D.gasto.fecha_corte, D.gasto.anio);
-    const r = ritmo(p, trans);
+  if (gasto) {
+    const { p, trans } = gasto, r = ritmo(p, trans);
     ps.push(panel({ icono: "gasto", titulo: `<a href="#gasto">¿Cuánto se ha gastado?</a>`, cifra: pctTxt(p),
       ud: "del presupuesto del año, gastado en Piura", vence: "gasto", mini: medidor(p, trans),
       frase: `Va ${r === "menor" ? "más lento que el" : r === "mayor" ? "más rápido que el" : "al ritmo del"} calendario: ya pasó el
         ${num(trans, 0)} % del año (marca vertical).`, pie: `MEF, datos al ${fecha(D.gasto.fecha_corte)}` }));
   }
   if (D.obras) {
-    const activas = D.obras.obras.filter(x => !APARTE[x.codigo_infobras]), par = activas.filter(x => x.estado === "Paralizada");
     const cs = causas(par), sh = pct(par.length, activas.length);
     ps.push(panel({ icono: "obras", titulo: `<a href="#obras">¿Cómo van las obras?</a>`, cifra: num(par.length),
       ud: "obras paralizadas", vence: "obras", mini: medidor(sh),
