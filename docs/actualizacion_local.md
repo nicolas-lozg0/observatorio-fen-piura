@@ -61,6 +61,26 @@ Necesitas conexión a internet y permiso para hacer `git push` al repositorio. E
 | `La página de SUSALUD respondió, pero no tiene enlaces a CSV` | SUSALUD cambió su página o el nombre de los archivos: hay que revisar `scripts/camas_susalud.py`. |
 | `No se pudo subir (git push)` | El commit quedó en la computadora. Correr `git pull --rebase && git push`. |
 
+## Antes de subir cambios a la página
+
+Si cambias `docs/index.html` (por ejemplo, en el rediseño), corre la prueba de la página antes de hacer push:
+
+```
+python3 scripts/test_pagina.py
+```
+
+- **Qué revisa:**
+  - las 7 pestañas a 1280 y 375 px, cada una en su dirección `#pestaña`;
+  - que la página no se desplace de lado;
+  - que ninguna tabla larga se vea sin abrir "Ver detalle";
+  - que no haya errores en la consola;
+  - que el enlace antiguo `#alertas` lleve a Obras;
+  - que el año de la pestaña Dengue sea el de la sala;
+  - que el aviso "Dato no actualizado" aparezca con una fecha simulada 60 días después.
+- **Resultado:** termina con `OK` o con la lista de lo que falló. Tarda unos 25 segundos.
+- **Requisito, una sola vez:** `pip3 install playwright`. No hace falta `playwright install`: en macOS 12 Playwright no trae navegador, y la prueba usa Brave o Chrome si están instalados. Con otro navegador basado en Chromium: `NAVEGADOR=/ruta/al/ejecutable python3 scripts/test_pagina.py`.
+- **Dónde corre:** solo en tu computadora; no va en el workflow.
+
 ## Otra opción a futuro
 
 Si el profesor prefiere no depender de una computadora, se puede instalar un *self-hosted runner* de GitHub en una máquina en Perú (por ejemplo, un servidor de la UDEP). El workflow correría ahí y estas dos fuentes volverían a ser automáticas. Requiere una máquina encendida siempre y la autorización de DIRCOM o de TI.
