@@ -889,12 +889,13 @@ function graficoSemanas() {
     globo.style.top = "8px";
   });
   zona.addEventListener("pointerleave", () => { globo.style.display = "none"; guia.setAttribute("visibility", "hidden"); });
+  const enGrafico = D.d26?.serie?.find(x => x[0] === D.d26.se)?.[1];  // casos de la semana en curso en el gráfico
   $("pie-semanas").innerHTML = aviso("d26") + `${anioD()}: DIRESA Piura, SE ${D.d26?.se ?? "—"}, datos al ${fecha(D.d26?.fecha_corte)}.
     ${ANIOS_BROTE.join(", ")}: CDC-Minsa, datos al ${fecha(D.dh?.fecha_corte)}.` +
     // La semana en curso sale de dos tablas de la misma sala que pueden no coincidir: se explica, sin elegir una
-    (D.d26?.totales && series[0]?.v[D.d26.se] != null && series[0].v[D.d26.se] !== D.d26.totales.semana ?
+    (D.d26?.totales && enGrafico != null && enGrafico !== D.d26.totales.semana ?
       ` El panel toma los casos de la semana de la tabla por provincia (${num(D.d26.totales.semana)}) y el gráfico, de la
-      tabla por distrito (${num(series[0].v[D.d26.se])}); la sala de la DIRESA puede diferir en pocos casos entre ambas.` : "");
+      tabla por distrito (${num(enGrafico)}); la sala de la DIRESA puede diferir en pocos casos entre ambas.` : "");
   $("nota-semanas").innerHTML =
     `Gráfico semanal. ${anioD()}: confirmados y probables, sala situacional de la DIRESA Piura (semana ${D.d26?.se ?? "—"}, datos al
      ${fecha(D.d26?.fecha_corte)}); las últimas semanas suelen corregirse al alza. ${ANIOS_BROTE.join(", ")}: ${dx === "C" ?
