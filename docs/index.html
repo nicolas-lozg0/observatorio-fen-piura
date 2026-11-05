@@ -888,7 +888,7 @@ function graficoSemanas() {
   // Se ubican de mayor a menor pico y se corren 13 px si chocan con uno ya puesto.
   const puestos = picos.length ? [{ x0: xFranja - 50, x1: xFranja + 50, y: m.t - 8 }] : [];  // el rótulo de la franja ya está puesto
   for (const r of rotulos.sort((a, b) => a.y - b.y)) {
-    const w = r.t.length * (celular ? 6 : 6.6);
+    const w = r.t.length * 7.2;  // ancho aproximado de un texto de 12 px en negrita
     let ancla = "middle", x0 = r.x - w / 2, ty = r.y - 9;
     if (r.fin) {  // a la derecha del último punto si cabe; si no, encima y hacia la izquierda
       [ancla, x0, ty] = r.x + 6 + w <= W - 2 ? ["start", r.x + 6, r.y + 4] : ["end", r.x - w, r.y - 10];

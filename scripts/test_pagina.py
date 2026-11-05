@@ -8,6 +8,7 @@ Revisa, en escritorio (1280 px) y celular (375 px):
   - que no haya errores en la consola;
   - que un enlace antiguo (#alertas) abra Obras con el detalle desplegado;
   - que el año de la pestaña Dengue sea el de la sala de la DIRESA;
+  - que los rótulos del gráfico semanal de dengue no se encimen ni se salgan del gráfico;
   - que aparezca "Dato no actualizado" si se simula una fecha 60 días después.
 
 Requiere Playwright (pip3 install playwright) y un navegador Chromium: usa Brave o Chrome si están
@@ -94,6 +95,19 @@ def main():
                 anio = pg.evaluate("() => [document.querySelector('#t-dengue .anio-d').textContent,"
                                    " String(D.d26?.fecha_corte ?? '').slice(0, 4)]")
                 revisar(anio[0] == anio[1] and anio[0].isdigit(), f"{ancho}px: año de Dengue {anio[0]} y de la sala {anio[1]}")
+                # Rótulos del gráfico semanal: cajas reales, sin choques entre ellas ni fuera del gráfico
+                pg.evaluate("location.hash = '#dengue'")
+                pg.wait_for_timeout(500)
+                r = pg.evaluate("""() => {
+                    const svg = document.querySelector('#g-semanas svg'), w = svg.viewBox.baseVal.width;
+                    const c = [...svg.querySelectorAll('text.rotulo')].map(t => { const b = t.getBBox();
+                        return { t: t.textContent, x0: b.x, y0: b.y, x1: b.x + b.width, y1: b.y + b.height }; });
+                    const choques = c.flatMap((a, i) => c.slice(i + 1).filter(b => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1)
+                        .map(b => a.t + ' / ' + b.t));
+                    return { n: c.length, choques, fuera: c.filter(a => a.x0 < 0 || a.x1 > w || a.y0 < 0).map(a => a.t) };
+                }""")
+                revisar(r["n"] >= 2 and not r["choques"] and not r["fuera"],
+                        f"{ancho}px gráfico de dengue: {r['n']} rótulos, se enciman {r['choques']}, fuera {r['fuera']}")
                 revisar(not errores, f"{ancho}px: errores en la consola: {errores[:3]}")
                 pg.close()
             # Aviso de datos viejos: con el reloj 60 días adelante deben aparecer avisos
@@ -109,7 +123,7 @@ def main():
     if fallos:
         print("FALLA:\n  " + "\n  ".join(fallos))
         sys.exit(1)
-    print(f"OK: {len(PESTANAS)} pestañas a 1280 y 375 px, enlace antiguo, año de Dengue y aviso de datos viejos")
+    print(f"OK: {len(PESTANAS)} pestañas a 1280 y 375 px, enlace antiguo, año de Dengue, rótulos del gráfico y aviso de datos viejos")
 
 
 if __name__ == "__main__":
