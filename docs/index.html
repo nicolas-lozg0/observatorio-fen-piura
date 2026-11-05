@@ -21,8 +21,10 @@
     --pista: #d6e5f7;
     --alerta: #b45309;
     --neutro: #ecebe7;
-    /* años anteriores en los gráficos: grises, con rótulo directo; el acento queda para el dato actual */
-    --g1: #55544f; --g2: #85847f; --g3: #aaa9a4;
+    --g2: #85847f;  /* serie de referencia en gris (IPC nacional) */
+    /* años de comparación del dengue (2017, 2023, 2024): tonos apagados; el acento queda para el año en curso.
+       Validados con la skill dataviz (todos los pares): daltonismo ΔE 9,1, visión normal 16,5, contraste >= 3:1 */
+    --comp1: #b48b40; --comp2: #aa5e7d; --comp3: #2f7442;
     --q1: #cde2fb; --q2: #9ec5f4; --q3: #6da7ec; --q4: #2a78d6; --q5: #184f95;
   }
   @media (prefers-color-scheme: dark) {
@@ -31,7 +33,8 @@
       --fondo: #121211; --superficie: #1a1a19; --borde: #33332f;
       --texto: #f0efec; --texto-2: #c3c2b7; --texto-3: #9a998f;
       --acento: #3987e5; --pista: #23364d; --alerta: #f59e0b; --neutro: #2a2a27;
-      --g1: #c3c2b7; --g2: #8f8e86; --g3: #64635d;
+      --g2: #8f8e86;
+      --comp1: #916a18; --comp2: #914766; --comp3: #5da16d;  /* oscuro: ΔE 11,0 / 15,2; rosa 2,7:1, con rótulo visible */
     }
   }
   :root[data-theme="dark"] {
@@ -39,7 +42,8 @@
     --fondo: #121211; --superficie: #1a1a19; --borde: #33332f;
     --texto: #f0efec; --texto-2: #c3c2b7; --texto-3: #9a998f;
     --acento: #3987e5; --pista: #23364d; --alerta: #f59e0b; --neutro: #2a2a27;
-    --g1: #c3c2b7; --g2: #8f8e86; --g3: #64635d;
+    --g2: #8f8e86;
+    --comp1: #916a18; --comp2: #914766; --comp3: #5da16d;
   }
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--fondo); color: var(--texto);
@@ -493,7 +497,7 @@ let ambito = 1;  // punto de vista de la tabla de proyectos: 1 = gastado en Piur
 const ANIOS_BROTE = [2017, 2023, 2024];  // años de brote con los que se compara el año en curso
 // Año de la sala de la DIRESA en pantalla (sale de su fecha de corte; el archivo se llama dengue_2026.json por historia)
 const anioD = () => String(D.d26?.fecha_corte ?? "").slice(0, 4) || "—";
-const GRISES = ["var(--g1)", "var(--g2)", "var(--g3)"];
+const COMPARACION = ["var(--comp1)", "var(--comp2)", "var(--comp3)"];  // 2017 ocre, 2023 rosa, 2024 verde
 const BRECHA = 30;  // puntos de diferencia entre avance financiero y físico para alertar
 // Megaproyectos sin relación con El Niño: fuera del costo total de obras (código Infobras → motivo)
 const APARTE = { "42412": "proyecto de Petroperú, sin relación con El Niño" };
@@ -831,10 +835,11 @@ function graficoSemanas() {
   if (!D.dh && !D.d26?.serie) { el.innerHTML = `<p class="nota">Sin datos.</p>`; return; }
   const dx = $("f-dx").value;
   const hist = D.dh ? historicoPorSemana(dx) : {};
-  const series = [];
-  if (D.d26?.serie) series.push({ nombre: anioD(), actual: true, color: "var(--acento)", ancho: 3, v: Object.fromEntries(D.d26.serie.map(([s, c]) => [s, c])) });
-  ANIOS_BROTE.forEach((a, i) => hist[a] && series.push({ nombre: String(a), color: GRISES[i], ancho: 2, v: hist[a] }));
-  const W = Math.max(300, Math.min(1040, el.clientWidth || 720)), H = W < 500 ? 260 : 320, m = { l: 52, r: 40, t: 10, b: 26 };
+  const W = Math.max(300, Math.min(1040, el.clientWidth || 720)), H = W < 500 ? 270 : 330, m = { l: 52, r: 40, t: 24, b: 26 };
+  const celular = W < 500, series = [];
+  if (D.d26?.serie) series.push({ nombre: anioD(), actual: true, color: "var(--acento)", ancho: celular ? 3 : 3.5,
+    v: Object.fromEntries(D.d26.serie.map(([s, c]) => [s, c])) });
+  ANIOS_BROTE.forEach((a, i) => hist[a] && series.push({ nombre: String(a), color: COMPARACION[i], ancho: 1.75, v: hist[a] }));
   const maxSem = 53, maxV = Math.max(...series.flatMap(s => Object.values(s.v)));
   const paso = [10, 20, 50, 100, 200, 250, 500, 1000, 2000, 2500, 5000].find(p => maxV / p <= 5) || 10000;
   const tope = Math.ceil(maxV / paso) * paso;
@@ -844,9 +849,10 @@ function graficoSemanas() {
   // Franja con los meses en que llegó el pico en los años de brote (se calcula con los datos)
   const picos = ANIOS_BROTE.filter(a => hist[a]).map(a => { const [s] = pico(hist[a]); return { a, s, mes: mesDeSE(a, s) }; });
   const mMin = Math.min(...picos.map(p => p.mes)), mMax = Math.max(...picos.map(p => p.mes));
+  const xFranja = x((semanaDe(A, mMin, 1) + semanaDe(A, mMax + 1, 1)) / 2);  // centro de la franja; su rótulo va encima
   if (picos.length) svg += `<rect x="${x(semanaDe(A, mMin, 1))}" y="${m.t}" width="${x(semanaDe(A, mMax + 1, 1)) - x(semanaDe(A, mMin, 1))}"
       height="${H - m.t - m.b}" fill="var(--neutro)"/>
-    <text x="${x((semanaDe(A, mMin, 1) + semanaDe(A, mMax + 1, 1)) / 2)}" y="${m.t + 12}" text-anchor="middle">picos anteriores</text>`;
+    <text x="${xFranja}" y="${m.t - 8}" text-anchor="middle">picos anteriores</text>`;
   for (let v = 0; v <= tope; v += paso)
     svg += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}" stroke="var(--borde)"/>
       <text x="${m.l - 6}" y="${y(v) + 4}" text-anchor="end">${num(v)}</text>`;
@@ -857,20 +863,46 @@ function graficoSemanas() {
       <text x="${x(semanaDe(A, k, 15))}" y="${H - m.b + 16}" text-anchor="middle">${W < 500 ? n[0].toUpperCase() : n[0].toUpperCase() + n.slice(1, 3)}</text>`;
   });
   // Las series de años anteriores primero; el año en curso encima
-  const rotulos = [];
+  const rotulos = [], puntos = [];
   const linea = (s, ks, extra = "") => `<polyline fill="none" stroke="${s.color}" stroke-width="${s.ancho}" stroke-linejoin="round"
       stroke-linecap="round" ${extra} points="${ks.map(k => `${x(k).toFixed(1)},${y(s.v[k] || 0).toFixed(1)}`).join(" ")}"/>`;
   for (const s of [...series].reverse()) {
     const ult = Math.max(...Object.keys(s.v).map(Number));
     const llenos = []; for (let k = 1; k <= ult; k++) llenos.push(k);  // semanas sin casos = 0
     const corte = s.actual ? Math.max(1, ult - PRELIMINAR) : ult;  // desde aquí, punteada (preliminar)
+    if (s.actual)  // relleno suave solo bajo las semanas confirmadas: lo preliminar queda sin relleno
+      svg += `<polygon fill="${s.color}" fill-opacity=".12" points="${x(1)},${y(0)} ${llenos.slice(0, corte).map(k =>
+        `${x(k).toFixed(1)},${y(s.v[k] || 0).toFixed(1)}`).join(" ")} ${x(corte).toFixed(1)},${y(0)}"/>`;
     svg += linea(s, llenos.slice(0, corte));
     if (corte < ult) svg += linea(s, llenos.slice(corte - 1), `stroke-dasharray="2 5"`);
-    rotulos.push({ t: s.nombre, x: x(ult) + 4, y: y(s.v[ult] || 0) });
+    if (s.actual) {  // año en curso: rótulo en su último punto, con la cifra de esa semana
+      rotulos.push({ t: `${s.nombre}: ${num(s.v[ult] || 0)}${celular ? "" : ` (sem. ${ult})`}`, x: x(ult), y: y(s.v[ult] || 0), fin: true });
+    } else {  // años de comparación: rótulo en el pico, con la cifra y el mes
+      const [ps, pc] = pico(s.v), mes = MESES[mesDeSE(+s.nombre, ps)];
+      rotulos.push({ t: `${s.nombre}: ${num(pc)} ${celular ? `(${mes.slice(0, 3)})` : `en ${mes}`}`, x: x(ps), y: y(pc) });
+      puntos.push(`<circle cx="${x(ps).toFixed(1)}" cy="${y(pc).toFixed(1)}" r="3.5" fill="${s.color}" stroke="var(--superficie)" stroke-width="2"/>`);
+    }
   }
-  // Rótulos al final de cada línea, separados para que no se encimen (de abajo hacia arriba)
-  rotulos.sort((a, b) => b.y - a.y).forEach((r, i, arr) => { if (i && arr[i - 1].y - r.y < 13) r.y = arr[i - 1].y - 13; });
-  rotulos.forEach(r => svg += `<text class="rotulo" x="${Math.min(r.x, W - 30)}" y="${r.y + 4}">${r.t}</text>`);
+  svg += puntos.join("");
+  // Rótulos: el texto va en tinta (no en el color de la serie); el punto de color da la identidad.
+  // Se ubican de mayor a menor pico y se corren 13 px si chocan con uno ya puesto.
+  const puestos = picos.length ? [{ x0: xFranja - 50, x1: xFranja + 50, y: m.t - 8 }] : [];  // el rótulo de la franja ya está puesto
+  for (const r of rotulos.sort((a, b) => a.y - b.y)) {
+    const w = r.t.length * (celular ? 6 : 6.6);
+    let ancla = "middle", x0 = r.x - w / 2, ty = r.y - 9;
+    if (r.fin) {  // a la derecha del último punto si cabe; si no, encima y hacia la izquierda
+      [ancla, x0, ty] = r.x + 6 + w <= W - 2 ? ["start", r.x + 6, r.y + 4] : ["end", r.x - w, r.y - 10];
+    } else if (x0 < m.l) [ancla, x0] = ["start", m.l];
+    else if (x0 + w > W - 2) [ancla, x0] = ["end", W - 2 - w];
+    // hacia arriba mientras haya lugar; al tocar el borde superior, hacia abajo (sin volver a subir; máximo 8 saltos)
+    for (let salto = -13, n = 0; n < 8 && puestos.some(p => x0 < p.x1 && x0 + w > p.x0 && Math.abs(ty - p.y) < 13); n++) {
+      if (salto < 0 && ty + salto <= m.t) salto = 13;
+      ty += salto;
+    }
+    puestos.push({ x0, x1: x0 + w, y: ty });
+    const tx = ancla === "start" ? x0 : ancla === "end" ? x0 + w : x0 + w / 2;
+    svg += `<text class="rotulo" x="${tx.toFixed(1)}" y="${ty.toFixed(1)}" text-anchor="${ancla}">${esc(r.t)}</text>`;
+  }
   svg += `<line id="guia" y1="${m.t}" y2="${H - m.b}" stroke="var(--texto-3)" stroke-dasharray="3 3" visibility="hidden"/>
     <rect x="${m.l}" y="${m.t}" width="${W - m.l - m.r}" height="${H - m.t - m.b}" fill="transparent" id="zona"/></svg>
     <div class="globo" id="globo-sem"></div>`;
