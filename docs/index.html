@@ -21,8 +21,8 @@
     --pista: #d6e5f7;
     --alerta: #b45309;
     --neutro: #ecebe7;
-    --g2: #85847f;  /* serie de referencia en gris (IPC nacional) */
-    /* años de comparación del dengue (2017, 2023, 2024): tonos apagados; el acento queda para el año en curso.
+    /* series de comparación (años anteriores del dengue; IPC nacional): tonos apagados; el acento queda para
+       Piura y el año en curso.
        Validados con la skill dataviz (todos los pares): daltonismo ΔE 9,1, visión normal 16,5, contraste >= 3:1 */
     --comp1: #b48b40; --comp2: #aa5e7d; --comp3: #2f7442;
     --q1: #cde2fb; --q2: #9ec5f4; --q3: #6da7ec; --q4: #2a78d6; --q5: #184f95;
@@ -33,7 +33,6 @@
       --fondo: #121211; --superficie: #1a1a19; --borde: #33332f;
       --texto: #f0efec; --texto-2: #c3c2b7; --texto-3: #9a998f;
       --acento: #3987e5; --pista: #23364d; --alerta: #f59e0b; --neutro: #2a2a27;
-      --g2: #8f8e86;
       --comp1: #916a18; --comp2: #914766; --comp3: #5da16d;  /* oscuro: ΔE 11,0 / 15,2; rosa 2,7:1, con rótulo visible */
     }
   }
@@ -42,7 +41,6 @@
     --fondo: #121211; --superficie: #1a1a19; --borde: #33332f;
     --texto: #f0efec; --texto-2: #c3c2b7; --texto-3: #9a998f;
     --acento: #3987e5; --pista: #23364d; --alerta: #f59e0b; --neutro: #2a2a27;
-    --g2: #8f8e86;
     --comp1: #916a18; --comp2: #914766; --comp3: #5da16d;
   }
   * { box-sizing: border-box; }
@@ -830,6 +828,10 @@ function pintarDenguePaneles() {
     `<tr><td colspan="3" class="nota">${fuenteDiresa(d)} Porcentaje sobre ${num(t.casos)} casos.</td></tr>`;
 }
 
+// Ancho real de un rótulo (12 px, negrita, como .grafico .rotulo), medido con un canvas: decide si cabe y si choca
+const lienzo = document.createElement("canvas").getContext("2d");
+function anchoTexto(t) { lienzo.font = "600 12px system-ui, sans-serif"; return lienzo.measureText(t).width; }
+
 function graficoSemanas() {
   const el = $("g-semanas");
   if (!D.dh && !D.d26?.serie) { el.innerHTML = `<p class="nota">Sin datos.</p>`; return; }
@@ -888,7 +890,7 @@ function graficoSemanas() {
   // Se ubican de mayor a menor pico y se corren 13 px si chocan con uno ya puesto.
   const puestos = picos.length ? [{ x0: xFranja - 50, x1: xFranja + 50, y: m.t - 8 }] : [];  // el rótulo de la franja ya está puesto
   for (const r of rotulos.sort((a, b) => a.y - b.y)) {
-    const w = r.t.length * 7.2;  // ancho aproximado de un texto de 12 px en negrita
+    const w = anchoTexto(r.t);
     let ancla = "middle", x0 = r.x - w / 2, ty = r.y - 9;
     if (r.fin) {  // a la derecha del último punto si cabe; si no, encima y hacia la izquierda
       [ancla, x0, ty] = r.x + 6 + w <= W - 2 ? ["start", r.x + 6, r.y + 4] : ["end", r.x - w, r.y - 10];
@@ -1221,8 +1223,12 @@ function graficoMeses(el, meses, series, tipo = "lineas") {
   if (tipo === "lineas") {
     const rot = [];
     for (const s of [...series].reverse()) {
-      svg += `<polyline fill="none" stroke="${s.color}" stroke-width="${s.ancho || 2}" stroke-linejoin="round" stroke-linecap="round"
+      // la serie principal (Piura) va más gruesa y con un punto en el último mes, como el año en curso del dengue
+      const ancho = s.principal ? (W < 500 ? 3 : 3.5) : (s.ancho || 2);
+      svg += `<polyline fill="none" stroke="${s.color}" stroke-width="${ancho}" stroke-linejoin="round" stroke-linecap="round"
         points="${s.v.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ")}"/>`;
+      if (s.principal) svg += `<circle cx="${x(n - 1).toFixed(1)}" cy="${y(s.v.at(-1)).toFixed(1)}" r="3.5" fill="${s.color}"
+        stroke="var(--superficie)" stroke-width="2"/>`;
       rot.push({ t: `${s.nombre} ${pct2(s.v.at(-1))}`, y: y(s.v.at(-1)) });
     }
     rot.sort((a, b) => b.y - a.y).forEach((r, i, arr) => { if (i && arr[i - 1].y - r.y < 13) r.y = arr[i - 1].y - 13; });
@@ -1269,7 +1275,7 @@ function pintarPrecios() {
       mini: chispa(s.map(x => x.doce_meses), "Variación en 12 meses del IPC de Piura, últimos 24 meses"),
       frase: `Acumulada en ${u.mes.slice(0, 4)}: ${pct2(u.acumulada)}.`, pie }) +
     panel({ titulo: "Variación en 12 meses: Piura y nacional", clase: "ancho", pie,
-      extra: `<div class="leyenda"><span style="--c:var(--acento)">Piura</span><span style="--c:var(--g2)">Nacional</span></div>
+      extra: `<div class="leyenda"><span style="--c:var(--acento)">Piura</span><span style="--c:var(--comp1)">Nacional</span></div>
         <div class="grafico" id="g-ipc-12"></div>` }) +
     panel({ titulo: "Variación mensual de Piura", clase: "ancho", pie,
       extra: `<p class="nota antes-grafico">Barras hacia abajo: meses en que los precios bajaron.</p><div class="grafico" id="g-ipc-mes"></div>` }) +
@@ -1291,8 +1297,8 @@ function graficosIPC() {
   const p = D.ipc;
   if (!p?.serie?.length || !$("g-ipc-12")) return;
   const s = p.serie.slice(-24), meses = s.map(x => x.mes);
-  graficoMeses($("g-ipc-12"), meses, [{ nombre: "Piura", color: "var(--acento)", ancho: 2.5, v: s.map(x => x.doce_meses) },
-    { nombre: "Nacional", color: "var(--g2)", v: s.map(x => x.nacional_doce_meses) }]);
+  graficoMeses($("g-ipc-12"), meses, [{ nombre: "Piura", color: "var(--acento)", principal: true, v: s.map(x => x.doce_meses) },
+    { nombre: "Nacional", color: "var(--comp1)", ancho: 1.75, v: s.map(x => x.nacional_doce_meses) }]);
   graficoMeses($("g-ipc-mes"), meses, [{ nombre: "Piura, variación mensual", color: "var(--acento)", v: s.map(x => x.mensual) }], "barras");
 }
 
