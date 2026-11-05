@@ -56,8 +56,10 @@ def total_navegador(web):
     f = re.search(r"actualización:\|(\d+)\|de\|(\w+)\|de\|(\d{4})", texto)
     if not m:
         raise SystemExit("No se pudo leer el TOTAL del navegador FEN.")
+    if not f:  # sin fecha, la página no podría avisar que el dato quedó viejo
+        raise SystemExit("No se pudo leer la fecha de actualización del navegador FEN.")
     total = dict(zip(["marco", "certificado", "comprometido", "devengado"], (int(x.replace(",", "")) for x in m.groups())))
-    fecha = f"{int(f.group(3))}-{MESES.index(f.group(2).lower()) + 1:02d}-{int(f.group(1)):02d}" if f else None
+    fecha = f"{int(f.group(3))}-{MESES.index(f.group(2).lower()) + 1:02d}-{int(f.group(1)):02d}"
     return total, fecha
 
 
