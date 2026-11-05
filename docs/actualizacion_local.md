@@ -13,8 +13,8 @@ Dos fuentes no se pueden actualizar desde GitHub y hay que hacerlo desde una com
 
 | Fuente | Cada cuánto publica | Cuándo correr el script | La página avisa "Dato no actualizado" a los |
 | --- | --- | --- | --- |
-| Infobras | Diario, aunque el archivo de datos abiertos no trae avances desde marzo de 2026 | **Una vez por semana** (por ejemplo, los lunes) | 7 días |
-| SUSALUD, camas | Mensual, con uno o dos meses de retraso | Basta con la corrida semanal; el mes nuevo suele aparecer hacia fin de mes | 45 días |
+| Infobras | Diario, aunque el archivo de datos abiertos no trae avances desde marzo de 2026 | **Una vez al mes** (por ejemplo, la primera semana) | 35 días |
+| SUSALUD, camas | Mensual, con uno o dos meses de retraso | En la misma corrida mensual; el mes nuevo suele aparecer hacia fin de mes | 45 días |
 
 La forma más simple de recordarlo: si en la página aparece **"Dato no actualizado desde [fecha]"** junto a las cifras de obras o de camas, toca correr el script. Correrlo más seguido no hace daño. Si no hay datos nuevos, no sube nada; Infobras cambia la fecha de consulta cada día, así que casi siempre habrá un commit.
 

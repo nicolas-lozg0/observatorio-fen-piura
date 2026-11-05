@@ -428,7 +428,7 @@
             promedio mensual, no la ocupación de hoy.</li>
           <li><strong>Datos no actualizados.</strong> Si una fuente pasa más días de lo esperado sin actualizarse, junto a
             sus cifras aparece "Dato no actualizado desde [fecha]". Plazos: MEF (gasto, emergencia FEN, avance de
-            proyectos), 3 días; Infobras, 7; dengue 2026, 14; camas, 45; IPC, 45. Se cuenta desde la fecha de los datos.</li>
+            proyectos), 3 días; dengue 2026, 14; Infobras, 35; camas, 45; IPC, 45. Se cuenta desde la fecha de los datos.</li>
           <li><strong>IPC de Piura.</strong> Variaciones del Cuadro 2 del informe técnico mensual del INEI. Se validó con
             febrero de 2026 (0,48 % mensual y 2,28 % en 12 meses).</li>
         </ul>
@@ -486,7 +486,7 @@ const PRELIMINAR = 3;  // últimas semanas de 2026 que se dibujan punteadas
 const NIVELES = [["E", "Gobierno nacional"], ["R", "Gobierno regional"], ["M", "Gobiernos locales"]];
 const PESTANAS = ["resumen", "dengue", "gasto", "obras", "salud", "precios", "fuentes"];
 // Días que puede pasar una fuente sin actualizarse antes de avisar "Dato no actualizado desde…"
-const PLAZOS = { obras: 7, camas: 45, gasto: 3, inv: 3, fen: 3, d26: 14, ipc: 45 };
+const PLAZOS = { obras: 35, camas: 45, gasto: 3, inv: 3, fen: 3, d26: 14, ipc: 45 };
 
 // Explicaciones de una línea para el ícono "?"
 const GLOSARIO = {
@@ -1297,7 +1297,7 @@ function pintarFuentes() {
     ["Gasto público, prevención (0068), salud (0017) y ANIN", D.gasto, "Diaria", "gasto"],
     ["Gasto de emergencia FEN", D.fen, "Diaria", "fen"],
     ["Avance físico y financiero acumulado de proyectos", D.invMeta, "Diaria", "inv"],
-    ["Obras en ejecución y paralizadas", D.obras, "Semanal, a mano (archivo sin avances desde marzo de 2026)", "obras"],
+    ["Obras en ejecución y paralizadas", D.obras, "Mensual, a mano (archivo sin avances desde marzo de 2026)", "obras"],
     ["Dengue 2026: casos, graves, fallecidos, hospitalizados", D.d26 && { ...D.d26, fecha_corte: `${fecha(D.d26.fecha_corte)} (semana ${D.d26.se})` }, "Semanal (viernes)", "d26"],
     ["Dengue 2000–2025 por distrito y semana", D.dh, "Archivo fijo; se actualiza a mano"],
     ["Capacidad hospitalaria", D.camas && { ...D.camas, fecha_corte: `${fecha(D.camas.fecha_corte)} (${D.camas.periodo})` }, "Mensual, a mano", "camas"],
