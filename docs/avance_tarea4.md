@@ -1,6 +1,6 @@
 # Avance: la página como tablero con pestañas e IPC de Piura
 
-Fecha: 3 de noviembre de 2026. Todo está en local; **no se ha hecho push**.
+Fecha: 3 de noviembre de 2026; publicado en GitHub Pages. El rediseño visual del 5 de noviembre está en la sección E.
 
 ## Cómo verla en local
 
@@ -51,6 +51,7 @@ Luego abrir http://localhost:8000. Cada pestaña tiene su dirección: `#resumen`
 
 ## C. Diseño
 
+- *El color y la tipografía de esta sección se reemplazaron en el rediseño (sección E); el resto sigue vigente.*
 - Modo claro fijo, paleta neutra (grises) y un color de acento (azul). En el gráfico de dengue, 2026 va en azul y los años anteriores en tres grises, con rótulo al final de cada línea, leyenda y globo al pasar el cursor; antes eran naranja, verde y amarillo. El IPC usa azul para Piura y gris para el nacional.
 - El énfasis lo dan el tamaño y la posición: la cifra principal es grande y la alerta de obras paralizadas lleva un borde izquierdo oscuro y ocupa todo el ancho.
 - Se mantienen "Prototipo, no oficial", `noindex`, la fuente y la fecha en cada panel, y todos los cálculos validados: gasto por lugar y por sede, salas de la DIRESA, mapa, ocupación de SUSALUD, avance del MEF por CUI y estado de Infobras. Las funciones de cálculo son las mismas; solo cambió dónde se muestran.
@@ -74,13 +75,52 @@ Luego abrir http://localhost:8000. Cada pestaña tiene su dirección: `#resumen`
 | `gasto_piura.json` | `gasto_mef.py` | `actualizar.yml` |
 | `inversiones_piura.json` | `inversiones_mef.py` | `actualizar.yml` |
 | `fen_piura.json` | `fen_mef.py` | `actualizar.yml` |
-| `infobras_piura.json` | `infobras.py` | `actualizar.yml` |
-| `camas_piura.json` | `camas_susalud.py` | `actualizar.yml` |
+| `infobras_piura.json` | `infobras.py` | A mano, con `scripts/actualizar_local.sh` (ver `docs/actualizacion_local.md`) |
+| `camas_piura.json` | `camas_susalud.py` | A mano, con `scripts/actualizar_local.sh` |
 | `ipc_piura.json` | `ipc_inei.py` (nuevo) | `actualizar.yml` |
 | `dengue_2026.json` | `dengue_diresa.py` | `dengue.yml` |
 | `dengue_historico.json`, `piura_distritos.json` | `dengue_historico.py`, `mapa_distritos.py` | Archivos fijos, a mano (igual que antes) |
 
-  `historial.csv` se sigue generando, pero la nueva página ya no lo usa: las mini-gráficas salen de las series de cada fuente.
+  `historial.csv` y `historial.py` se borraron: las mini-gráficas salen de las series de cada fuente.
+
+## E. Rediseño visual (5 de noviembre de 2026)
+
+Solo cambia la presentación: los datos, los cálculos validados, las fuentes y las direcciones `#pestaña` son los mismos. Commits `c0fc8c7`, `f111065` y `991b5b0`, publicados en GitHub Pages.
+
+- **Identidad de udep.edu.pe/fen, sin logo:**
+  - colores: azul marino `#002856` en la cabecera y la barra, celeste en el texto sobre marino, y rojo solo para alertas y para marcar la pestaña activa;
+  - tipografías: Montserrat (títulos y cifras) y Nunito Sans (texto), guardadas en `docs/fuentes/` (66 KB, licencia OFL), sin depender de Google;
+  - se mantiene "Prototipo, no oficial".
+- **Barra fija:**
+  - al bajar quedan visibles "Actualizado al [fecha]", el botón "Compartir esta pestaña" y las pestañas (44 px de alto como mínimo, para el dedo);
+  - "Actualizado al" es la fecha más reciente entre las fuentes, y cada cifra conserva la suya;
+  - compartir abre el menú del sistema en celulares (WhatsApp, correo…) y copia el enlace en computadoras.
+- **Portada:**
+  - "¿Cómo está Piura frente a El Niño?" y un recuadro "Piden atención", que lista lo que cumple alguna regla (descritas en "Fuentes y método"): el dengue sube frente a la semana anterior, hay obras paralizadas, el gasto va más lento que el calendario o hay fuentes sin actualizar en su plazo;
+  - debajo, 5 paneles del mismo tamaño, cada uno con ícono, pregunta, cifra, mini-gráfica, una frase y la fuente con su fecha;
+  - el panel de obras tiene ahora una mini-gráfica: la proporción de obras activas que están paralizadas.
+- **Menos texto en la vista simple:** introducciones de una línea y una frase por panel. Las explicaciones largas, como por qué difieren las dos vistas del gasto o los establecimientos con más de 100 % de ocupación, pasaron a "Ver detalle". En Obras, los nombres largos se cortan a dos líneas; el nombre completo se ve al pasar el cursor y en la tabla.
+- **Distintivos comunes, siempre con ícono y texto:**
+  - rojo con reloj: "Dato no actualizado desde…";
+  - azul con reloj de arena: "En trámite" (vacunación);
+  - gris punteado: "En preparación" (SISAP) o "Pendiente" (IPC, si no carga).
+- **Navegación:** al final de cada pestaña, "Siguiente: [pestaña] →"; la última dice "Volver al resumen".
+- **Dengue:** junto al mapa, los 5 distritos con más casos (las primeras filas de la tabla que ya existía).
+- **Gráficos:** usan la tipografía de la página, rótulos en color de texto con un punto del color de la serie y los mismos colores de datos validados con la skill dataviz (sin colores nuevos). Se vuelven a dibujar cuando terminan de cargar las tipografías.
+
+**Verificación:**
+- `scripts/test_pagina.py` pasa. Agregué la comprobación de las pestañas de 44 px, el botón de compartir, los enlaces "Siguiente" y "Actualizado al".
+- Capturas en celular (375 px) de las 7 pestañas, y de la portada y Dengue en escritorio.
+- Sin errores en la consola.
+
+**Ajustes después de la revisión de código:**
+- **Dengue en la portada:** "El dengue sube" y la frase del panel comparan la semana actual y la anterior de la misma tabla, la de distritos. La cifra del panel sigue saliendo de la tabla por provincia, y ambas pueden diferir en pocos casos: en la semana 42, 1.098 frente a 1.099.
+- **Reglas calculadas una vez:** dengue, obras paralizadas y ritmo del gasto se calculan una sola vez para el aviso y los paneles.
+- **Colores en variables:** títulos, cifras, íconos y distintivos ya tienen versión oscura, pero la página sigue fija en modo claro (`data-theme="light"`, por la web de la UDEP).
+
+**Decisiones del rediseño que conviene revisar:**
+- En la pestaña Dengue, los tres paneles tienen el mismo tamaño (no hay panel principal), igual que en la portada.
+- Los paneles de la portada no tienen enlace "Ver…"; todo el panel lleva a su pestaña.
 
 ## Decisiones que tomé y conviene revisar
 
@@ -92,4 +132,3 @@ Luego abrir http://localhost:8000. Cada pestaña tiene su dirección: `#resumen`
 ## Pendiente
 
 - **El IPC no se ha corrido en GitHub Actions.** Si el sitio del INEI rechaza las conexiones desde los servidores de GitHub, el paso fallará sin detener los demás y se conservarán los datos anteriores.
-- No se ha hecho push. Falta tu revisión en local.
