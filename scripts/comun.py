@@ -4,6 +4,7 @@ import json
 import shutil
 import sys
 import time
+import urllib.error
 import urllib.request
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -29,7 +30,8 @@ def abrir(url, timeout=180, intentos=3, espera=20, metodo=None):
         try:
             return urllib.request.urlopen(req, timeout=timeout)
         except OSError as e:  # URLError y TimeoutError heredan de OSError
-            if i == intentos:
+            # un 4xx (404, 403…) es una respuesta del servidor, no una caída: reintentar no cambia nada
+            if i == intentos or (isinstance(e, urllib.error.HTTPError) and 400 <= e.code < 500):
                 raise
             print(f"  Intento {i} de {intentos} falló ({e}); nuevo intento en {espera * i} s", flush=True)
             time.sleep(espera * i)
