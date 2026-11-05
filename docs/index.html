@@ -67,6 +67,20 @@
   .pestanas a:hover, .pestanas a:focus-visible { color: var(--texto); }
   .pestanas a[aria-current="page"] { color: var(--texto); font-weight: 600; border-bottom-color: var(--acento); }
   .pestana[hidden] { display: none; }
+  /* Tamaños y márgenes puntuales (antes en atributos style; mismos valores) */
+  .paneles + .paneles { margin-top: 12px; }
+  #gasto-paneles { margin-top: 10px; }
+  #explica-vistas { max-width: 760px; }
+  .control-corto { max-width: 220px; }
+  .filtros-cortos { max-width: 520px; }
+  table.tabla-560 { max-width: 560px; }
+  table.tabla-640 { max-width: 640px; }
+  table.ancha.min-640 { min-width: 640px; }
+  table.ancha.min-900 { min-width: 900px; }
+  .nota.antes-lista { margin: 4px 0 0; }
+  .nota.antes-grafico { margin: 0; }
+  .nota.pie-pagina { margin-top: 24px; }
+  #glosario dd { margin: 0 0 6px; }
   .visualmente-oculto { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   .intro { color: var(--texto-2); margin-bottom: 14px; max-width: 760px; }
 
@@ -205,7 +219,7 @@
     <p class="intro">Casos <span data-g="cp">confirmados y probables</span> según la sala situacional de la DIRESA Piura, por
       <span data-g="se">semana epidemiológica</span>.</p>
     <div class="paneles" id="dengue-paneles"></div>
-    <div class="paneles" style="margin-top:12px">
+    <div class="paneles">
       <div class="panel ancho" id="dengue-semanas">
         <h3>Casos por semana: <span class="anio-d">2026</span> frente a años de brote</h3>
         <p class="frase" id="anota-semanas"></p>
@@ -215,7 +229,7 @@
       </div>
       <div class="panel ancho" id="dengue-distritos">
         <h3>Casos por distrito</h3>
-        <label class="control" style="max-width:220px">Año<select id="f-anio"></select></label>
+        <label class="control control-corto">Año<select id="f-anio"></select></label>
         <p class="nota" id="titulo-mapa"></p>
         <div class="grafico" id="mapa"></div>
         <div class="leyenda cajas" id="leyenda-mapa"></div>
@@ -232,9 +246,9 @@
         </table></div>
         <p class="nota" id="nota-distritos"></p>
         <h3>Gravedad y diagnóstico en <span class="anio-d">2026</span></h3>
-        <div class="tabla"><table style="max-width:560px"><tbody id="dengue-formas"></tbody></table></div>
+        <div class="tabla"><table class="tabla-560"><tbody id="dengue-formas"></tbody></table></div>
         <h3>Opciones del gráfico</h3>
-        <div class="filtros" style="max-width:520px">
+        <div class="filtros filtros-cortos">
           <label>Años anteriores en el gráfico<select id="f-dx">
             <option value="CP">Confirmados y probables</option><option value="C">Solo confirmados</option>
           </select></label>
@@ -260,8 +274,8 @@
       <div><strong>Gastado por entidades con sede en Piura</strong><br><span class="nota">Gobierno regional, municipalidades y
         otras entidades con sede en Piura.</span></div>
     </div>
-    <p class="nota" id="explica-vistas" style="max-width:760px"></p>
-    <div class="paneles" id="gasto-paneles" style="margin-top:10px"></div>
+    <p class="nota" id="explica-vistas"></p>
+    <div class="paneles" id="gasto-paneles"></div>
     <details class="detalle">
       <summary><span class="ver">Ver detalle</span><span class="ocultar">Ocultar detalle</span></summary>
       <div class="cuerpo-detalle">
@@ -279,7 +293,7 @@
           <label>Buscar<input id="f-texto" type="search" placeholder="Nombre o código"></label>
         </div>
         <p id="t-resumen-tabla"></p>
-        <div class="tabla"><table class="ancha" style="min-width:900px">
+        <div class="tabla"><table class="ancha min-900">
           <thead><tr><th>Código</th><th class="nombre">Nombre</th><th>Entidad</th><th class="n">PIM (S/)</th><th class="n">Devengado (S/)</th>
             <th class="n">Avance del año</th><th class="n">Avance físico</th><th>Distrito</th></tr></thead>
           <tbody id="t-cuerpo"></tbody>
@@ -355,7 +369,7 @@
         </table></div>
         <button type="button" class="mas" id="camas-mas" hidden></button>
         <h3 id="dengue-hospitalizados">Hospitalizados por dengue según establecimiento (<span class="anio-d">2026</span>)</h3>
-        <div class="tabla alta"><table style="max-width:640px">
+        <div class="tabla alta"><table class="tabla-640">
           <thead><tr><th>Establecimiento</th><th class="n">Hospitalizados en el año</th></tr></thead>
           <tbody id="hosp"></tbody>
         </table></div>
@@ -380,7 +394,7 @@
       <summary><span class="ver">Ver detalle</span><span class="ocultar">Ocultar detalle</span></summary>
       <div class="cuerpo-detalle">
         <h3>Serie mensual del IPC de Piura</h3>
-        <div class="tabla alta"><table class="ancha" style="min-width:640px">
+        <div class="tabla alta"><table class="ancha min-640">
           <thead><tr><th>Mes</th><th class="n">Variación mensual</th><th class="n">Acumulada en el año</th>
             <th class="n">En 12 meses</th><th class="n">Nacional, en 12 meses</th><th>Informe</th></tr></thead>
           <tbody id="ipc-cuerpo"></tbody>
@@ -396,7 +410,7 @@
     <h2 id="t-fuentes">Fuentes y método</h2>
     <p class="intro">De dónde sale cada cifra, cada cuánto se actualiza y a qué fecha corresponde.</p>
     <div class="panel">
-      <div class="tabla"><table class="ancha" style="min-width:640px">
+      <div class="tabla"><table class="ancha min-640">
         <thead><tr><th>Indicador</th><th class="nombre">Fuente</th><th>Frecuencia</th><th>Datos al</th></tr></thead>
         <tbody id="fuentes-cuerpo"></tbody>
       </table></div>
@@ -467,7 +481,7 @@
     </details>
   </section>
 
-  <p class="nota" style="margin-top:24px">Observatorio FEN Piura, Facultad de Ciencias Económicas y Empresariales,
+  <p class="nota pie-pagina">Observatorio FEN Piura, Facultad de Ciencias Económicas y Empresariales,
     Universidad de Piura. Prototipo, no oficial. No se generan datos: solo se recogen de fuentes públicas.</p>
 </main>
 <div id="definicion" role="tooltip" hidden></div>
@@ -1069,7 +1083,7 @@ function pintarObras() {
   $("obras-paneles").innerHTML =
     panel({ titulo: g("paralizada", "Obras paralizadas"), cifra: num(par.length), ud: `costo total ${millones(suma(par, "costo_et"))}`, vence: "obras",
       clase: "alerta ancho", pie, frase: cs.length ? `La causa registrada con más obras es «${esc(cs[0][0])}» (${num(cs[0][1])} de ${num(par.length)}).` : "",
-      extra: `<p class="nota" style="margin:4px 0 0">Las 5 de mayor costo:</p><ol class="lista-corta">${porCosto(par).slice(0, 5).map(x =>
+      extra: `<p class="nota antes-lista">Las 5 de mayor costo:</p><ol class="lista-corta">${porCosto(par).slice(0, 5).map(x =>
         `<li><strong>${x.costo_et == null ? "Costo no registrado" : millones(x.costo_et)}</strong> · ${esc(x.obra)} · ${distritoTxt(x)} ·
         Causa: ${esc(x.causal || "no registrada")}</li>`).join("")}</ol>` }) +
     panel({ titulo: "Causas de paralización", ud: "número de obras paralizadas por causa registrada", pie, vence: "obras",
@@ -1080,7 +1094,7 @@ function pintarObras() {
     panel({ titulo: "Obras en ejecución", cifra: num(eje.length), ud: `costo total ${millones(suma(eje, "costo_et"))}`, clase: "ancho", vence: ["obras", "inv"],
       frase: `${num(conMef.length)} de ${num(eje.length)} tienen ${g("fisico", "avance físico")} en el MEF (por código único de
         inversión). <span class="revisar">${notaInfobras(o)}</span>`,
-      extra: `<p class="nota" style="margin:4px 0 0">Las 5 de mayor costo, con el avance físico de su inversión según el MEF:</p>
+      extra: `<p class="nota antes-lista">Las 5 de mayor costo, con el avance físico de su inversión según el MEF:</p>
         <ol class="lista-corta">${porCosto(eje).slice(0, 5).map(x => `<li><strong>${avanceObra(x)}</strong> · ${esc(x.obra)} ·
         ${distritoTxt(x)} · ${x.costo_et == null ? "costo no registrado" : millones(x.costo_et)}</li>`).join("")}</ol>`,
       pie: `${pie}${D.invMeta ? ` · Avance físico: MEF, datos al ${fecha(D.invMeta.fecha_corte)}` : ""}` });
@@ -1225,7 +1239,7 @@ function pintarPrecios() {
       extra: `<div class="leyenda"><span style="--c:var(--acento)">Piura</span><span style="--c:var(--g2)">Nacional</span></div>
         <div class="grafico" id="g-ipc-12"></div>` }) +
     panel({ titulo: "Variación mensual de Piura", clase: "ancho", pie,
-      extra: `<p class="nota" style="margin:0">Barras hacia abajo: meses en que los precios bajaron.</p><div class="grafico" id="g-ipc-mes"></div>` }) +
+      extra: `<p class="nota antes-grafico">Barras hacia abajo: meses en que los precios bajaron.</p><div class="grafico" id="g-ipc-mes"></div>` }) +
     sisap;
   graficosIPC();
   $("ipc-cuerpo").innerHTML = [...p.serie].reverse().map(x => `<tr><td>${esc(mesTxt(x.mes))}</td><td class="n">${pct2(x.mensual)}</td>
@@ -1324,7 +1338,7 @@ function pintarFuentes() {
     `${esc(k.replace("_", " "))}, ${v === "ok" ? "cuadra" : `<span class="revisar">${esc(v)}</span>`}`).join("; ") + "." +
     (d.avisos?.length ? ` Avisos: ${d.avisos.map(esc).join("; ")}.` : "");
   document.querySelectorAll(".n-prelim").forEach(e => e.textContent = PRELIMINAR);
-  $("glosario").innerHTML = Object.values(GLOSARIO).map(([t, def]) => `<dt><strong>${esc(t)}</strong></dt><dd style="margin:0 0 6px">${esc(def)}</dd>`).join("");
+  $("glosario").innerHTML = Object.values(GLOSARIO).map(([t, def]) => `<dt><strong>${esc(t)}</strong></dt><dd>${esc(def)}</dd>`).join("");
 }
 
 /* ---------- Pestañas: cada una con su dirección (#dengue, #gasto…) ---------- */
