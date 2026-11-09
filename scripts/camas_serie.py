@@ -36,8 +36,9 @@ def enlaces():
 
 def mes_de(d):
     """Totales de Piura de un mes, con los establecimientos que reportaron."""
-    rep = [f for f in resumir(d) if f["reporto"]]
-    return {"establecimientos": len(resumir(d)), "reportaron": len(rep), "camas": sum(f["camas"] for f in rep),
+    todos = resumir(d)
+    rep = [f for f in todos if f["reporto"]]
+    return {"establecimientos": len(todos), "reportaron": len(rep), "camas": sum(f["camas"] for f in rep),
             "pacientes_dia": sum(f["pacientes_dia"] for f in rep), "dias_cama": sum(f["dias_cama"] for f in rep)}
 
 

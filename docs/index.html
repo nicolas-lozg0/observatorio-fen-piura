@@ -1222,7 +1222,8 @@ const ocupacion = x => x.dias_cama ? 100 * x.pacientes_dia / x.dias_cama : null;
 // Ocupación mensual (serie de SUSALUD) y regla del título: frente al mismo mes del año anterior (±1 punto = se mantiene)
 function ocupacionSerie() {
   const s = D.camasSerie?.serie;
-  if (!s?.length) return null;
+  // la cifra sale de camas_piura.json: si la serie quedó en otro mes (un script falló), no se mezclan
+  if (!s?.length || mesTxt(s.at(-1).mes) !== D.camas?.periodo) return null;
   const oc = x => pct(x.pacientes_dia, x.dias_cama), u = s.at(-1), [a, m] = u.mes.split("-");
   const prev = s.find(x => x.mes === `${+a - 1}-${m}`), dif = prev ? oc(u) - oc(prev) : null;
   return { s, oc, u, prev, dir: dif == null ? null : dif >= 1 ? "sube" : dif <= -1 ? "baja" : "se mantiene" };

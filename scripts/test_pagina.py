@@ -10,6 +10,7 @@ Revisa, en escritorio (1280 px) y celular (375 px):
   - que el año de la pestaña Dengue sea el de la sala de la DIRESA;
   - que los rótulos del gráfico semanal de dengue no se encimen ni se salgan del gráfico;
   - que las pestañas midan al menos 44 px de alto, y que estén el botón de compartir y los enlaces "Siguiente";
+  - que los 5 títulos de la portada tengan texto y que el de salud cuadre con el mes de su cifra y su comparación;
   - que aparezca "Dato no actualizado" si se simula una fecha 60 días después.
 
 Requiere Playwright (pip3 install playwright) y un navegador Chromium: usa Brave o Chrome si están
@@ -122,6 +123,25 @@ def main():
                 revisar(not sin_definir, f"{ancho}px: tokens sin definir: {sin_definir}")
                 revisar(not errores, f"{ancho}px: errores en la consola: {errores[:3]}")
                 pg.close()
+            # Títulos de la portada: 5 con texto; el de salud, por regla, solo si la serie y la cifra son del mismo mes
+            pg = nav.new_page()
+            pg.goto(base + "#resumen")
+            pg.wait_for_function("document.querySelectorAll('#resumen-paneles .panel').length >= 5", timeout=15000)
+            r = pg.evaluate("""() => {
+                const t = [...document.querySelectorAll('#resumen-paneles .panel h3')].map(h => h.textContent.trim());
+                const o = ocupacionSerie(), sal = t.find(x => /salud|ocupación de camas/i.test(x));
+                let esperado = '¿Está preparada la salud?';
+                if (o?.dir) esperado = `La ocupación de camas ${o.dir} frente a hace un año`;
+                const regla = !o?.prev || (o.oc(o.u) - o.oc(o.prev) >= 1 ? 'sube' : o.oc(o.u) - o.oc(o.prev) <= -1 ? 'baja' : 'se mantiene') === o.dir;
+                // con la serie desfasada un mes, el título vuelve a la pregunta
+                D.camas = { ...D.camas, periodo: 'agosto de 1999' };
+                const desfasada = ocupacionSerie() === null;
+                return { t, sal, esperado, regla, desfasada };
+            }""")
+            revisar(len(r["t"]) == 5 and all(r["t"]), f"títulos de la portada: {r['t']}")
+            revisar(r["sal"] == r["esperado"] and r["regla"] and r["desfasada"],
+                    f"título de salud «{r['sal']}», esperado «{r['esperado']}», regla {r['regla']}, serie desfasada {r['desfasada']}")
+            pg.close()
             # Aviso de datos viejos: con el reloj 60 días adelante deben aparecer avisos
             pg = nav.new_page()
             pg.clock.set_fixed_time(datetime.now() + timedelta(days=60))
@@ -135,7 +155,7 @@ def main():
     if fallos:
         print("FALLA:\n  " + "\n  ".join(fallos))
         sys.exit(1)
-    print(f"OK: {len(PESTANAS)} pestañas a 1280 y 375 px, enlace antiguo, año de Dengue, rótulos del gráfico, pestañas, compartir y aviso de datos viejos")
+    print(f"OK: {len(PESTANAS)} pestañas a 1280 y 375 px, enlace antiguo, año de Dengue, rótulos del gráfico, pestañas, compartir, títulos de la portada y aviso de datos viejos")
 
 
 if __name__ == "__main__":
