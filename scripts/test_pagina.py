@@ -117,7 +117,7 @@ def main():
                         f"{ancho}px: compartir {r['compartir']}, enlaces Siguiente {r['siguientes']}, «{r['actualizado']}»")
                 # Todo var(--token) usado en la página (estilos y SVG generados) debe estar definido
                 sin_definir = pg.evaluate("""() => { const css = getComputedStyle(document.documentElement);
-                    const usados = new Set([...document.documentElement.outerHTML.matchAll(/var\\((--[\\w-]+)/g)].map(m => m[1]));
+                    const usados = new Set([...document.documentElement.outerHTML.matchAll(/var\\((--[\\w-]+)[),]/g)].map(m => m[1]));
                     return [...usados].filter(v => v !== '--c' && !css.getPropertyValue(v).trim()); }""")
                 revisar(not sin_definir, f"{ancho}px: tokens sin definir: {sin_definir}")
                 revisar(not errores, f"{ancho}px: errores en la consola: {errores[:3]}")
