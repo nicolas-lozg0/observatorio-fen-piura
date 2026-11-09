@@ -4,7 +4,7 @@ Prueba de la página (docs/index.html) en un navegador sin ventana, antes de sub
 Revisa, en escritorio (1280 px) y celular (375 px):
   - que cada dirección #pestaña muestre solo su pestaña y la marque en el menú;
   - que la página no se desplace de lado, ni con el detalle abierto;
-  - que ninguna tabla se vea sin abrir "Ver detalle" (salvo la de fuentes, que es corta);
+  - que ninguna tabla larga (más de 15 filas) se vea sin abrir "Ver detalle";
   - que no haya errores en la consola;
   - que un enlace antiguo (#alertas) abra Obras con el detalle desplegado;
   - que el año de la pestaña Dengue sea el de la sala de la DIRESA;
@@ -86,7 +86,7 @@ def main():
                     revisar(max(r["desborde1"], r["desborde2"]) <= 0,
                             f"{ancho}px #{t}: la página se desplaza de lado ({r['desborde1']} / {r['desborde2']} px con detalle)")
                     largas = [n for n in r["tablas"] if n > 15]
-                    revisar(not largas and (t == "fuentes" or not r["tablas"]),
+                    revisar(not largas,
                             f"{ancho}px #{t}: tablas visibles sin abrir el detalle ({r['tablas']} filas)")
                 pg.evaluate("location.hash = '#alertas'")
                 pg.wait_for_timeout(300)
