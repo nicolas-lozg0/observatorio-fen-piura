@@ -8,6 +8,9 @@
 <meta name="robots" content="noindex, nofollow">
 <link rel="icon" href="data:,">  <!-- sin ícono: evita que el navegador pida favicon.ico y registre un 404 -->
 <title>Observatorio FEN Piura</title>
+<meta name="theme-color" content="#002856">
+<link rel="preload" href="fuentes/montserrat-latin-800-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fuentes/nunito-sans-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
 <style>
   /* ===== Sistema de diseño (docs/design-system.md). Todo componente usa estos tokens. ===== */
   :root {
@@ -61,6 +64,11 @@
 
   /* ===== Base ===== */
   * { box-sizing: border-box; }
+  html { scroll-padding-top: 112px; }  /* la barra fija y las pestañas no tapan el ancla ni el foco */
+  a, button, summary, label, select, input { touch-action: manipulation; -webkit-tap-highlight-color: rgb(42 120 214 / .15); }
+  .saltar { position: absolute; left: var(--e4); top: -64px; z-index: 40; padding: var(--e2) var(--e4); border-radius: var(--r-control);
+    background: var(--superficie); color: var(--acento); font-weight: 700; }
+  .saltar:focus { top: var(--e2); }
   body { margin: 0; background: var(--fondo); color: var(--texto); font: var(--t-base)/1.55 var(--f-texto);
     font-variant-numeric: tabular-nums; }  /* cifras alineadas en tablas, tarjetas y ejes */
   main { max-width: 1120px; margin: 0 auto; padding: var(--e5) var(--e4) var(--e7); }
@@ -298,6 +306,7 @@
 </style>
 </head>
 <body>
+<a class="saltar" href="#contenido">Saltar al contenido</a>
 <header class="cabecera"><div>
   <p class="proto">Prototipo, no oficial</p>
   <h1>Observatorio FEN Piura</h1>
@@ -324,7 +333,7 @@
 </nav>
 </div>
 
-<main>
+<main id="contenido" tabindex="-1">
   <!-- ===================== RESUMEN ===================== -->
   <section class="pestana resumen" id="resumen" aria-labelledby="t-resumen">
     <h2 id="t-resumen" class="visualmente-oculto">Resumen</h2>
@@ -407,7 +416,7 @@
           <label>Nivel de gobierno<select id="f-nivel"></select></label>
           <label>Entidad<select id="f-entidad"></select></label>
           <label>Programa presupuestal<select id="f-programa"></select></label>
-          <label>Buscar<input id="f-texto" type="search" placeholder="Nombre o código"></label>
+          <label>Buscar<input id="f-texto" name="buscar-gasto" type="search" autocomplete="off" spellcheck="false" placeholder="Nombre o código…"></label>
         </div>
         <p id="t-resumen-tabla"></p>
         <div class="tabla"><table class="ancha min-900">
@@ -450,7 +459,7 @@
             <option value="">En ejecución y paralizadas</option><option value="Paralizada">Paralizadas</option>
             <option value="En Ejecución">En ejecución</option>
           </select></label>
-          <label>Buscar<input id="f-obra" type="search" placeholder="Obra, entidad o distrito"></label>
+          <label>Buscar<input id="f-obra" name="buscar-obra" type="search" autocomplete="off" spellcheck="false" placeholder="Obra, entidad o distrito…"></label>
         </div>
         <p id="obras-resumen"></p>
         <div class="tabla"><table class="ancha">
@@ -540,13 +549,13 @@
       <div class="cuerpo-detalle">
         <h3>Criterios</h3>
         <ul class="metodo">
-          <li><strong>Dos puntos de vista del gasto.</strong> "Gastado en Piura" cuenta lo que se gasta en Piura, lo ejecute
-            quien lo ejecute (el criterio de la Consulta Amigable del MEF). "Gastado por entidades con sede en Piura" cuenta
+          <li><strong>Dos puntos de vista del gasto.</strong> «Gastado en Piura» cuenta lo que se gasta en Piura, lo ejecute
+            quien lo ejecute (el criterio de la Consulta Amigable del MEF). «Gastado por entidades con sede en Piura» cuenta
             lo que gastan las entidades con sede en Piura, se gaste donde se gaste. Difieren porque las entidades nacionales
             (ministerios, ANIN, programas nacionales) también invierten en Piura, y eso solo entra en el primero.</li>
           <li><strong>PIM y devengado.</strong> PIM: presupuesto institucional modificado, el presupuesto vigente del año.
             Devengado: gasto ya reconocido como obligación de pago. Avance del año = devengado / PIM.</li>
-          <li><strong>Avance financiero y físico de un proyecto.</strong> La alerta de "más pagado que construido" compara el
+          <li><strong>Avance financiero y físico de un proyecto.</strong> La alerta de «más pagado que construido» compara el
             avance financiero acumulado (lo gastado desde que empezó el proyecto sobre su costo actualizado) con el avance
             físico acumulado, ambos del MEF. No se compara el avance del año con el físico: miden periodos distintos.</li>
           <li><strong>Avance físico de obras.</strong> Se toma del MEF (Detalle de inversiones, Formato 12-B) por código único
@@ -560,7 +569,7 @@
           <li><strong>Ocupación de camas.</strong> Pacientes-día del mes / días-cama disponibles del mes (SUSALUD). Es un
             promedio mensual, no la ocupación de hoy.</li>
           <li><strong>Datos no actualizados.</strong> Si una fuente pasa más días de lo esperado sin actualizarse, junto a
-            sus cifras aparece "Dato no actualizado desde [fecha]". Plazos: MEF (gasto, emergencia FEN, avance de
+            sus cifras aparece «Dato no actualizado desde [fecha]». Plazos: MEF (gasto, emergencia FEN, avance de
             proyectos), 3 días; dengue, 14; Infobras, 35; camas, 45; IPC, 45. Se cuenta desde la fecha de los datos.</li>
           <li><strong>IPC de Piura.</strong> Variaciones del Cuadro 2 del informe técnico mensual del INEI. Se validó con
             febrero de 2026 (0,48 % mensual y 2,28 % en 12 meses).</li>
@@ -573,24 +582,24 @@
           <li><strong>Dengue, año.</strong> Suma los casos del año en curso hasta la última semana y los compara con la suma hasta esa
             misma semana en 2017, 2023 y 2024 (confirmados y probables).</li>
           <li><strong>Gasto.</strong> Compara el porcentaje gastado del PIM con el porcentaje del año ya transcurrido a la
-            fecha de los datos: "menor" o "mayor" si la diferencia supera 5 puntos; si no, "similar".</li>
+            fecha de los datos: «menor» o «mayor» si la diferencia supera 5 puntos; si no, «similar».</li>
           <li><strong>Obras.</strong> Cuenta las obras paralizadas y su costo, y nombra la causa registrada con más obras.</li>
           <li><strong>Salud.</strong> Ocupación promedio del último mes publicado y número de establecimientos que reportaron.</li>
           <li><strong>Piden atención (portada).</strong> Se listan los indicadores que cumplen alguna regla: casos de dengue de la
             última semana mayores que los de la anterior (ambas semanas de la tabla por distrito de la DIRESA); obras paralizadas (si hay al menos una); gasto con una proporción
-            "menor" que el año transcurrido (regla del gasto, arriba); fuentes que pasaron su plazo sin actualizarse. Si ninguno
+            «menor» que el año transcurrido (regla del gasto, arriba); fuentes que pasaron su plazo sin actualizarse. Si ninguno
             la cumple, la portada lo dice.</li>
-          <li><strong>Títulos de la portada.</strong> Dicen el hallazgo con las mismas reglas: dengue, "sube", "baja" o "se mantiene"
+          <li><strong>Títulos de la portada.</strong> Dicen el hallazgo con las mismas reglas: dengue, «sube», «baja» o «se mantiene»
             frente a la semana anterior (tabla por distrito), y en el año, por encima o por debajo de 2017, 2023 y 2024 a la misma
             semana; gasto, el ritmo frente al calendario (regla del gasto); obras, la proporción de obras activas paralizadas;
-            precios, la variación en 12 meses de Piura frente a la nacional ("mayor" o "menor" si difiere en 0,1 puntos o más).
-            salud, "sube", "baja" o "se mantiene" (diferencia menor de 1 punto) la ocupación de camas del último mes frente al
+            precios, la variación en 12 meses de Piura frente a la nacional («mayor» o «menor» si difiere en 0,1 puntos o más).
+            salud, «sube», «baja» o «se mantiene» (diferencia menor de 1 punto) la ocupación de camas del último mes frente al
             mismo mes del año anterior; si falta ese mes, el título es la pregunta.</li>
           <li><strong>Actualizado al (barra superior).</strong> La fecha más reciente entre las fuentes; cada cifra conserva la
             suya y su aviso si quedó desactualizada.</li>
-          <li><strong>Precios.</strong> "Subieron" o "bajaron" según el signo de la variación mensual (0,00 % = "no variaron").
-            La variación en 12 meses se compara con la nacional: "mayor" o "menor" si la diferencia es de 0,1 puntos o más;
-            si no, "similar".</li>
+          <li><strong>Precios.</strong> «Subieron» o «bajaron» según el signo de la variación mensual (0,00 % = «no variaron»).
+            La variación en 12 meses se compara con la nacional: «mayor» o «menor» si la diferencia es de 0,1 puntos o más;
+            si no, «similar».</li>
         </ul>
         <h3>Cómo se valida cada dato</h3>
         <ul class="metodo">
@@ -893,7 +902,7 @@ function pintarTabla() {
   llenar("t-cuerpo", lista_, x => {
     const inv = x.tipo === "2" ? D.inv?.[x.codigo] : null;
     const dist = inv ? (inv.departamento === "PIURA" ? `${esc(inv.distrito)} (${esc(inv.provincia)})` : `Fuera de Piura: ${esc(inv.departamento)}`) : "—";
-    return `<tr><td class="cod">${esc(x.codigo)}</td><td>${esc(x.nombre)}</td><td>${esc(x.entidad)}</td>
+    return `<tr><td class="cod" translate="no">${esc(x.codigo)}</td><td>${esc(x.nombre)}</td><td>${esc(x.entidad)}</td>
       <td class="n">${num(x.pim)}</td><td class="n">${num(x.devengado)}</td><td class="n">${pctTxt(pct(x.devengado, x.pim))}</td>
       <td class="n">${fisTxt(inv?.avance_fisico)}</td><td>${dist}</td></tr>`;
   }, 8, "Sin resultados con estos filtros.");
@@ -924,7 +933,7 @@ function pintarGastoNotas() {
   $("gasto-notas").innerHTML = `
     <li>Avance = devengado / PIM del año; en la emergencia FEN, devengado / marco presupuestal. ${fuente(D.gasto)}</li>
     <li>La marca vertical en la fila del total indica el porcentaje del año ya transcurrido a la fecha de los datos.</li>
-    <li>ANIN y las entidades del gasto de emergencia FEN tienen sede en Lima: en la vista "por entidades con sede en Piura"
+    <li>ANIN y las entidades del gasto de emergencia FEN tienen sede en Lima: en la vista «por entidades con sede en Piura»
       no suman gasto. La Autoridad para la Reconstrucción con Cambios (unidad ejecutora de la PCM) no registra gasto en Piura
       en ${D.gasto.anio}.</li>`;
 }
@@ -1439,7 +1448,7 @@ function pintarBrecha() {
   for (const r of D.gasto.rows) if (r.tipo === "2") entidad[r.codigo] ||= n.entidad[r.entidad] || r.entidad;
   el.innerHTML = b.lista.length ? `<div class="tabla"><table class="ancha"><thead><tr><th class="nombre">Proyecto</th><th>Entidad</th>
       <th class="n">Costo actualizado (S/)</th><th class="n">Avance financiero</th><th class="n">Avance físico</th><th class="n">Brecha</th></tr></thead><tbody>` +
-    b.lista.slice(0, 10).map(r => `<tr><td><span class="cod">${esc(r.cui)}</span>: ${esc(n.codigo[r.cui] || "")}</td><td>${esc(entidad[r.cui] || "—")}</td>
+    b.lista.slice(0, 10).map(r => `<tr><td><span class="cod" translate="no">${esc(r.cui)}</span>: ${esc(n.codigo[r.cui] || "")}</td><td>${esc(entidad[r.cui] || "—")}</td>
       <td class="n">${num(r.costo_actualizado)}</td><td class="n">${pctTxt(r.avance_financiero)}</td>
       <td class="n">${pctTxt(r.avance_fisico)}</td><td class="n">${num(b.brecha(r), 1)} puntos</td></tr>`).join("") + `</tbody></table></div>`
     : `<p>${fraseBrecha()}</p>`;
@@ -1758,6 +1767,8 @@ function mostrar() {
   }
 }
 window.addEventListener("hashchange", mostrar);
+// "Saltar al contenido" lleva el foco a la pestaña abierta sin cambiar la dirección (#pestaña)
+document.querySelector(".saltar").addEventListener("click", ev => { ev.preventDefault(); $("contenido").focus(); });
 let espera;
 window.addEventListener("resize", () => {
   clearTimeout(espera);
