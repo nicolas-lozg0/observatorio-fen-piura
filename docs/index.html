@@ -24,6 +24,7 @@
     /* Datos (validados con la skill dataviz): comparación de años y nacional; escala secuencial del mapa */
     --comp1: #b48b40; --comp2: #aa5e7d; --comp3: #2f7442;
     --q1: #cde2fb; --q2: #9ec5f4; --q3: #6da7ec; --q4: #2a78d6; --q5: #184f95;
+    --neutro: #e4e9f0;  /* datos: cero casos y fondo de zonas sin dato */
     /* Tipografía: escala 1,25 sobre 16 px */
     --f-titulo: Montserrat, system-ui, sans-serif;
     --f-texto: "Nunito Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -41,7 +42,7 @@
       color-scheme: dark;
       --fondo: #121211; --superficie: #1a1a19; --linea: #33332f; --esqueleto: #2a2a27;
       --texto: #f0efec; --texto-2: #c3c2b7; --texto-3: #9a998f; --titulo: #9ec5f4;
-      --acento: #3987e5; --acento-suave: #23364d; --pista: #23364d; --alerta: #f59e0b; --alerta-suave: #2a2a27;
+      --acento: #3987e5; --acento-suave: #23364d; --pista: #23364d; --alerta: #f59e0b; --alerta-suave: #2a2a27; --neutro: #2a2a27;
       --comp1: #916a18; --comp2: #914766; --comp3: #5da16d;  /* oscuro: ΔE 11,0 / 15,2; rosa 2,7:1, con rótulo visible */
     }
   }
@@ -49,7 +50,7 @@
     color-scheme: dark;
     --fondo: #121211; --superficie: #1a1a19; --linea: #33332f; --esqueleto: #2a2a27;
     --texto: #f0efec; --texto-2: #c3c2b7; --texto-3: #9a998f; --titulo: #9ec5f4;
-    --acento: #3987e5; --acento-suave: #23364d; --pista: #23364d; --alerta: #f59e0b; --alerta-suave: #2a2a27;
+    --acento: #3987e5; --acento-suave: #23364d; --pista: #23364d; --alerta: #f59e0b; --alerta-suave: #2a2a27; --neutro: #2a2a27;
     --comp1: #916a18; --comp2: #914766; --comp3: #5da16d;
   }
   @font-face { font-family: "Montserrat"; font-weight: 700; font-display: swap; src: url(fuentes/montserrat-latin-700-normal.woff2) format("woff2"); }
@@ -1001,7 +1002,7 @@ function graficoSemanas() {
       height="${H - m.t - m.b}" fill="var(--neutro)"/>
     <text x="${xFranja}" y="${m.t - 8}" text-anchor="middle">picos anteriores</text>`;
   for (let v = 0; v <= tope; v += paso)
-    svg += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}" stroke="var(--borde)"/>
+    svg += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}" stroke="var(--linea)"/>
       <text x="${m.l - 6}" y="${y(v) + 4}" text-anchor="end">${num(v)}</text>`;
   svg += `<text transform="translate(11 ${(m.t + H - m.b) / 2}) rotate(-90)" text-anchor="middle">Casos por semana</text>`;
   MESES.forEach((n, k) => {
@@ -1357,7 +1358,7 @@ function graficoMeses(el, meses, series, tipo = "lineas") {
   const y = v => m.t + (hi - v) * (H - m.t - m.b) / (hi - lo);
   let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(series.map(s => s.nombre).join(" y "))}, por mes">`;
   for (let v = lo; v <= hi + 1e-9; v += paso)
-    svg += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}" stroke="${Math.abs(v) < 1e-9 ? "var(--texto-3)" : "var(--borde)"}"/>
+    svg += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}" stroke="${Math.abs(v) < 1e-9 ? "var(--texto-3)" : "var(--linea)"}"/>
       <text x="${m.l - 6}" y="${y(v) + 4}" text-anchor="end">${num(v, paso % 1 === 0 ? 0 : paso === 0.5 ? 1 : 2)} %</text>`;
   meses.forEach((am, i) => {
     const [a, mm] = am.split("-").map(Number);

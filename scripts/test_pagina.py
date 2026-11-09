@@ -5,7 +5,7 @@ Revisa, en escritorio (1280 px) y celular (375 px):
   - que cada dirección #pestaña muestre solo su pestaña y la marque en el menú;
   - que la página no se desplace de lado, ni con el detalle abierto;
   - que ninguna tabla larga (más de 15 filas) se vea sin abrir "Ver detalle";
-  - que no haya errores en la consola;
+  - que no haya errores en la consola ni tokens de diseño (var(--…)) sin definir;
   - que un enlace antiguo (#alertas) abra Obras con el detalle desplegado;
   - que el año de la pestaña Dengue sea el de la sala de la DIRESA;
   - que los rótulos del gráfico semanal de dengue no se encimen ni se salgan del gráfico;
@@ -115,6 +115,11 @@ def main():
                 revisar(r["alto"] >= 44, f"{ancho}px: pestañas de {r['alto']:.0f} px (mínimo 44)")
                 revisar(r["compartir"] and r["siguientes"] == len(PESTANAS) and r["actualizado"].startswith("Actualizado al"),
                         f"{ancho}px: compartir {r['compartir']}, enlaces Siguiente {r['siguientes']}, «{r['actualizado']}»")
+                # Todo var(--token) usado en la página (estilos y SVG generados) debe estar definido
+                sin_definir = pg.evaluate("""() => { const css = getComputedStyle(document.documentElement);
+                    const usados = new Set([...document.documentElement.outerHTML.matchAll(/var\\((--[\\w-]+)/g)].map(m => m[1]));
+                    return [...usados].filter(v => v !== '--c' && !css.getPropertyValue(v).trim()); }""")
+                revisar(not sin_definir, f"{ancho}px: tokens sin definir: {sin_definir}")
                 revisar(not errores, f"{ancho}px: errores en la consola: {errores[:3]}")
                 pg.close()
             # Aviso de datos viejos: con el reloj 60 días adelante deben aparecer avisos
