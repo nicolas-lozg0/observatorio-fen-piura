@@ -9,253 +9,284 @@
 <link rel="icon" href="data:,">  <!-- sin ícono: evita que el navegador pida favicon.ico y registre un 404 -->
 <title>Observatorio FEN Piura</title>
 <style>
+  /* ===== Sistema de diseño (docs/design-system.md). Todo componente usa estos tokens. ===== */
   :root {
     color-scheme: light;
-    /* estructura con la identidad de udep.edu.pe/fen: azul marino, celeste sobre marino y rojo solo para alertas */
-    --marino: #002856; --marino-2: #001d40; --celeste: #639af9; --rojo: #f32231;
-    --fondo: #eef2f7;
-    --superficie: #ffffff;
-    --borde: #dbe2eb;
-    --texto: #14202e;
-    --texto-2: #3e4751;
-    --texto-3: #5d6977;
-    --acento: #2a78d6;  /* datos: Piura y el año en curso */
-    --pista: #d6e5f7;
-    --alerta: #c81e2b;  /* el rojo UDEP oscurecido para que se lea como texto sobre blanco */
-    --neutro: #e4e9f0;
-    --titulo: #002856;  /* títulos y cifras: marino en claro, celeste claro en oscuro */
-    --suave: #e3ebf7; --suave-borde: #c3d3ec; --alerta-fondo: #fdecee; --alerta-borde: #f3c2c7;
-    /* series de comparación (años anteriores del dengue; IPC nacional): tonos apagados; el acento queda para
-       Piura y el año en curso.
-       Validados con la skill dataviz (todos los pares): daltonismo ΔE 9,1, visión normal 16,5, contraste >= 3:1 */
+    /* Color. Estructura: azul marino de udep.edu.pe/fen. Un solo acento: Piura, 2026 y el botón principal.
+       Rojo: solo estado de alerta. El resto, neutros. */
+    --marino: #002856; --marino-2: #001d40; --sobre-marino: #c9d7f2;
+    --acento: #2a78d6; --acento-hover: #1f63b8; --acento-suave: #e6effb;
+    --alerta: #c81e2b; --alerta-suave: #fdecee;
+    --fondo: #eef2f7; --superficie: #ffffff;
+    --texto: #14202e; --texto-2: #3e4751; --texto-3: #56616e;  /* texto-3 sobre fondo: 5,5:1 */
+    --linea: #dbe2eb; --pista: #d6e5f7; --esqueleto: #e2e8f0;
+    --titulo: var(--marino);
+    /* Datos (validados con la skill dataviz): comparación de años y nacional; escala secuencial del mapa */
     --comp1: #b48b40; --comp2: #aa5e7d; --comp3: #2f7442;
     --q1: #cde2fb; --q2: #9ec5f4; --q3: #6da7ec; --q4: #2a78d6; --q5: #184f95;
+    /* Tipografía: escala 1,25 sobre 16 px */
+    --f-titulo: Montserrat, system-ui, sans-serif;
+    --f-texto: "Nunito Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --f-codigo: ui-monospace, Menlo, Consolas, monospace;  /* solo códigos: CUI, ubigeo */
+    --t-xs: .75rem; --t-sm: .875rem; --t-base: 1rem; --t-md: 1.25rem; --t-lg: 1.5625rem; --t-xl: 1.953rem; --t-2xl: 2.441rem;
+    /* Espacios: múltiplos de 4 y 8 px */
+    --e1: 4px; --e2: 8px; --e3: 12px; --e4: 16px; --e5: 24px; --e6: 32px; --e7: 48px; --e8: 64px;
+    /* Radios concéntricos: interior = exterior − relleno */
+    --r-panel: 16px; --r-control: 8px; --r-pastilla: 999px;
+    --sombra-flotante: 0 4px 16px rgb(0 40 86 / .14);
+    --rapido: 160ms; --suave-curva: cubic-bezier(.2, .7, .3, 1);
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
       color-scheme: dark;
-      --fondo: #121211; --superficie: #1a1a19; --borde: #33332f;
-      --texto: #f0efec; --texto-2: #c3c2b7; --texto-3: #9a998f;
-      --acento: #3987e5; --pista: #23364d; --alerta: #f59e0b; --neutro: #2a2a27;
-      --comp1: #916a18; --comp2: #914766; --comp3: #5da16d;
-      --titulo: #9ec5f4; --suave: #23364d; --suave-borde: #33332f; --alerta-fondo: #2a2a27; --alerta-borde: #33332f;  /* oscuro: ΔE 11,0 / 15,2; rosa 2,7:1, con rótulo visible */
+      --fondo: #121211; --superficie: #1a1a19; --linea: #33332f; --esqueleto: #2a2a27;
+      --texto: #f0efec; --texto-2: #c3c2b7; --texto-3: #9a998f; --titulo: #9ec5f4;
+      --acento: #3987e5; --acento-suave: #23364d; --pista: #23364d; --alerta: #f59e0b; --alerta-suave: #2a2a27;
+      --comp1: #916a18; --comp2: #914766; --comp3: #5da16d;  /* oscuro: ΔE 11,0 / 15,2; rosa 2,7:1, con rótulo visible */
     }
   }
   :root[data-theme="dark"] {
     color-scheme: dark;
-    --fondo: #121211; --superficie: #1a1a19; --borde: #33332f;
-    --texto: #f0efec; --texto-2: #c3c2b7; --texto-3: #9a998f;
-    --acento: #3987e5; --pista: #23364d; --alerta: #f59e0b; --neutro: #2a2a27;
+    --fondo: #121211; --superficie: #1a1a19; --linea: #33332f; --esqueleto: #2a2a27;
+    --texto: #f0efec; --texto-2: #c3c2b7; --texto-3: #9a998f; --titulo: #9ec5f4;
+    --acento: #3987e5; --acento-suave: #23364d; --pista: #23364d; --alerta: #f59e0b; --alerta-suave: #2a2a27;
     --comp1: #916a18; --comp2: #914766; --comp3: #5da16d;
-      --titulo: #9ec5f4; --suave: #23364d; --suave-borde: #33332f; --alerta-fondo: #2a2a27; --alerta-borde: #33332f;
   }
   @font-face { font-family: "Montserrat"; font-weight: 700; font-display: swap; src: url(fuentes/montserrat-latin-700-normal.woff2) format("woff2"); }
   @font-face { font-family: "Montserrat"; font-weight: 800; font-display: swap; src: url(fuentes/montserrat-latin-800-normal.woff2) format("woff2"); }
   @font-face { font-family: "Nunito Sans"; font-weight: 400; font-display: swap; src: url(fuentes/nunito-sans-latin-400-normal.woff2) format("woff2"); }
   @font-face { font-family: "Nunito Sans"; font-weight: 700; font-display: swap; src: url(fuentes/nunito-sans-latin-700-normal.woff2) format("woff2"); }
-  * { box-sizing: border-box; }
-  body { margin: 0; background: var(--fondo); color: var(--texto);
-    font: 16px/1.55 "Nunito Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-  main { max-width: 1120px; margin: 0 auto; padding: 20px 16px 48px; }
-  h1, h2, h3, .cifra { font-family: Montserrat, system-ui, sans-serif; }
-  h1 { font-size: 1.5rem; margin: 0 0 4px; }
-  h2 { font-size: 1.45rem; font-weight: 800; color: var(--titulo); margin: 0 0 4px; line-height: 1.2; }
-  h3 { font-size: 1rem; font-weight: 700; margin: 0; }
-  :focus-visible { outline: 2px solid var(--celeste); outline-offset: 2px; }
-  /* Encabezado: banda marino de lado a lado */
-  .cabecera { background: var(--marino); color: #fff; }
-  .cabecera > div { max-width: 1120px; margin: 0 auto; padding: 22px 16px 18px; }
-  .cabecera h1 { font-size: clamp(1.6rem, 4.2vw, 2.25rem); font-weight: 800; line-height: 1.1; margin: 8px 0 6px; }
-  .cabecera .sub { color: #c9d7f2; max-width: 62ch; margin: 0; }
-  p { margin: 0 0 8px; }
-  a { color: var(--acento); }
-  .sub { color: var(--texto-2); }
-  .nota { color: var(--texto-3); font-size: .8rem; }
-  .revisar { color: var(--alerta); }
-  .proto { display: inline-block; padding: 1px 10px; border: 1px solid var(--celeste); border-radius: 99px;
-    font-size: .78rem; font-weight: 700; color: var(--celeste); }
 
-  /* Pestañas: en celular se deslizan de lado */
-  /* Fijo al desplazarse: una barra compacta y las pestañas (el encabezado completo se va con el scroll) */
+  /* ===== Base ===== */
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--fondo); color: var(--texto); font: var(--t-base)/1.55 var(--f-texto);
+    font-variant-numeric: tabular-nums; }  /* cifras alineadas en tablas, tarjetas y ejes */
+  main { max-width: 1120px; margin: 0 auto; padding: var(--e5) var(--e4) var(--e7); }
+  h1, h2, h3, .cifra { font-family: var(--f-titulo); text-wrap: balance; }
+  h1 { font-size: var(--t-lg); margin: 0 0 var(--e1); }
+  h2 { font-size: var(--t-lg); font-weight: 800; color: var(--titulo); margin: 0 0 var(--e1); line-height: 1.2; }
+  h3 { font-size: var(--t-base); font-weight: 700; margin: 0; line-height: 1.3; }
+  p { margin: 0 0 var(--e2); text-wrap: pretty; }
+  a { color: var(--acento); }
+  code, .cod { font-family: var(--f-codigo); font-size: .9em; }
+  :focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }
+  .sub { color: var(--texto-2); }
+  .nota { color: var(--texto-3); font-size: var(--t-sm); }
+  .revisar { color: var(--alerta); }
+  .visualmente-oculto { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .intro { color: var(--texto-2); margin-bottom: var(--e5); max-width: 68ch; }
+
+  /* ===== Encabezado y barra fija ===== */
+  .cabecera { background: var(--marino); color: #fff; }
+  .cabecera > div { max-width: 1120px; margin: 0 auto; padding: var(--e5) var(--e4) var(--e4); }
+  .cabecera .proto { margin: 0; color: var(--sobre-marino); font-size: var(--t-sm); font-weight: 700; }
+  .cabecera h1 { font-size: clamp(1.6rem, 4.2vw, 2.25rem); font-weight: 800; line-height: 1.1; margin: var(--e1) 0 var(--e2); }
+  .cabecera .sub { color: var(--sobre-marino); max-width: 62ch; margin: 0; }
   .fija { position: sticky; top: 0; z-index: 5; }
   .barra { background: var(--marino); color: #fff; border-top: 1px solid rgb(255 255 255 / .08); }
-  .barra > div { max-width: 1120px; margin: 0 auto; padding: 4px 16px; display: flex; align-items: center; gap: 4px 12px; flex-wrap: wrap; }
-  .barra .marca { font: 700 .95rem Montserrat, system-ui, sans-serif; }
-  .barra .actualizado { color: #c9d7f2; font-size: .85rem; margin-right: auto; }
-  .compartir { min-height: 44px; padding: 0 14px; border: 1px solid #c9d7f2; border-radius: 99px; background: transparent;
-    color: #fff; font: 700 .85rem "Nunito Sans", system-ui, sans-serif; cursor: pointer; }
+  .barra > div { max-width: 1120px; margin: 0 auto; padding: var(--e1) var(--e4); display: flex; align-items: center; gap: var(--e1) var(--e3); flex-wrap: wrap; }
+  .barra .marca { font: 700 var(--t-base) var(--f-titulo); }
+  .barra .actualizado { color: var(--sobre-marino); font-size: var(--t-sm); margin-right: auto; }
+  .compartir { min-height: 44px; padding: 0 var(--e4); border: 1px solid var(--sobre-marino); border-radius: var(--r-pastilla); background: transparent;
+    color: #fff; font: 700 var(--t-sm) var(--f-texto); cursor: pointer; transition: background var(--rapido); }
   .compartir:hover { background: rgb(255 255 255 / .1); }
   @media (max-width: 560px) {  /* en celular, la barra fija ocupa una sola línea: fecha y botón */
     .barra .marca, .compartir .largo { display: none; }
     .barra > div { flex-wrap: nowrap; }
-    .barra .actualizado { font-size: .8rem; } }
+    .barra .actualizado { font-size: var(--t-xs); } }
   .pestanas { background: var(--marino-2); }
-  #avisito { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); z-index: 30; padding: 10px 16px;
-    border-radius: 8px; background: var(--marino); color: #fff; font-weight: 700; box-shadow: 0 4px 16px rgb(0 0 0 / .2); }
-  .siguiente { margin-top: 24px; display: flex; justify-content: flex-end; }
-  .siguiente a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 18px; border-radius: 99px;
-    background: var(--marino); color: #fff; font-weight: 700; text-decoration: none; }
-  .siguiente a:hover { background: var(--marino-2); }
-  .pestanas ul { display: flex; max-width: 1120px; margin: 0 auto; padding: 0 8px; list-style: none; overflow-x: auto;
-    scrollbar-width: none; }
+  .pestanas ul { display: flex; max-width: 1120px; margin: 0 auto; padding: 0 var(--e2); list-style: none; overflow-x: auto; scrollbar-width: none; }
   .pestanas ul::-webkit-scrollbar { display: none; }
-  .pestanas a { display: flex; align-items: center; min-height: 44px; padding: 0 12px; white-space: nowrap; color: #c9d7f2; text-decoration: none;
-    font-size: .95rem; font-weight: 700; border-bottom: 3px solid transparent; }
+  .pestanas a { display: flex; align-items: center; min-height: 44px; padding: 0 var(--e3); white-space: nowrap; color: var(--sobre-marino);
+    text-decoration: none; font-size: var(--t-base); font-weight: 700; border-bottom: 3px solid transparent; transition: color var(--rapido), border-color var(--rapido); }
   .pestanas a:hover { color: #fff; }
   .pestanas a:focus-visible { color: #fff; outline-offset: -3px; }
-  .pestanas a[aria-current="page"] { color: #fff; border-bottom-color: var(--rojo); }
+  .pestanas a[aria-current="page"] { color: #fff; border-bottom-color: var(--acento); }
   .pestana[hidden] { display: none; }
-  /* Tamaños y márgenes puntuales (antes en atributos style; mismos valores) */
-  .paneles + .paneles { margin-top: 12px; }
-  #gasto-paneles { margin-top: 10px; }
-  #explica-vistas { max-width: 760px; }
+  .pestana { animation: aparecer var(--rapido) var(--suave-curva); }
+  @keyframes aparecer { from { opacity: 0; transform: translateY(4px); } }
+
+  /* ===== Botones y enlaces de acción (uno principal; el resto, secundarios) ===== */
+  .boton, .siguiente a { display: inline-flex; align-items: center; gap: var(--e2); min-height: 44px; padding: 0 var(--e5);
+    border-radius: var(--r-pastilla); background: var(--acento); color: #fff; font-weight: 700; text-decoration: none;
+    transition: background var(--rapido); }
+  .boton:hover, .siguiente a:hover { background: var(--acento-hover); }
+  .boton-2, details.detalle > summary, .mas { display: inline-flex; align-items: center; gap: var(--e2); min-height: 44px;
+    padding: 0 var(--e4); border: 1px solid var(--linea); border-radius: var(--r-pastilla); background: var(--superficie);
+    color: var(--acento); font: 700 var(--t-sm) var(--f-texto); cursor: pointer; transition: border-color var(--rapido); }
+  .boton-2:hover, details.detalle > summary:hover, .mas:hover { border-color: var(--acento); }
+  .ver-mas { display: inline-flex; align-items: center; min-height: 44px; font-weight: 700; text-decoration: none; color: var(--acento); }
+  .ver-mas:hover { text-decoration: underline; }
+  .siguiente { margin-top: var(--e6); display: flex; justify-content: flex-end; }
+  #avisito { position: fixed; left: 50%; bottom: var(--e5); transform: translateX(-50%); z-index: 30; padding: var(--e3) var(--e4);
+    border-radius: var(--r-control); background: var(--marino); color: #fff; font-weight: 700; box-shadow: var(--sombra-flotante);
+    animation: subir var(--rapido) var(--suave-curva); }
+  @keyframes subir { from { opacity: 0; transform: translate(-50%, 8px); } }
+
+  /* ===== Paneles: superficies sin borde; se agrupan con espacio ===== */
+  .paneles { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: var(--e4); }
+  .paneles + .paneles { margin-top: var(--e4); }
+  .panel { background: var(--superficie); border-radius: var(--r-panel); padding: var(--e5); display: flex; flex-direction: column;
+    gap: var(--e2); min-width: 0; }
+  .panel.ancho { grid-column: 1 / -1; }
+  .panel h3 { font-size: var(--t-base); color: var(--texto-2); }
+  .panel .cifra { font-size: var(--t-2xl); font-weight: 800; line-height: 1; color: var(--titulo); margin-top: var(--e1); }
+  .panel .ud { color: var(--texto-2); font-size: var(--t-sm); margin-top: calc(-1 * var(--e1)); }
+  .panel .frase { font-size: var(--t-sm); margin: 0; }
+  .panel .pie { margin-top: auto; padding-top: var(--e2); color: var(--texto-3); font-size: var(--t-xs); }
+  .panel.pendiente { background: transparent; outline: 1px dashed var(--texto-3); outline-offset: -1px; }
+  .mapa-y-top { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: var(--e4); align-items: start; }
+  @media (max-width: 760px) { .mapa-y-top { grid-template-columns: minmax(0, 1fr); } }
+  /* Distintivos de estado: solo "Dato no actualizado" y "En trámite"; siempre ícono + texto */
+  .distintivo { display: inline-flex; align-items: center; gap: var(--e2); width: fit-content; padding: var(--e1) var(--e3);
+    border-radius: var(--r-pastilla); font-size: var(--t-xs); font-weight: 700; line-height: 1.3; }
+  .distintivo svg { width: 14px; height: 14px; flex: none; }
+  .d-desactualizado { color: var(--alerta); background: var(--alerta-suave); }
+  .d-tramite { color: var(--titulo); background: var(--acento-suave); }
+
+  /* ===== Portada ===== */
+  .hoy { margin-bottom: var(--e6); }
+  .hoy .fecha-hoy { color: var(--texto-3); margin: 0 0 var(--e1); }
+  .hoy .pregunta { font-size: clamp(1.75rem, 5vw, 2.75rem); line-height: 1.1; max-width: 20ch; margin: 0 0 var(--e5); }
+  .atencion { background: var(--alerta-suave); border-radius: var(--r-panel); padding: var(--e4) var(--e5); max-width: 760px; }
+  .atencion h3 { color: var(--alerta); margin-bottom: var(--e1); }
+  .atencion ul { margin: 0; padding-left: var(--e5); }
+  .atencion li { margin-bottom: var(--e1); }
+  .atencion.calma { background: var(--acento-suave); }
+  .atencion.calma h3 { color: var(--titulo); }
+  .resumen .paneles { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .resumen .panel { grid-column: span 2; }
+  .resumen .panel:nth-child(4):nth-last-child(2) { grid-column: 2 / span 2; }  /* 5 paneles: la 2.ª fila, centrada */
+  @media (max-width: 760px) { .resumen .paneles { grid-template-columns: minmax(0, 1fr); }
+    .resumen .panel, .resumen .panel:nth-child(4):nth-last-child(2) { grid-column: auto; } }
+  .resumen .panel h3 { font-size: var(--t-md); color: var(--titulo); }
+  .resumen .panel .tema { color: var(--texto-3); font-size: var(--t-sm); font-weight: 700; margin: 0; }
+  .resumen .panel .ver-mas { align-self: flex-start; margin-top: calc(-1 * var(--e2)); }
+
+  /* Mini-gráfica: sin ejes; valor inicial y final con su periodo */
+  .chispa { display: block; width: 100%; height: 56px; overflow: visible; margin-top: var(--e2); }
+  .chispa-rotulos { display: flex; justify-content: space-between; gap: var(--e2); font-size: var(--t-xs); color: var(--texto-2); }
+  .chispa-rotulos .fin { font-weight: 700; color: var(--acento); text-align: right; }
+  .chispa-periodo { font-size: var(--t-xs); color: var(--texto-3); margin: 0; }
+
+  .lista-corta { margin: 0; padding-left: var(--e5); font-size: var(--t-sm); }
+  .lista-corta li { margin-bottom: var(--e2); }
+  /* nombres de obra largos: dos líneas en la vista simple (el nombre completo va en la tabla del detalle) */
+  .nombre-obra { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+  /* ===== Gasto: tabla comparativa de las dos vistas ===== */
+  .comparativa { background: var(--superficie); border-radius: var(--r-panel); padding: var(--e2) var(--e5) var(--e4); }
+  .comparativa table { font-size: var(--t-sm); }
+  .comparativa th, .comparativa td { border-bottom: 0; padding: var(--e3) var(--e2); vertical-align: top; }
+  .comparativa tbody tr + tr th, .comparativa tbody tr + tr td { border-top: 1px solid var(--fondo); }
+  .comparativa thead th { position: static; color: var(--texto-2); white-space: normal; vertical-align: bottom; font-size: var(--t-sm); }
+  .comparativa tbody th { font-weight: 700; color: var(--texto); width: 28%; }
+  .comparativa tbody th .nota { display: block; font-weight: 400; font-size: var(--t-xs); }
+  .comparativa .av { font: 800 var(--t-md)/1.1 var(--f-titulo); color: var(--titulo); }
+  .comparativa .montos { color: var(--texto-2); font-size: var(--t-xs); }
+  .comparativa .medidor { height: 8px; margin: var(--e1) 0; }
+  .comparativa .vacio { color: var(--texto-3); }
+  @media (max-width: 640px) {  /* celular: el concepto arriba y las dos vistas lado a lado */
+    .comparativa { padding: var(--e2) var(--e4) var(--e4); }
+    .comparativa thead th:first-child { display: none; }
+    .comparativa thead tr { display: grid; grid-template-columns: 1fr 1fr; gap: var(--e3); }
+    .comparativa tbody tr { display: grid; grid-template-columns: 1fr 1fr; gap: 0 var(--e3); border-top: 1px solid var(--fondo); }
+    .comparativa tbody tr + tr th, .comparativa tbody tr + tr td { border-top: 0; }
+    .comparativa tbody th { grid-column: 1 / -1; width: auto; padding-bottom: 0; }
+    .comparativa thead th, .comparativa th, .comparativa td { padding-left: 0; padding-right: 0; } }
+  .diferencia { margin-top: var(--e4); }
+  .diferencia .cifra { font-size: clamp(1.5rem, 7vw, var(--t-xl)); }
+
+  .medidor { position: relative; height: 10px; background: var(--pista); border-radius: var(--r-pastilla); overflow: hidden; margin: var(--e2) 0; }
+  .medidor > div { height: 100%; background: var(--acento); border-radius: var(--r-pastilla); }
+  .medidor .marca { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--texto); }
+  .barras { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--e1) var(--e3); font-size: var(--t-sm); }
+  .barras .medidor { grid-column: 1 / -1; height: 8px; margin: 0 0 var(--e2); }
+
+  /* ===== Segunda capa: detalle ===== */
+  details.detalle { margin-top: var(--e5); }
+  details.detalle > summary { list-style: none; }
+  details.detalle > summary::-webkit-details-marker { display: none; }
+  details.detalle > summary::before { content: "▸"; transition: transform var(--rapido); }
+  details.detalle[open] > summary::before { transform: rotate(90deg); }
+  details.detalle[open] > summary .ver { display: none; }
+  details.detalle:not([open]) > summary .ocultar { display: none; }
+  details.detalle[open] > .cuerpo-detalle { animation: aparecer var(--rapido) var(--suave-curva); }
+  .cuerpo-detalle { margin-top: var(--e3); background: var(--superficie); border-radius: var(--r-panel); padding: var(--e5); }
+  .cuerpo-detalle h3 { margin: var(--e6) 0 var(--e2); }
+  .cuerpo-detalle h3:first-child { margin-top: 0; }
+  .metodo { padding-left: var(--e5); }
+  .metodo li { margin-bottom: var(--e2); }
+
+  /* Ayuda: ícono "?" con la explicación de un término */
+  .ayuda { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px;
+    margin: 0 0 0 var(--e1); padding: 0; border: 1px solid var(--texto-3); border-radius: 50%; background: transparent;
+    color: var(--texto-2); font: 700 10px/1 var(--f-texto); vertical-align: 2px; cursor: help; }
+  .ayuda::after { content: ""; position: absolute; inset: -6px; }  /* zona de toque más grande que el ícono */
+  .ayuda:hover, .ayuda:focus-visible, .ayuda[aria-expanded="true"] { border-color: var(--acento); color: var(--acento); }
+  #definicion { position: absolute; z-index: 20; max-width: 280px; padding: var(--e2) var(--e3); background: var(--superficie);
+    border-radius: var(--r-control); box-shadow: var(--sombra-flotante); font-size: var(--t-sm); color: var(--texto); }
+
+  /* ===== Formularios y tablas ===== */
+  .filtros { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: var(--e2); margin-bottom: var(--e3); }
+  .filtros label, .control { display: flex; flex-direction: column; gap: var(--e1); font-size: var(--t-sm); color: var(--texto-2); min-width: 0; }
+  .filtros select, .filtros input { width: 100%; }
+  select, input { font: inherit; min-height: 44px; padding: 0 var(--e2); border: 1px solid var(--linea); border-radius: var(--r-control);
+    background: var(--superficie); color: var(--texto); min-width: 0; }
   .control-corto { max-width: 220px; }
   .filtros-cortos { max-width: 520px; }
+  /* En pantallas angostas la tabla se desplaza dentro de su caja; la página no se desplaza de lado */
+  .tabla { overflow-x: auto; }
+  .tabla.alta { max-height: 420px; overflow-y: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: var(--t-sm); }
+  table.ancha { min-width: 760px; }
   table.tabla-560 { max-width: 560px; }
   table.tabla-640 { max-width: 640px; }
   table.ancha.min-640 { min-width: 640px; }
   table.ancha.min-900 { min-width: 900px; }
-  .nota.antes-lista { margin: 4px 0 0; }
-  .nota.antes-grafico { margin: 0; }
-  .nota.pie-pagina { margin-top: 24px; }
-  #glosario dd { margin: 0 0 6px; }
-  .visualmente-oculto { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-  .intro { color: var(--texto-2); margin-bottom: 14px; max-width: 760px; }
-
-  /* Paneles: se apilan en una columna en celular */
-  .paneles { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 12px; }
-  .panel { background: var(--superficie); border: 1px solid var(--borde); border-radius: 8px; padding: 16px 18px;
-    display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-  .panel.ancho { grid-column: 1 / -1; }
-  .mapa-y-top { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 12px; align-items: start; }
-  @media (max-width: 760px) { .mapa-y-top { grid-template-columns: minmax(0, 1fr); } }
-  .panel h3 { font-size: .95rem; color: var(--texto-2); }
-  .panel h3 a { color: inherit; text-decoration: none; }
-  .panel .cifra { font-size: 2.1rem; font-weight: 800; line-height: 1.1; color: var(--titulo); }
-  .panel .ud { color: var(--texto-2); font-size: .85rem; }
-  .panel .frase { font-size: .9rem; margin: 0; }
-  .panel .pie { margin-top: auto; padding-top: 4px; color: var(--texto-3); font-size: .75rem; }
-  .panel.alerta { border-left: 3px solid var(--texto); }
-  /* Distintivos de estado: siempre ícono + texto, nunca solo color */
-  .distintivo { display: inline-flex; align-items: center; gap: 6px; width: fit-content; padding: 3px 10px; border-radius: 99px;
-    font-size: .8rem; font-weight: 700; line-height: 1.3; }
-  .distintivo svg { width: 14px; height: 14px; flex: none; }
-  .d-desactualizado { color: var(--alerta); background: var(--alerta-fondo); border: 1px solid var(--alerta-borde); }
-  .d-tramite { color: var(--titulo); background: var(--suave); border: 1px solid var(--suave-borde); }
-  .d-pendiente { color: var(--texto-2); border: 1px dashed var(--texto-3); }
-  .panel.pendiente { border-style: dashed; }
-  .panel.pendiente .cifra { font-size: 1.15rem; }
-  /* Portada: bloque "hoy" (pregunta, fecha y lo que pide atención) y paneles con dengue al frente */
-  .hoy { margin-bottom: 20px; }
-  .hoy .fecha-hoy { color: var(--texto-3); margin: 0 0 2px; }
-  .hoy .pregunta { font-size: clamp(1.55rem, 4.6vw, 2.5rem); line-height: 1.15; max-width: 24ch; margin: 0 0 14px; }
-  .atencion { background: var(--superficie); border: 1px solid var(--borde); border-left: 4px solid var(--alerta);
-    border-radius: 8px; padding: 12px 16px; max-width: 760px; }
-  .atencion h3 { color: var(--alerta); font-size: 1rem; margin-bottom: 4px; }
-  .atencion ul { margin: 0; padding-left: 18px; }
-  .atencion li { margin-bottom: 2px; }
-  .atencion.calma { border-left-color: var(--titulo); }
-  .atencion.calma h3 { color: var(--titulo); }
-  .resumen .paneles { grid-template-columns: repeat(6, minmax(0, 1fr)); }
-  .resumen .panel { grid-column: span 2; cursor: pointer; }
-  .resumen .panel:nth-child(4):nth-last-child(2) { grid-column: 2 / span 2; }  /* 5 paneles: la 2.ª fila, centrada */
-  @media (max-width: 760px) { .resumen .paneles { grid-template-columns: minmax(0, 1fr); }
-    .resumen .panel, .resumen .panel:nth-child(4):nth-last-child(2) { grid-column: auto; } }
-  .titulo-panel { display: flex; align-items: center; gap: 10px; }
-  .icono { flex: none; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--suave); color: var(--titulo); }
-  .icono svg { width: 24px; height: 24px; }
-  .resumen .panel:hover { border-color: var(--titulo); }
-  .resumen .panel h3 { font-size: 1.1rem; color: var(--titulo); }
-
-  .lista-corta { margin: 0; padding-left: 18px; font-size: .88rem; }
-  .lista-corta li { margin-bottom: 6px; }
-  /* nombres de obra largos: dos líneas en la vista simple (el nombre completo va en la tabla del detalle) */
-  .nombre-obra { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-
-  /* Gasto: dos puntos de vista lado a lado */
-  .vistas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 16px; }
-  .vista { min-width: 0; }
-  .vista .titulo-vista { font-size: .75rem; color: var(--texto-3); margin-bottom: 2px; }
-  .vista .cifra { font-size: 1.45rem; }
-  .vista .monto { font-size: .78rem; color: var(--texto-2); }
-  .mini-nivel { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0 8px; font-size: .78rem; margin-top: 6px; }
-  .mini-nivel .medidor { grid-column: 1 / -1; height: 6px; margin: 2px 0 0; }
-  .cabecera-vistas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-bottom: 8px; }
-  .cabecera-vistas div { font-size: .85rem; }
-
-  .medidor { position: relative; height: 10px; background: var(--pista); border-radius: 4px; overflow: hidden; margin: 6px 0; }
-  .medidor > div { height: 100%; background: var(--acento); border-radius: 4px; }
-  .medidor .marca { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--texto); border-radius: 1px; }
-  .barras { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; font-size: .82rem; }
-  .barras .medidor { grid-column: 1 / -1; height: 8px; margin: 0 0 6px; }
-  .chispa { display: block; width: 100%; height: 40px; overflow: visible; }
-
-  /* Segunda capa: detalle */
-  details.detalle { margin-top: 16px; }
-  details.detalle > summary { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; list-style: none;
-    padding: 8px 14px; border: 1px solid var(--borde); border-radius: 6px; background: var(--superficie); color: var(--acento);
-    font-size: .9rem; }
-  details.detalle > summary::-webkit-details-marker { display: none; }
-  details.detalle > summary::before { content: "▸"; }
-  details.detalle[open] > summary::before { content: "▾"; }
-  details.detalle > summary:hover { border-color: var(--acento); }
-  details.detalle[open] > summary .ver { display: none; }
-  details.detalle:not([open]) > summary .ocultar { display: none; }
-  .cuerpo-detalle { margin-top: 12px; background: var(--superficie); border: 1px solid var(--borde); border-radius: 10px;
-    padding: 16px; }
-  .cuerpo-detalle h3 { margin: 22px 0 8px; }
-  .cuerpo-detalle h3:first-child { margin-top: 0; }
-  .metodo { padding-left: 20px; }
-  .metodo li { margin-bottom: 6px; }
-
-  /* Ayuda: ícono "?" con la explicación de un término */
-  .ayuda { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px;
-    margin: 0 0 0 3px; padding: 0; border: 1px solid var(--texto-3); border-radius: 50%; background: transparent;
-    color: var(--texto-2); font: 600 10px/1 system-ui, sans-serif; vertical-align: 2px; cursor: help; }
-  .ayuda::after { content: ""; position: absolute; inset: -5px; }  /* zona de toque más grande que el ícono */
-  .ayuda:hover, .ayuda:focus-visible, .ayuda[aria-expanded="true"] { border-color: var(--acento); color: var(--acento); }
-  #definicion { position: absolute; z-index: 20; max-width: 280px; padding: 8px 10px; background: var(--superficie);
-    border: 1px solid var(--borde); border-radius: 6px; box-shadow: 0 2px 10px rgb(0 0 0 / .14); font-size: .82rem;
-    color: var(--texto); }
-
-  .filtros { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; margin-bottom: 10px; }
-  .filtros label, .control { display: flex; flex-direction: column; font-size: .8rem; color: var(--texto-2); min-width: 0; }
-  .filtros select, .filtros input { width: 100%; }
-  select, input { font: inherit; padding: 6px 8px; border: 1px solid var(--borde); border-radius: 6px;
-    background: var(--superficie); color: var(--texto); min-width: 0; }
-  /* En pantallas angostas la tabla se desplaza dentro de su caja; la página no se desplaza de lado */
-  .tabla { overflow-x: auto; }
-  .tabla.alta { max-height: 420px; overflow-y: auto; }
-  table { border-collapse: collapse; width: 100%; font-size: .85rem; }
-  table.ancha { min-width: 760px; }
-  th, td { padding: 6px 8px; border-bottom: 1px solid var(--borde); text-align: left; vertical-align: top; }
-  th { color: var(--texto-2); font-weight: 600; white-space: nowrap; background: var(--superficie); position: sticky; top: 0; }
+  th, td { padding: var(--e2); border-bottom: 1px solid var(--linea); text-align: left; vertical-align: top; }
+  th { color: var(--texto-2); font-weight: 700; white-space: nowrap; background: var(--superficie); position: sticky; top: 0; }
   th.nombre { min-width: 240px; white-space: normal; }
-  td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td.n, th.n { text-align: right; white-space: nowrap; }
   tbody tr:hover { background: var(--fondo); }
-  .mas { margin-top: 8px; font: inherit; font-size: .85rem; padding: 6px 12px; border: 1px solid var(--borde);
-    border-radius: 6px; background: var(--superficie); color: var(--acento); cursor: pointer; }
-  .mas:hover { border-color: var(--acento); }
+  .mas { margin-top: var(--e2); }
+  #explica-vistas { max-width: 68ch; }
+  .nota.antes-lista { margin: var(--e1) 0 0; }
+  .nota.antes-grafico { margin: 0; }
+  .nota.pie-pagina { margin-top: var(--e5); }
+  #glosario dd { margin: 0 0 var(--e2); }
 
+  /* ===== Gráficos ===== */
   .grafico { position: relative; }
   .grafico svg { display: block; width: 100%; height: auto; overflow: visible; }
-  .grafico text { font: 12px "Nunito Sans", system-ui, sans-serif; fill: var(--texto-3); }
-  .grafico .rotulo { font-size: 12px; font-weight: 700; fill: var(--texto); }
-  .leyenda { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: .8rem; color: var(--texto-2); margin: 4px 0 8px; }
+  .grafico text { font: var(--t-xs) var(--f-texto); fill: var(--texto-3); }
+  .grafico .rotulo { font-weight: 700; fill: var(--texto); }
+  .leyenda { display: flex; flex-wrap: wrap; gap: var(--e1) var(--e4); font-size: var(--t-sm); color: var(--texto-2); margin: var(--e1) 0 var(--e2); }
   .leyenda span::before { content: ""; display: inline-block; width: 14px; height: 3px; border-radius: 2px;
-    background: var(--c); vertical-align: middle; margin-right: 6px; }
-  .leyenda.cajas span::before { width: 12px; height: 12px; border-radius: 3px; box-shadow: inset 0 0 0 1px var(--borde); }
-  .globo { position: absolute; pointer-events: none; background: var(--superficie); border: 1px solid var(--borde);
-    border-radius: 6px; padding: 6px 8px; font-size: .8rem; box-shadow: 0 2px 8px rgb(0 0 0 / .12); white-space: nowrap;
-    display: none; z-index: 2; }
+    background: var(--c); vertical-align: middle; margin-right: var(--e2); }
+  .leyenda.cajas span::before { width: 12px; height: 12px; border-radius: 3px; box-shadow: inset 0 0 0 1px var(--linea); }
+  .globo { position: absolute; pointer-events: none; background: var(--superficie); border-radius: var(--r-control);
+    padding: var(--e2) var(--e3); font-size: var(--t-sm); box-shadow: var(--sombra-flotante); white-space: nowrap; display: none; z-index: 2; }
   #mapa { max-width: 440px; margin: 0 auto; }  /* el mapa de Piura es más alto que ancho: se limita para no alargar la pestaña */
   #mapa path { stroke: var(--superficie); stroke-width: .8; }
   #mapa path:hover { stroke: var(--texto); stroke-width: 1.5; }
+
+  /* ===== Carga: esqueletos mientras llegan los datos ===== */
+  .esqueleto { min-height: 260px; background: var(--superficie); position: relative; overflow: hidden; }
+  .esqueleto::before { content: ""; position: absolute; inset: var(--e5); border-radius: var(--r-control);
+    background: linear-gradient(var(--esqueleto) 0 0) 0 0 / 50% 16px no-repeat, linear-gradient(var(--esqueleto) 0 0) 0 32px / 35% 40px no-repeat,
+      linear-gradient(var(--esqueleto) 0 0) 0 96px / 100% 56px no-repeat, linear-gradient(var(--esqueleto) 0 0) 0 168px / 80% 12px no-repeat; }
+  .esqueleto::after { content: ""; position: absolute; inset: 0; transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, rgb(255 255 255 / .6), transparent); animation: brillo 1.4s infinite; }
+  @keyframes brillo { to { transform: translateX(100%); } }
+  .sin-datos { color: var(--texto-2); }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; } }
 </style>
 </head>
 <body>
 <header class="cabecera"><div>
-  <span class="proto">Prototipo, no oficial</span>
+  <p class="proto">Prototipo, no oficial</p>
   <h1>Observatorio FEN Piura</h1>
   <p class="sub">Dengue, gasto público, obras, salud y precios en Piura frente al Fenómeno El Niño. Los datos se recogen
     solos de fuentes públicas; cada cifra indica su fuente y su fecha.</p>
@@ -285,7 +316,7 @@
   <section class="pestana resumen" id="resumen" aria-labelledby="t-resumen">
     <h2 id="t-resumen" class="visualmente-oculto">Resumen</h2>
     <div class="hoy" id="hoy"></div>
-    <div class="paneles" id="resumen-paneles"><p class="nota">Cargando…</p></div>
+    <div class="paneles" id="resumen-paneles" aria-busy="true"><div class="panel esqueleto" aria-hidden="true"></div><div class="panel esqueleto" aria-hidden="true"></div><div class="panel esqueleto" aria-hidden="true"></div><div class="panel esqueleto" aria-hidden="true"></div><div class="panel esqueleto" aria-hidden="true"></div></div>
   </section>
 
   <!-- ===================== DENGUE ===================== -->
@@ -347,12 +378,8 @@
     <h2 id="t-gasto">Gasto público en Piura, <span id="anio-gasto"></span></h2>
     <p class="intro">Cuánto del presupuesto del año (<span data-g="pim">PIM</span>) ya se gastó
       (<span data-g="devengado">devengado</span>), visto de dos formas.</p>
-    <div class="cabecera-vistas">
-      <div><strong>Gastado en Piura</strong><br><span class="nota">Todo lo que se gasta en Piura, lo ejecute quien lo ejecute.</span></div>
-      <div><strong>Gastado por entidades con sede en Piura</strong><br><span class="nota">Gobierno regional, municipalidades y
-        otras entidades con sede en Piura.</span></div>
-    </div>
-    <div class="paneles" id="gasto-paneles"></div>
+    <div id="gasto-comparativa" class="comparativa" aria-busy="true"><div class="esqueleto"></div></div>
+    <div class="paneles diferencia" id="gasto-diferencia"></div>
     <details class="detalle">
       <summary><span class="ver">Ver detalle</span><span class="ocultar">Ocultar detalle</span></summary>
       <div class="cuerpo-detalle">
@@ -377,6 +404,8 @@
         </table></div>
         <button type="button" class="mas" id="t-cuerpo-mas" hidden></button>
         <p class="nota" id="fuente-tabla"></p>
+        <h3>Por nivel de gobierno</h3>
+        <div class="tabla"><table class="ancha min-640" id="gasto-niveles"></table></div>
         <h3>Por qué difieren las dos vistas</h3>
         <p class="nota" id="explica-vistas"></p>
         <h3 id="emergencia-fen">Gasto de emergencia por El Niño, por entidad</h3>
@@ -536,6 +565,11 @@
             última semana mayores que los de la anterior (ambas semanas de la tabla por distrito de la DIRESA); obras paralizadas (si hay al menos una); gasto con una proporción
             "menor" que el año transcurrido (regla del gasto, arriba); fuentes que pasaron su plazo sin actualizarse. Si ninguno
             la cumple, la portada lo dice.</li>
+          <li><strong>Títulos de la portada.</strong> Dicen el hallazgo con las mismas reglas: dengue, "sube", "baja" o "se mantiene"
+            frente a la semana anterior (tabla por distrito), y en el año, por encima o por debajo de 2017, 2023 y 2024 a la misma
+            semana; gasto, el ritmo frente al calendario (regla del gasto); obras, la proporción de obras activas paralizadas;
+            precios, la variación en 12 meses de Piura frente a la nacional ("mayor" o "menor" si difiere en 0,1 puntos o más).
+            Salud, mientras no haya serie mensual, muestra la pregunta.</li>
           <li><strong>Actualizado al (barra superior).</strong> La fecha más reciente entre las fuentes; cada cifra conserva la
             suya y su aviso si quedó desactualizada.</li>
           <li><strong>Precios.</strong> "Subieron" o "bajaron" según el signo de la variación mensual (0,00 % = "no variaron").
@@ -591,6 +625,8 @@ const GLOSARIO = {
   pim: ["PIM", "Presupuesto institucional modificado: el presupuesto vigente del año, con los cambios aprobados."],
   devengado: ["Devengado", "Gasto que el Estado ya reconoció como obligación de pago: el bien, servicio u obra se recibió."],
   avance: ["Avance del año", "Devengado dividido entre el PIM del año."],
+  lugar: ["Gastado en Piura", "Todo lo que se gasta en Piura, lo ejecute quien lo ejecute (también ministerios con sede en Lima)."],
+  sede: ["Por entidades con sede en Piura", "Lo que gastan el gobierno regional, las municipalidades y otras entidades con sede en Piura."],
   marco: ["Marco presupuestal", "Recursos autorizados por los decretos de emergencia por El Niño."],
   p0068: ["Programa 0068", "Programa presupuestal de reducción de vulnerabilidad y atención de emergencias por desastres."],
   p0017: ["Programa 0017", "Programa presupuestal de enfermedades metaxénicas y zoonosis; incluye el control del dengue."],
@@ -628,11 +664,10 @@ function aFecha(s) {
   return iso ? new Date(+iso[1], iso[2] - 1, +iso[3]) : dmy ? new Date(+dmy[3], dmy[2] - 1, +dmy[1]) : null;
 }
 const DATOS = () => ({ obras: D.obras, camas: D.camas, gasto: D.gasto, inv: D.invMeta, fen: D.fen, d26: D.d26, ipc: D.ipc });
-// Distintivo de estado: desactualizado (reloj), tramite (reloj de arena) o pendiente (borde punteado)
+// Distintivo de estado: desactualizado (reloj) o en trámite (reloj de arena); lo pendiente se dice en la frase del panel
 const ICONO_ESTADO = {
   desactualizado: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
   tramite: '<path d="M7 3h10M7 21h10M8 3c0 5 8 5 8 9s-8 4-8 9M16 3c0 5-8 5-8 9s8 4 8 9"/>',
-  pendiente: '<circle cx="12" cy="12" r="9" stroke-dasharray="3 3"/>',
 };
 const distintivo = (tipo, texto, clase = "") => `<span class="distintivo d-${tipo} ${clase}"><svg viewBox="0 0 24 24" fill="none"
   stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">${ICONO_ESTADO[tipo]}</svg>${texto}</span>`;
@@ -644,7 +679,7 @@ function aviso(claves) {
     const hoy = new Date(); hoy.setHours(0, 0, 0, 0);  // días de calendario: el dato del 1 visto el 4 tiene 3 días
     return f && Math.round((hoy - f) / 864e5) > PLAZOS[k]
       ? distintivo("desactualizado", `Dato no actualizado desde ${fecha(d.fecha_corte)}`, "vencido") : "";
-  }).join("");
+  }).filter((x, i, xs) => xs.indexOf(x) === i).join("");
 }
 const mesTxt = am => { const [a, m] = am.split("-"); return `${MESES[+m - 1]} de ${a}`; };
 const enlace = d => `<a href="${esc(d.url)}" target="_blank" rel="noopener">${esc(d.fuente)}</a>`;
@@ -673,26 +708,18 @@ function llenar(id, lista_, fila, cols, vacio = "Sin resultados.") {
   b.onclick = () => { limite[id] = n + 25; llenar(id, lista_, fila, cols, vacio); };
 }
 
-// Íconos decorativos de la portada (trazo de 1,8 px; el color lo da el contenedor)
-const SVG = c => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${c}</svg>`;
-const ICONOS = {
-  dengue: SVG(`<ellipse cx="12" cy="13" rx="2" ry="5"/><circle cx="12" cy="6.5" r="1.5"/><path d="M12 5 10.5 2.5"/>
-    <path d="M10.5 11C7 9 4.5 9.5 3.5 11.5c2 .8 4.5.5 7-.5M13.5 11c3.5-2 6-1.5 7 .5-2 .8-4.5.5-7-.5"/>
-    <path d="M10.3 14.5 7 17.5l-1 3M13.7 14.5l3.3 3 1 3M10.5 16.5 9 21M13.5 16.5 15 21"/>`),
-  gasto: SVG(`<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="5.5"/><path d="M12 9.5v5M10.5 11c0-.8.7-1.3 1.5-1.3s1.5.5 1.5 1.3M10.5 13.2c0 .8.7 1.3 1.5 1.3s1.5-.5 1.5-1.3"/>`),
-  obras: SVG(`<path d="M3.5 17.5h17M5.5 17.5a6.5 6.5 0 0 1 13 0"/><path d="M10 11.5V8.2a2 2 0 0 1 4 0v3.3"/><path d="M4 20.5h16"/>`),
-  salud: SVG(`<path d="M3 7v12M3 15h18v4M21 15v-3a2 2 0 0 0-2-2h-7v5"/><circle cx="7.5" cy="11.5" r="1.8"/><path d="M15 3.5v4M13 5.5h4"/>`),
-  precios: SVG(`<path d="M3.5 9.5h17l-1.8 9a1.5 1.5 0 0 1-1.5 1.2H6.8a1.5 1.5 0 0 1-1.5-1.2z"/><path d="M8 9.5 10.5 4M16 9.5 13.5 4M9 13v3.5M12 13v3.5M15 13v3.5"/>`),
-};
-
-// Panel: título, cifra principal, unidad, mini-gráfica, frase de interpretación y pie con fuente y fecha
-const panel = ({ id = "", titulo, cifra, ud = "", mini = "", frase = "", pie = "", clase = "", extra = "", vence, icono = "" }) =>
-  `<div class="panel ${clase}" ${id ? `id="${id}"` : ""}>${icono ? `<div class="titulo-panel"><span class="icono" aria-hidden="true">${ICONOS[icono]}</span><h3>${titulo}</h3></div>` : `<h3>${titulo}</h3>`}${cifra != null ? `<div class="cifra">${cifra}</div>` : ""}
+// Panel: título, cifra principal, unidad, mini-gráfica, frase, enlace "Ver …" y pie con fuente y fecha
+const panel = ({ id = "", titulo, cifra, ud = "", mini = "", frase = "", pie = "", clase = "", extra = "", vence, ver }) =>
+  `<div class="panel ${clase}" ${id ? `id="${id}"` : ""}><h3>${titulo}</h3>${cifra != null ? `<div class="cifra">${cifra}</div>` : ""}
     ${ud ? `<div class="ud">${ud}</div>` : ""}${aviso(vence)}${mini}${frase ? `<p class="frase">${frase}</p>` : ""}${extra}
-    ${pie ? `<p class="pie">${pie}</p>` : ""}</div>`;
+    ${ver ? `<a class="ver-mas" href="${ver[0]}">${ver[1]} →</a>` : ""}${pie ? `<p class="pie">${pie}</p>` : ""}</div>`;
+// Panel de una fuente que no cargó: lo dice y sugiere qué hacer
+const sinDatos = (titulo, fuente_) => panel({ titulo, clase: "pendiente",
+  frase: `<span class="sin-datos">No se pudieron cargar los datos de ${fuente_}. Vuelve a cargar la página; si sigue así, la fuente no respondió en la última actualización.</span>` });
 
-// Mini-gráfica de una serie (sin ejes): la forma de la evolución; el valor exacto va en la cifra
-function chispa(vals, etiqueta) {
+// Mini-gráfica de una serie (sin ejes): la forma de la evolución, con el valor inicial y el final y el periodo que cubre
+// (rot = { ini: "SE 1: 12", fin: "SE 42: 1.099", periodo: "Semanas 1 a 42 de 2026" })
+function chispa(vals, etiqueta, rot) {
   if (!vals || vals.length < 2) return "";
   const W = 200, H = 40, min = Math.min(...vals), max = Math.max(...vals);
   const pts = vals.map((v, i) => [i * W / (vals.length - 1), H - 4 - (max > min ? (v - min) / (max - min) : .5) * (H - 8)]);
@@ -702,7 +729,9 @@ function chispa(vals, etiqueta) {
     <polyline points="${pts.map(p => p.map(n => n.toFixed(1)).join(",")).join(" ")}" fill="none" stroke="var(--acento)"
       stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
     <line x1="${ux.toFixed(1)}" y1="${uy.toFixed(1)}" x2="${ux.toFixed(1)}" y2="${uy.toFixed(1)}" stroke="var(--acento)"
-      stroke-width="7" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg>`;  // punto redondo aunque el SVG se estire
+      stroke-width="7" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg>` +  // punto redondo aunque el SVG se estire
+    (rot ? `<div class="chispa-rotulos"><span>${rot.ini}</span><span class="fin">${rot.fin}</span></div>
+      <p class="chispa-periodo">${rot.periodo}</p>` : "");
 }
 
 /* ---------- Ayuda "?" ---------- */
@@ -751,52 +780,61 @@ function anioTranscurrido(iso, anio) {
 }
 const ritmo = (p, t) => p < t - 5 ? "menor" : p > t + 5 ? "mayor" : "similar";
 
-// Un punto de vista (columna) de un concepto de gasto: cifra, medidor y desglose por nivel de gobierno
-function vista(titulo, de, base, sinSede) {
-  const t = de(() => true), p = pct(t.dev, t.pim);
-  if (!t.pim) return `<div class="vista"><div class="titulo-vista">${titulo}</div><div class="cifra">—</div>
-    <div class="monto">${sinSede ? "No aplica: las entidades tienen sede en Lima." : "Sin presupuesto con este criterio."}</div></div>`;
-  const niveles = NIVELES.map(([n, nombre]) => [nombre, de(r => r.nivel === n)]).filter(([, x]) => x.pim);
-  return `<div class="vista"><div class="titulo-vista">${titulo}</div><div class="cifra">${pctTxt(p)}</div>
-    ${medidor(p)}<div class="monto">${millones(t.dev)} de ${base} ${millones(t.pim)}</div>
-    ${niveles.length > 1 ? niveles.map(([nombre, x]) => `<div class="mini-nivel"><span>${nombre}</span>
-      <span>${pctTxt(pct(x.dev, x.pim))}</span>${medidor(pct(x.dev, x.pim))}</div>`).join("")
-      : niveles.length ? `<div class="mini-nivel"><span>Todo: ${niveles[0][0].toLowerCase()}</span></div>` : ""}</div>`;
+// Celda de una vista en la tabla comparativa: avance, barra, devengado y presupuesto (PIM o marco)
+function celdaVista(t, base, marca, sinSede) {
+  if (!t.pim) return `<td class="vacio">—${sinSede ? `<span class="nota"><br>Sede en Lima</span>` : ""}</td>`;
+  const p = pct(t.dev, t.pim);
+  return `<td><span class="av">${pctTxt(p)}</span>${medidor(p, marca)}<span class="montos">Devengado ${millones(t.dev)}<br>${base} ${millones(t.pim)}</span></td>`;
 }
 
 function pintarGastoPaneles() {
-  const gs = D.gasto, f = `MEF, datos al ${fecha(gs.fecha_corte)}`;
+  const gs = D.gasto, f = `MEF, datos al ${fecha(gs.fecha_corte)}`, trans = anioTranscurrido(gs.fecha_corte, gs.anio);
   $("anio-gasto").textContent = gs.anio;
-  const conceptos = [
-    ["gasto-total", "Todo el gasto público", "", () => true, "un PIM de"],
-    ["prevencion", `Prevención: ${g("p0068")}`, "Reducción de vulnerabilidad y atención de emergencias por desastres.", r => r.programa === "0068", "un PIM de"],
-    ["reconstruccion", `Reconstrucción: ${g("anin")}`, "Autoridad Nacional de Infraestructura.", esAnin, "un PIM de"],
-    ["dengue-gasto", `Salud y dengue: ${g("p0017")}`, "Enfermedades metaxénicas y zoonosis.", r => r.programa === "0017", "un PIM de"],
+  const de = cond => [gastoDe(cond, 1), gastoDe(cond, 2)];
+  const filasC = [
+    ["Todo el gasto público", "", de(() => true), "PIM", trans],
+    [`Prevención: ${g("p0068")}`, "Reducción de vulnerabilidad y emergencias", de(r => r.programa === "0068"), "PIM"],
+    ...(D.fen ? [[`Emergencia por El Niño`, `${g("marco", "Marco")} de los decretos de emergencia`, [fenDe(1), fenDe(2)], "Marco"]] : []),
+    [`Reconstrucción: ${g("anin")}`, "Autoridad Nacional de Infraestructura", de(esAnin), "PIM"],
+    [`Salud y dengue: ${g("p0017")}`, "Enfermedades metaxénicas y zoonosis", de(r => r.programa === "0017"), "PIM"],
   ];
-  // Lo que se gasta en Piura por entidades con sede fuera (ámbito 1 solamente) explica la diferencia entre las vistas
-  const t1 = gastoDe(() => true, 1), t2 = gastoDe(() => true, 2), fuera = gastoDe(r => r.ambito === 1, 1);
-  const fueraNac = gastoDe(r => r.ambito === 1 && r.nivel === "E", 1);
-  $("explica-vistas").innerHTML = `¿Por qué difieren? Las entidades nacionales también invierten en Piura. Del presupuesto que se
-    gasta en Piura (PIM de ${millones(t1.pim)}), ${millones(fuera.pim)} es de entidades con sede fuera de Piura
-    (${fueraNac.pim >= fuera.pim - 1 ? "todas del gobierno nacional" : `${pctTxt(pct(fueraNac.pim, fuera.pim))} de ese monto, del gobierno nacional`}); eso no entra en la segunda vista, que suma un
-    PIM de ${millones(t2.pim)}.`;
-  const tarjeta = ([id, titulo, sub, cond, base]) => {
-    const de1 = c => gastoDe(r => cond(r) && c(r), 1), de2 = c => gastoDe(r => cond(r) && c(r), 2);
-    const sinSede = !de2(() => true).pim && de1(() => true).pim > 0 && id === "reconstruccion";
-    return panel({ id, titulo, ud: sub, clase: "ancho", vence: "gasto",
-      extra: `<div class="vistas">${vista("Gastado en Piura", de1, base)}${vista("Por entidades con sede en Piura", de2, base, sinSede)}</div>`,
-      pie: f });
-  };
-  let html = conceptos.slice(0, 2).map(tarjeta).join("");
-  if (D.fen) {
-    const de1 = c => fenDe(1, r => c({ ...r, nivel: NIVEL_FEN[r.nivel] })), de2 = c => fenDe(2, r => c({ ...r, nivel: NIVEL_FEN[r.nivel] }));
-    html += panel({ id: "emergencia-fen-panel", titulo: `Emergencia por El Niño (${g("marco")})`, clase: "ancho", vence: "fen",
-      ud: "Recursos autorizados por los decretos de emergencia.",
-      extra: `<div class="vistas">${vista("Gastado en Piura", de1, "un marco de")}${vista("Por entidades con sede en Piura", de2, "un marco de", fenDe(1).pim > 0)}</div>`,
-      pie: `MEF, datos al ${fecha(D.fen.fecha_corte)}` });
-  }
-  html += conceptos.slice(2).map(tarjeta).join("");
-  $("gasto-paneles").innerHTML = html;
+  $("gasto-comparativa").removeAttribute("aria-busy");
+  $("gasto-comparativa").innerHTML = aviso(["gasto", "fen"]) + `<div class="tabla"><table>
+    <caption class="visualmente-oculto">Avance del gasto en las dos vistas</caption>
+    <thead><tr><th scope="col">Concepto</th><th scope="col">${g("lugar")}</th><th scope="col">${g("sede")}</th></tr></thead><tbody>` +
+    filasC.map(([t, nota, [v1, v2], base, marca]) => `<tr><th scope="row">${t}${nota ? `<span class="nota">${nota}</span>` : ""}</th>
+      ${celdaVista(v1, base, marca)}${celdaVista(v2, base, marca, v1.pim > 0)}</tr>`).join("") + `</tbody></table></div>
+    <p class="nota">Avance: devengado entre PIM (o marco). La marca en el total es el ${num(trans, 0)} % del año ya transcurrido.
+      ${f}${D.fen ? `; emergencia FEN, datos al ${fecha(D.fen.fecha_corte)}` : ""}.</p>`;
+
+  // Lo único que cambia entre las vistas: el gobierno nacional que gasta en Piura con sede fuera de la región
+  const fuera = gs.rows.filter(r => r.ambito === 1 && r.nivel === "E"), tf = { pim: suma(fuera, "pim"), dev: suma(fuera, "devengado") };
+  const porEnt = new Map();
+  for (const r of fuera) { const x = porEnt.get(r.entidad) || { pim: 0, dev: 0 }; x.pim += r.pim; x.dev += r.devengado; porEnt.set(r.entidad, x); }
+  const top = [...porEnt.entries()].filter(([e]) => e !== "029").sort((a, b) => b[1].pim - a[1].pim).slice(0, 5);
+  // Regional y local: lo que solo entra en una vista (con sede en Piura, gastado fuera, o al revés)
+  const resto = NIVELES.filter(([n]) => n !== "E").map(([n, nombre]) => [nombre.toLowerCase(),
+    suma(gs.rows.filter(r => r.nivel === n && r.ambito !== 3), "pim")]).filter(([, v]) => v > 0);
+  $("gasto-diferencia").innerHTML = panel({ titulo: "Lo que cambia entre las dos vistas: el gobierno nacional con sede fuera de Piura",
+    cifra: millones(tf.pim), ud: `de PIM que se gasta en Piura y solo entra en «Gastado en Piura»`, clase: "ancho",
+    mini: medidor(pct(tf.dev, tf.pim)), frase: `Avance de ${pctTxt(pct(tf.dev, tf.pim))}: devengado de ${millones(tf.dev)}.`,
+    extra: `<h3>Principales entidades, además de ANIN (en la tabla)</h3><ol class="lista-corta">${top.map(([e, x]) =>
+      `<li>${esc(gs.nombres.entidad[e] || e)}: ${millones(x.pim)}, avance ${pctTxt(pct(x.dev, x.pim))}</li>`).join("")}</ol>
+      <p class="frase">Los gobiernos regional y locales tienen sede en Piura, por eso coinciden en ambas vistas${resto.length
+        ? `, salvo ${lista(resto.map(([n, v]) => `${millones(v)} del gobierno ${n === "gobiernos locales" ? "local" : "regional"}`))} gastados fuera de Piura` : ""}.</p>`,
+    pie: f });
+
+  // Detalle: desglose por nivel de gobierno (una sola vez en la pestaña)
+  const celda = t => t.pim ? `<td class="n">${pctTxt(pct(t.dev, t.pim))}</td><td class="n">${num(t.dev / 1e6, 1)}</td><td class="n">${num(t.pim / 1e6, 1)}</td>`
+    : `<td class="n">—</td><td class="n">—</td><td class="n">—</td>`;
+  $("gasto-niveles").innerHTML = `<thead><tr><th rowspan="2">Nivel de gobierno</th><th colspan="3">Gastado en Piura</th>
+    <th colspan="3">Por entidades con sede en Piura</th></tr><tr>${'<th class="n">Avance</th><th class="n">Devengado (S/ millones)</th><th class="n">PIM (S/ millones)</th>'.repeat(2)}</tr></thead>
+    <tbody>${NIVELES.map(([n, nombre]) => { const v1 = gastoDe(r => r.nivel === n, 1), v2 = gastoDe(r => r.nivel === n, 2);
+      const igual = v1.pim === v2.pim && v1.dev === v2.dev;  // mismas filas en ambas vistas: se muestra una vez
+      return `<tr><td>${nombre}</td>${celda(v1)}${igual ? `<td colspan="3" class="nota">Igual en ambas vistas</td>` : celda(v2)}</tr>`; }).join("")}</tbody>`;
+  const sedeFuera = gastoDe(r => r.ambito === 2 && r.nivel === "E", 2).pim;
+  $("explica-vistas").innerHTML = `La diferencia principal es el gobierno nacional con sede fuera de Piura (tarjeta de arriba).${sedeFuera > 0
+    ? ` En sentido contrario, entidades del gobierno nacional con sede en Piura tienen ${millones(sedeFuera)} de PIM para gastar fuera de la región: eso solo entra en la segunda vista.` : ""}`;
 }
 
 function opciones(id, pares, todos) {
@@ -839,7 +877,7 @@ function pintarTabla() {
   llenar("t-cuerpo", lista_, x => {
     const inv = x.tipo === "2" ? D.inv?.[x.codigo] : null;
     const dist = inv ? (inv.departamento === "PIURA" ? `${esc(inv.distrito)} (${esc(inv.provincia)})` : `Fuera de Piura: ${esc(inv.departamento)}`) : "—";
-    return `<tr><td>${esc(x.codigo)}</td><td>${esc(x.nombre)}</td><td>${esc(x.entidad)}</td>
+    return `<tr><td class="cod">${esc(x.codigo)}</td><td>${esc(x.nombre)}</td><td>${esc(x.entidad)}</td>
       <td class="n">${num(x.pim)}</td><td class="n">${num(x.devengado)}</td><td class="n">${pctTxt(pct(x.devengado, x.pim))}</td>
       <td class="n">${fisTxt(inv?.avance_fisico)}</td><td>${dist}</td></tr>`;
   }, 8, "Sin resultados con estos filtros.");
@@ -869,7 +907,7 @@ function pintarFen() {
 function pintarGastoNotas() {
   $("gasto-notas").innerHTML = `
     <li>Avance = devengado / PIM del año; en la emergencia FEN, devengado / marco presupuestal. ${fuente(D.gasto)}</li>
-    <li>La marca vertical en la barra del resumen indica el porcentaje del año ya transcurrido a la fecha de los datos.</li>
+    <li>La marca vertical en la fila del total indica el porcentaje del año ya transcurrido a la fecha de los datos.</li>
     <li>ANIN y las entidades del gasto de emergencia FEN tienen sede en Lima: en la vista "por entidades con sede en Piura"
       no suman gasto. La Autoridad para la Reconstrucción con Cambios (unidad ejecutora de la PCM) no registra gasto en Piura
       en ${D.gasto.anio}.</li>`;
@@ -894,6 +932,13 @@ const semanaDe = (a, mes, dia) => 1 + (new Date(a, mes, dia) - inicioSE(a)) / (7
 const mesDeSE = (a, s) => new Date(+inicioSE(a) + ((s - 1) * 7 + 3) * 864e5).getMonth();  // mes del miércoles de la semana
 const pico = v => Object.entries(v).reduce((m, [s, c]) => c > m[1] ? [+s, c] : m, [0, -1]);
 
+// Casos acumulados hasta la semana actual en los años de brote, y en cuáles iban más (mas) o menos (menos) que este año
+function frenteABrotes() {
+  const d = D.d26, h = historicoPorSemana("CP");
+  const comp = ANIOS_BROTE.filter(a => h[a]).map(a => [a, Object.entries(h[a]).reduce((s, [k, c]) => +k <= d.se ? s + c : s, 0)]);
+  return { comp, mas: comp.filter(([, c]) => c > d.totales.casos).map(([a]) => a), menos: comp.filter(([, c]) => c < d.totales.casos).map(([a]) => a) };
+}
+
 // Frases del dengue (reglas en "Fuentes y método")
 function frasesDengue() {
   const d = D.d26, serie = Object.fromEntries((d.serie || []).map(([s, c]) => [s, c])), se = d.se;
@@ -902,9 +947,7 @@ function frasesDengue() {
     (${num(ant)})${PRELIMINAR >= 2 ? `; ambas cifras son ${g("preliminar", "preliminares")}` : ""}.`;
   let anio = "";
   if (D.dh) {
-    const h = historicoPorSemana("CP");
-    const comp = ANIOS_BROTE.filter(a => h[a]).map(a => [a, Object.entries(h[a]).reduce((s, [k, c]) => +k <= se ? s + c : s, 0)]);
-    const mas = comp.filter(([, c]) => c > d.totales.casos).map(([a]) => a), menos = comp.filter(([, c]) => c < d.totales.casos).map(([a]) => a);
+    const { comp, mas, menos } = frenteABrotes();
     anio = `${!mas.length ? "La cifra más alta de estos años" : !menos.length ? "La cifra más baja de estos años" :
         `Menos que en ${lista(mas.map(String))} y más que en ${lista(menos.map(String))}`}: a la misma semana iban
       ${lista(comp.map(([a, c]) => `${num(c)} en ${a}`))}.`;
@@ -1363,12 +1406,11 @@ function graficoMeses(el, meses, series, tipo = "lineas") {
 
 function pintarPrecios() {
   const p = D.ipc, el = $("precios-paneles");
-  const sisap = panel({ titulo: "Precios en mercados (SISAP, MIDAGRI)", clase: "pendiente", extra: distintivo("pendiente", "En preparación"),
-    frase: `Precios por producto en los mercados de Piura; el SISAP no ofrece archivos descargables.
+  const sisap = panel({ titulo: "Precios en mercados (SISAP, MIDAGRI)", clase: "pendiente",
+    frase: `En preparación. Precios por producto en los mercados de Piura; el SISAP no ofrece archivos descargables.
       <a href="http://sistemas.midagri.gob.pe/sisap/portal2/ciudades/" target="_blank" rel="noopener">Ver el SISAP</a>` });
   if (!p?.serie?.length) {
-    el.innerHTML = panel({ titulo: "IPC de Piura", clase: "pendiente", extra: distintivo("pendiente", "Pendiente"),
-      frase: "No se pudieron cargar los datos del INEI." }) + sisap;
+    el.innerHTML = sinDatos("IPC de Piura", "precios del INEI") + sisap;
     return;
   }
   const s = p.serie.slice(-24), u = p.serie.at(-1), pie = `INEI, ${mesTxt(u.mes)}, publicado el ${fecha(u.publicado)}`;
@@ -1417,12 +1459,12 @@ function semanasDengue(d) {
 function alertasHoy({ sem, par, gasto }) {
   const items = [];
   if (sem && sem.act > sem.ant)
-    items.push(`El dengue sube: ${num(sem.act)} casos en la semana ${D.d26.se}, frente a ${num(sem.ant)} en la anterior (tabla por distrito).`);
-  if (par?.length) items.push(`${num(par.length)} obras paralizadas, con un costo de ${millones(suma(par, "costo_et"))}.`);
+    items.push(`El dengue sube frente a la semana anterior.`);
+  if (par?.length) items.push(`Hay obras paralizadas, con un costo de ${millones(suma(par, "costo_et"))}.`);
   if (gasto) {
     const { p, trans } = gasto;
     if (ritmo(p, trans) === "menor")
-      items.push(`El gasto público va más lento que el calendario: ${pctTxt(p)} del presupuesto con el ${num(trans, 0)} % del año transcurrido.`);
+      items.push(`El gasto público va más lento que el calendario.`);
   }
   const nombres = { obras: "obras", camas: "camas", gasto: "gasto", inv: "avance de proyectos", fen: "emergencia FEN", d26: "dengue", ipc: "precios" };
   const viejos = Object.keys(PLAZOS).filter(k => aviso(k)).map(k => nombres[k]);
@@ -1443,50 +1485,54 @@ function pintarResumen() {
     <div class="atencion${al.length ? "" : " calma"}">${al.length
       ? `<h3>Piden atención</h3><ul>${al.map(x => `<li>${x}</li>`).join("")}</ul>`
       : `<h3>Ningún indicador en alerta</h3><p class="nota">Según las reglas del observatorio, descritas en Fuentes y método.</p>`}</div>`;
-  // Cada panel: ícono, pregunta, cifra, mini-gráfica, una frase y la fuente con su fecha (todos del mismo tamaño)
+  // Cada panel: título con el hallazgo (reglas en "Fuentes y método"), cifra, mini-gráfica, una frase, enlace y fuente con su fecha
+  const mesCorto = am => { const [a, m] = am.split("-"); return `${MESES[+m - 1].slice(0, 3)} ${a}`; };
   if (d?.totales) {
-    const act = d.totales.semana;
-    ps.push(panel({ icono: "dengue", titulo: `<a href="#dengue">¿Cómo está el dengue?</a>`, cifra: num(act),
-      ud: `casos en la semana ${d.se}`, vence: "d26", mini: chispa(d.serie.map(s => s[1]), `Casos por semana en ${anioD()}`),
-      frase: !sem ? "" : `${sem.act > sem.ant ? "Más" : sem.act < sem.ant ? "Menos" : "Igual"} que en la semana ${d.se - 1}, según la tabla por distrito; cifras preliminares.`,
-      pie: `DIRESA Piura, semana ${d.se}, datos al ${fecha(d.fecha_corte)}` }));
-  }
+    const dir = !sem ? null : sem.act > sem.ant ? "sube" : sem.act < sem.ant ? "baja" : "se mantiene";
+    const s0 = d.serie[0], s1 = d.serie.at(-1);
+    let anio = "";
+    if (D.dh) {
+      const { mas, menos } = frenteABrotes(), txt = xs => lista(xs.map(String));
+      anio = `En el año va ${mas.length && menos.length ? `por debajo de ${txt(mas)} y por encima de ${txt(menos)}`
+        : mas.length ? `por debajo de ${txt(mas)}` : `por encima de ${txt(menos)}`} a la misma semana.`;
+    }
+    ps.push(panel({ titulo: dir ? `El dengue ${dir} frente a la semana anterior` : "¿Cómo está el dengue?", cifra: num(d.totales.semana),
+      ud: `casos en la semana ${d.se}; cifras preliminares`, vence: "d26",
+      mini: chispa(d.serie.map(x => x[1]), `Casos por semana en ${anioD()}`,
+        { ini: `SE ${s0[0]}: ${num(s0[1])}`, fin: `SE ${s1[0]}`, periodo: `Semanas ${s0[0]} a ${s1[0]} de ${anioD()}` }),
+      frase: anio, ver: ["#dengue", "Ver dengue"], pie: `DIRESA Piura, semana ${d.se}, datos al ${fecha(d.fecha_corte)}` }));
+  } else ps.push(sinDatos("¿Cómo está el dengue?", "dengue de la DIRESA Piura"));
   if (gasto) {
     const { p, trans } = gasto, r = ritmo(p, trans);
-    ps.push(panel({ icono: "gasto", titulo: `<a href="#gasto">¿Cuánto se ha gastado?</a>`, cifra: pctTxt(p),
-      ud: "del presupuesto del año, gastado en Piura", vence: "gasto", mini: medidor(p, trans),
-      frase: `Va ${r === "menor" ? "más lento que el" : r === "mayor" ? "más rápido que el" : "al ritmo del"} calendario: ya pasó el
-        ${num(trans, 0)} % del año (marca vertical).`, pie: `MEF, datos al ${fecha(D.gasto.fecha_corte)}` }));
+    ps.push(panel({ titulo: `El gasto va ${r === "menor" ? "más lento que el" : r === "mayor" ? "más rápido que el" : "al ritmo del"} calendario`,
+      cifra: pctTxt(p), ud: "del presupuesto del año, gastado en Piura", vence: "gasto", mini: medidor(p, trans),
+      frase: `Ya pasó el ${num(trans, 0)} % del año (marca vertical).`, ver: ["#gasto", "Ver gasto"], pie: `MEF, datos al ${fecha(D.gasto.fecha_corte)}` }));
   }
   if (D.obras) {
     const cs = causas(par), sh = pct(par.length, activas.length);
-    ps.push(panel({ icono: "obras", titulo: `<a href="#obras">¿Cómo van las obras?</a>`, cifra: num(par.length),
-      ud: "obras paralizadas", vence: "obras", mini: medidor(sh),
-      frase: `Son el ${pctTxt(sh)} de las obras activas${cs.length ? `; la causa más registrada es «${esc(cs[0][0])}»` : ""}.`,
+    ps.push(panel({ titulo: par.length ? `El ${pctTxt(sh)} de las obras activas está paralizado` : "Ninguna obra activa está paralizada",
+      cifra: num(par.length), ud: "obras paralizadas", vence: "obras", mini: medidor(sh),
+      frase: cs.length ? `La causa más registrada es «${esc(cs[0][0])}».` : "", ver: ["#obras", "Ver obras"],
       pie: `Infobras, datos al ${fecha(D.obras.fecha_corte)}` }));
-  }
+  } else ps.push(sinDatos("¿Cómo van las obras?", "obras de Infobras"));
   if (D.camas) {
     const rep = D.camas.establecimientos.filter(x => x.reporto), conPd = rep.every(x => x.pacientes_dia != null);
     const oc = conPd ? pct(suma(rep, "pacientes_dia"), suma(rep, "dias_cama")) : null;
-    ps.push(panel({ icono: "salud", titulo: `<a href="#salud">¿Está preparada la salud?</a>`, cifra: pctTxt(oc),
-      ud: "de ocupación de camas", vence: "camas", mini: oc == null ? "" : medidor(oc),
-      frase: `Promedio de ${esc(D.camas.periodo)} en ${num(rep.length)} establecimientos que reportaron.`,
-      pie: `SUSALUD, ${esc(D.camas.periodo)}` }));
-  }
+    ps.push(panel({ titulo: "¿Está preparada la salud?", cifra: pctTxt(oc), ud: `de ocupación de camas, promedio de ${esc(D.camas.periodo)}`,
+      vence: "camas", mini: oc == null ? "" : medidor(oc), frase: `En ${num(rep.length)} establecimientos que reportaron.`,
+      ver: ["#salud", "Ver salud"], pie: `SUSALUD, ${esc(D.camas.periodo)}` }));
+  } else ps.push(sinDatos("¿Está preparada la salud?", "camas de SUSALUD"));
   if (D.ipc?.serie?.length) {
-    const u = D.ipc.serie.at(-1), dif = u.doce_meses - u.nacional_doce_meses;
-    ps.push(panel({ icono: "precios", titulo: `<a href="#precios">¿Cómo están los precios?</a>`, cifra: pct2(u.doce_meses),
-      ud: `de variación en 12 meses, a ${mesTxt(u.mes)}`, vence: "ipc",
-      mini: chispa(D.ipc.serie.slice(-24).map(x => x.doce_meses), "Variación en 12 meses, últimos 24 meses"),
-      frase: `${dif >= 0.1 ? "Mayor que" : dif <= -0.1 ? "Menor que" : "Similar a"} la variación nacional (${pct2(u.nacional_doce_meses)}).`,
-      pie: `INEI, ${mesTxt(u.mes)}` }));
-  } else ps.push(panel({ icono: "precios", titulo: `<a href="#precios">¿Cómo están los precios?</a>`, clase: "pendiente",
-    extra: distintivo("pendiente", "Pendiente"), frase: "No se pudieron cargar los datos del INEI." }));
+    const s = D.ipc.serie.slice(-24), u = s.at(-1), dif = u.doce_meses - u.nacional_doce_meses;
+    ps.push(panel({ titulo: `La inflación en Piura es ${dif >= 0.1 ? "mayor que" : dif <= -0.1 ? "menor que" : "similar a"} la nacional`,
+      cifra: pct2(u.doce_meses), ud: `de variación de precios en 12 meses, a ${mesTxt(u.mes)}`, vence: "ipc",
+      mini: chispa(s.map(x => x.doce_meses), "Variación en 12 meses, últimos 24 meses",
+        { ini: `${mesCorto(s[0].mes)}: ${pct2(s[0].doce_meses)}`, fin: `${mesCorto(u.mes)}: ${pct2(u.doce_meses)}`,
+          periodo: `${mesTxt(s[0].mes)[0].toUpperCase() + mesTxt(s[0].mes).slice(1)} a ${mesTxt(u.mes)}` }),
+      frase: `Nacional: ${pct2(u.nacional_doce_meses)}.`, ver: ["#precios", "Ver precios"], pie: `INEI, ${mesTxt(u.mes)}` }));
+  } else ps.push(sinDatos("¿Cómo están los precios?", "precios del INEI"));
   el.innerHTML = ps.join("");
-  el.querySelectorAll(".panel").forEach(p => p.addEventListener("click", ev => {
-    if (ev.target.closest("a, button")) return;
-    location.hash = p.querySelector("h3 a").getAttribute("href");
-  }));
+  el.removeAttribute("aria-busy");
 }
 
 /* ---------- Fuentes y método ---------- */
