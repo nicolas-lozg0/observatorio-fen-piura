@@ -1,6 +1,7 @@
 """Prueba mínima de resumir() de camas_susalud.py con datos inventados. Correr: python3 scripts/test_camas.py"""
 import pandas as pd
 
+from camas_serie import mes_de
 from camas_susalud import resumir
 
 COLS = ["DEPARTAMENTO", "PROVINCIA", "DISTRITO", "CO_IPRESS", "RAZON_SOC", "SECTOR", "CATEGORIA", "HOSPITALIZACION",
@@ -23,4 +24,7 @@ assert (a["camas"], a["uci"], a["dias_cama"], a["pacientes_dia"]) == (25, 5, 750
 assert (a["ingresos"], a["egresos"]) == (53, 51)
 assert b["camas"] == 0 and b["uci"] == 0, "el que no reportó no suma camas"
 assert [f["co_ipress"] for f in resumir(pd.DataFrame(filas, columns=COLS))] == ["001", "002"], "primero los que reportaron"
+# serie mensual: solo suma a los que reportaron (el mismo cálculo de ocupación que el panel)
+assert mes_de(pd.DataFrame(filas, columns=COLS)) == {"establecimientos": 2, "reportaron": 1, "camas": 25, "pacientes_dia": 570,
+                                                     "dias_cama": 750}
 print("OK")

@@ -49,6 +49,8 @@ def main():
         "nota": "Límites de 2007: Veintiséis de Octubre (2013) aparece dentro del distrito de Piura. "
                 "Bellavista (Sullana) viene sin polígono en la fuente y no se dibuja.",
         "viewBox": f"0 0 {ANCHO} {alto}",
+        # para ubicar puntos (establecimientos de salud) con la misma proyección: x = (lon - lon0) * k * escala, y = (lat1 - lat) * escala
+        "proyeccion": {"lon0": lon0, "lat1": lat1, "k": k, "escala": escala},
         "distritos": distritos,
     })
 
