@@ -25,6 +25,7 @@
     --comp1: #b48b40; --comp2: #aa5e7d; --comp3: #2f7442;
     --q1: #cde2fb; --q2: #9ec5f4; --q3: #6da7ec; --q4: #2a78d6; --q5: #184f95;
     --neutro: #e4e9f0;  /* datos: cero casos y fondo de zonas sin dato */
+    --g1: #e1e5ea; --g2: #c7ced8; --g3: #a7b1bf; --g4: #848f9e;  /* datos: casos de dengue como fondo del mapa de salud */
     /* Tipografía: escala 1,25 sobre 16 px */
     --f-titulo: Montserrat, system-ui, sans-serif;
     --f-texto: "Nunito Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -42,7 +43,7 @@
       color-scheme: dark;
       --fondo: #121211; --superficie: #1a1a19; --linea: #33332f; --esqueleto: #2a2a27;
       --texto: #f0efec; --texto-2: #c3c2b7; --texto-3: #9a998f; --titulo: #9ec5f4;
-      --acento: #3987e5; --acento-suave: #23364d; --pista: #23364d; --alerta: #f59e0b; --alerta-suave: #2a2a27; --neutro: #2a2a27;
+      --acento: #3987e5; --acento-suave: #23364d; --pista: #23364d; --alerta: #f59e0b; --alerta-suave: #2a2a27; --neutro: #2a2a27; --g1: #2c2c29; --g2: #3d3d39; --g3: #55554f; --g4: #727269;
       --comp1: #916a18; --comp2: #914766; --comp3: #5da16d;  /* oscuro: ΔE 11,0 / 15,2; rosa 2,7:1, con rótulo visible */
     }
   }
@@ -50,7 +51,7 @@
     color-scheme: dark;
     --fondo: #121211; --superficie: #1a1a19; --linea: #33332f; --esqueleto: #2a2a27;
     --texto: #f0efec; --texto-2: #c3c2b7; --texto-3: #9a998f; --titulo: #9ec5f4;
-    --acento: #3987e5; --acento-suave: #23364d; --pista: #23364d; --alerta: #f59e0b; --alerta-suave: #2a2a27; --neutro: #2a2a27;
+    --acento: #3987e5; --acento-suave: #23364d; --pista: #23364d; --alerta: #f59e0b; --alerta-suave: #2a2a27; --neutro: #2a2a27; --g1: #2c2c29; --g2: #3d3d39; --g3: #55554f; --g4: #727269;
     --comp1: #916a18; --comp2: #914766; --comp3: #5da16d;
   }
   @font-face { font-family: "Montserrat"; font-weight: 700; font-display: swap; src: url(fuentes/montserrat-latin-700-normal.woff2) format("woff2"); }
@@ -136,6 +137,7 @@
   .panel .frase { font-size: var(--t-sm); margin: 0; }
   .panel .pie { margin-top: auto; padding-top: var(--e2); color: var(--texto-3); font-size: var(--t-xs); }
   .panel.pendiente { background: transparent; outline: 1px dashed var(--texto-3); outline-offset: -1px; }
+  .panel.reserva-grafico { min-height: 320px; justify-content: center; }
   .mapa-y-top { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: var(--e4); align-items: start; }
   @media (max-width: 760px) { .mapa-y-top { grid-template-columns: minmax(0, 1fr); } }
   /* Distintivos de estado: solo "Dato no actualizado" y "En trámite"; siempre ícono + texto */
@@ -268,9 +270,19 @@
   .leyenda.cajas span::before { width: 12px; height: 12px; border-radius: 3px; box-shadow: inset 0 0 0 1px var(--linea); }
   .globo { position: absolute; pointer-events: none; background: var(--superficie); border-radius: var(--r-control);
     padding: var(--e2) var(--e3); font-size: var(--t-sm); box-shadow: var(--sombra-flotante); white-space: nowrap; display: none; z-index: 2; }
-  #mapa { max-width: 440px; margin: 0 auto; }  /* el mapa de Piura es más alto que ancho: se limita para no alargar la pestaña */
+  #mapa { width: 100%; max-width: 440px; margin: 0 auto; }  /* el mapa de Piura es más alto que ancho: se limita para no alargar la pestaña */
   #mapa path { stroke: var(--superficie); stroke-width: .8; }
   #mapa path:hover { stroke: var(--texto); stroke-width: 1.5; }
+
+  #mapa-salud { width: 100%; max-width: 520px; margin: 0 auto; }
+  #mapa-salud path { stroke: var(--superficie); stroke-width: .8; }
+  #mapa-salud circle { stroke: var(--q5); stroke-width: 1; fill-opacity: .9; }
+  #mapa-salud circle.excede { stroke: var(--texto); stroke-width: 2.5; }
+  #mapa-salud circle.sin-coord { fill: var(--superficie); stroke: var(--texto-2); stroke-width: 2; stroke-dasharray: 3 2; }
+  #mapa-salud circle:hover { stroke: var(--texto); stroke-width: 2.5; }
+  .interruptor { display: inline-flex; align-items: center; gap: var(--e2); min-height: 44px; font-size: var(--t-sm); color: var(--texto-2); cursor: pointer; }
+  .interruptor input { min-height: 0; width: 18px; height: 18px; accent-color: var(--acento); }
+  .tira-reportes { margin-top: var(--e1); }
 
   /* ===== Carga: esqueletos mientras llegan los datos ===== */
   .esqueleto { min-height: 260px; background: var(--superficie); position: relative; overflow: hidden; }
@@ -494,7 +506,7 @@
   <!-- ===================== PRECIOS ===================== -->
   <section class="pestana" id="precios" aria-labelledby="t-precios" hidden>
     <h2 id="t-precios">¿Cómo están los precios?</h2>
-    <p class="intro">El <span data-g="ipc">índice de precios al consumidor (IPC)</span> de Piura, que el INEI publica cada mes.</p>
+    <p class="intro">El <span data-g="ipc">índice de precios al consumidor (IPC)</span> de Piura y el costo de la canasta básica, según el INEI.</p>
     <div class="paneles" id="precios-paneles"></div>
     <details class="detalle">
       <summary><span class="ver">Ver detalle</span><span class="ocultar">Ocultar detalle</span></summary>
@@ -505,6 +517,8 @@
             <th class="n">En 12 meses</th><th class="n">Nacional, en 12 meses</th><th>Informe</th></tr></thead>
           <tbody id="ipc-cuerpo"></tbody>
         </table></div>
+        <h3>Líneas de pobreza por dominio (soles por persona al mes)</h3>
+        <div class="tabla"><table class="ancha min-640" id="tabla-pobreza"></table></div>
         <h3>Notas de método</h3>
         <ul class="metodo nota" id="ipc-notas"></ul>
       </div>
@@ -570,7 +584,8 @@
             frente a la semana anterior (tabla por distrito), y en el año, por encima o por debajo de 2017, 2023 y 2024 a la misma
             semana; gasto, el ritmo frente al calendario (regla del gasto); obras, la proporción de obras activas paralizadas;
             precios, la variación en 12 meses de Piura frente a la nacional ("mayor" o "menor" si difiere en 0,1 puntos o más).
-            Salud, mientras no haya serie mensual, muestra la pregunta.</li>
+            salud, "sube", "baja" o "se mantiene" (diferencia menor de 1 punto) la ocupación de camas del último mes frente al
+            mismo mes del año anterior; si falta ese mes, el título es la pregunta.</li>
           <li><strong>Actualizado al (barra superior).</strong> La fecha más reciente entre las fuentes; cada cifra conserva la
             suya y su aviso si quedó desactualizada.</li>
           <li><strong>Precios.</strong> "Subieron" o "bajaron" según el signo de la variación mensual (0,00 % = "no variaron").
@@ -963,7 +978,8 @@ function pintarDenguePaneles() {
   const fr = frasesDengue();
   el.innerHTML =
     panel({ titulo: `Casos de la semana ${d.se}`, cifra: num(t.semana), ud: g("cp"), vence: "d26",
-      mini: chispa((d.serie || []).map(s => s[1]), `Casos por semana en ${anioD()}`), frase: fr.semana, pie }) +
+      mini: d.serie?.length ? chispa(d.serie.map(s => s[1]), `Casos por semana en ${anioD()}`, { ini: `SE ${d.serie[0][0]}: ${num(d.serie[0][1])}`,
+        fin: `SE ${d.serie.at(-1)[0]}`, periodo: `Semanas ${d.serie[0][0]} a ${d.serie.at(-1)[0]} de ${anioD()}` }) : "", frase: fr.semana, pie }) +
     panel({ titulo: "Casos en el año", cifra: num(t.casos), ud: `hasta la semana ${d.se}`, vence: "d26", frase: fr.anio, pie }) +
     panel({ titulo: "Fallecidos en el año", cifra: df ? num(df.total) : "—", vence: "d26",
       ud: df ? `${num(df.confirmadas)} confirmados y ${num(df.probables)} probables` : "sin dato validado",
@@ -1194,6 +1210,87 @@ function pintarMapa(r, anio) {
 
 /* ---------- Salud ---------- */
 const ocupacion = x => x.dias_cama ? 100 * x.pacientes_dia / x.dias_cama : null;
+// Ocupación mensual (serie de SUSALUD) y regla del título: frente al mismo mes del año anterior (±1 punto = se mantiene)
+function ocupacionSerie() {
+  const s = D.camasSerie?.serie;
+  if (!s?.length) return null;
+  const oc = x => pct(x.pacientes_dia, x.dias_cama), u = s.at(-1), [a, m] = u.mes.split("-");
+  const prev = s.find(x => x.mes === `${+a - 1}-${m}`), dif = prev ? oc(u) - oc(prev) : null;
+  return { s, oc, u, prev, dir: dif == null ? null : dif >= 1 ? "sube" : dif <= -1 ? "baja" : "se mantiene" };
+}
+const mesCorto = am => { const [a, m] = am.split("-"); return `${MESES[+m - 1].slice(0, 3)} ${a}`; };
+const mayus = t => t[0].toUpperCase() + t.slice(1);
+
+// Barras finas con cuántos establecimientos reportaron cada mes, alineadas con el gráfico de ocupación
+function tiraReportes(el, s) {
+  const W = Math.max(300, Math.min(1040, el.clientWidth || 720)), H = 44, m = { l: 48, r: 104 }, n = s.length;
+  const max = Math.max(...s.map(x => x.reportaron)), x = i => m.l + i * (W - m.l - m.r) / (n - 1), bw = Math.max(2, (W - m.l - m.r) / n - 3);
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Establecimientos que reportaron cada mes">` +
+    s.map((v, i) => `<rect x="${(x(i) - bw / 2).toFixed(1)}" y="${(H - 4 - 32 * v.reportaron / max).toFixed(1)}" width="${bw.toFixed(1)}"
+      height="${(32 * v.reportaron / max).toFixed(1)}" rx="1.5" fill="var(--g3)"><title>${esc(mesTxt(v.mes))}: ${num(v.reportaron)} reportaron</title></rect>`).join("") +
+    `<text x="${W - m.r + bw / 2 + 6}" y="${H - 8}">${num(s.at(-1).reportaron)} reportaron</text></svg>`;
+}
+function graficoOcupacion() {
+  const o = ocupacionSerie();
+  if (!o || !$("g-ocupacion")) return;
+  graficoMeses($("g-ocupacion"), o.s.map(x => x.mes), [{ nombre: "Piura", color: "var(--acento)", principal: true, v: o.s.map(o.oc) }],
+    "lineas", { fmt: pctTxt });
+  tiraReportes($("g-reportaron"), o.s);
+}
+
+// Mapa de establecimientos con camas: círculo según camas, color según ocupación del mes; dengue por distrito como fondo opcional
+const CLASES_OC = [[50, "var(--q1)", "menos de 50 %"], [70, "var(--q2)", "50 a 70 %"], [85, "var(--q3)", "70 a 85 %"],
+  [100, "var(--q4)", "85 a 100 %"], [Infinity, "var(--q5)", "más de 100 % (a revisar)"]];
+function mapaSalud() {
+  const el = $("mapa-salud"), m = D.mapa, c = D.camas;
+  if (!el) return;
+  if (!m || !c) { el.innerHTML = `<p class="sin-datos">No se pudo cargar el mapa o los datos de camas.</p>`; return; }
+  const ub = Object.fromEntries((D.ipress?.establecimientos || []).map(x => [x.co_ipress, x]));
+  const conDengue = $("capa-dengue")?.checked && D.d26;
+  let fondo = {};
+  if (conDengue) {
+    const val = {};
+    for (const f of datosDistritos(anioD()).filas) if (f.ubigeo) val[f.ubigeo === "200115" ? "200101" : f.ubigeo] = (val[f.ubigeo === "200115" ? "200101" : f.ubigeo] || 0) + f.casos;
+    const pos = Object.values(val).filter(v => v > 0).sort((a, b) => a - b), cortes = [.25, .5, .75].map(q => pos[Math.floor(q * (pos.length - 1))] ?? 0);
+    fondo = Object.fromEntries(Object.entries(val).map(([u, v]) => [u, v > 0 ? `var(--g${1 + cortes.filter(k => v > k).length})` : "var(--neutro)"]));
+  }
+  const pr = m.proyeccion, xy = (lat, lon) => [(lon - pr.lon0) * pr.k * pr.escala, (pr.lat1 - lat) * pr.escala];
+  const est = c.establecimientos.filter(x => x.reporto && x.camas > 0).sort((a, b) => b.camas - a.camas);
+  const max = Math.max(...est.map(x => x.camas));
+  el.innerHTML = `<svg viewBox="${m.viewBox}" role="img" aria-label="Mapa de establecimientos de salud con camas en Piura y su ocupación, ${esc(c.periodo)}">` +
+    Object.entries(m.distritos).map(([u, d]) => `<path d="${d.d}" data-u="${u}" fill="${fondo[u] || "var(--neutro)"}"/>`).join("") + `</svg>
+    <div class="globo"></div>`;
+  const svg = el.querySelector("svg"), sinCoord = [];
+  const centro = u => {
+    const d = m.distritos[u === "200115" ? "200101" : u]?.d, n = d ? d.match(/-?[\d.]+/g).map(Number) : [];
+    if (!n.length) return null;
+    const xs = n.filter((_, i) => i % 2 === 0), ys = n.filter((_, i) => i % 2 === 1);
+    return [(Math.min(...xs) + Math.max(...xs)) / 2, (Math.min(...ys) + Math.max(...ys)) / 2];
+  };
+  for (const x of est) {
+    const g = ub[x.co_ipress], oc = ocupacion(x), clase = CLASES_OC.find(([t]) => oc < t);
+    let pos = g?.lat != null ? xy(g.lat, g.lon) : null, hueco = false;
+    if (!pos) { pos = g && centro(g.ubigeo); hueco = true; if (pos) sinCoord.push(x.razon_soc); }
+    if (!pos) continue;
+    const r = 5 + 19 * Math.sqrt(x.camas / max);
+    svg.insertAdjacentHTML("beforeend", `<circle cx="${pos[0].toFixed(1)}" cy="${pos[1].toFixed(1)}" r="${r.toFixed(1)}"
+      class="${hueco ? "sin-coord" : oc > 100 ? "excede" : ""}" fill="${clase[1]}"
+      data-t="${esc(x.razon_soc)} (${esc(x.distrito)}): ${num(x.camas)} camas, ocupación ${pctTxt(oc)}${hueco ? "; sin coordenadas, en el centro del distrito" : ""}"/>`);
+  }
+  const globo = el.querySelector(".globo");
+  svg.querySelectorAll("circle").forEach(ci => {
+    ci.addEventListener("pointermove", ev => { const caja = el.getBoundingClientRect(), px = ev.clientX - caja.left;
+      globo.textContent = ci.dataset.t; globo.style.display = "block";
+      globo.style.left = (px > caja.width / 2 ? px - globo.offsetWidth - 10 : px + 10) + "px"; globo.style.top = (ev.clientY - caja.top + 12) + "px"; });
+    ci.addEventListener("pointerleave", () => globo.style.display = "none");
+  });
+  $("leyenda-salud").innerHTML = CLASES_OC.map(([, col, t]) => `<span style="--c:${col}">${t}</span>`).join("") +
+    (conDengue ? `<span style="--c:var(--g4)">Fondo: más casos de dengue en ${anioD()}</span><span style="--c:var(--g1)">menos casos</span>` : "");
+  $("nota-mapa-salud").innerHTML = `Tamaño del círculo: número de camas. ${sinCoord.length ? `Sin coordenadas en RENIPRESS, ubicados en el centro de su distrito
+    (círculo punteado): ${sinCoord.map(esc).join("; ")}.` : ""} ${D.ipress ? `Ubicación: ${enlace(D.ipress)}, datos al ${fecha(D.ipress.fecha_corte)}.` : ""}
+    Camas y ocupación: SUSALUD, ${esc(c.periodo)}.${conDengue ? ` Dengue: DIRESA Piura, semana ${D.d26.se}.` : ""}`;
+}
+
 function pintarSalud() {
   const c = D.camas, d = D.d26, h = d?.hospitalizados;
   let html = "";
@@ -1204,21 +1301,34 @@ function pintarSalud() {
     html += panel({ titulo: "Camas de hospitalización", cifra: num(suma(rep, "camas")), vence: "camas",
       ud: `${num(suma(rep, "uci"))} ${g("uci", "camas UCI")}`, pie,
       frase: `En ${num(rep.length)} establecimientos de Piura que reportaron en ${esc(c.periodo)}; ${num(e.length - rep.length)} no reportaron ese mes.` });
-    html += panel({ titulo: `${g("ocupacion", "Ocupación")} de camas`, cifra: pctTxt(oc), ud: `promedio de ${esc(c.periodo)}`, vence: "camas",
-      mini: oc == null ? "" : medidor(oc), pie,
-      frase: oc == null ? "El archivo de este mes no trae pacientes-día." :
-        `Las camas estuvieron ocupadas en promedio el ${pctTxt(oc)} de los días del mes.` });
+    const os = ocupacionSerie();
+    html += panel({ titulo: os?.dir ? `La ${g("ocupacion", "ocupación")} de camas ${os.dir} frente a hace un año` : `${g("ocupacion", "Ocupación")} de camas`,
+      cifra: pctTxt(oc), ud: `promedio de ${esc(c.periodo)}`, vence: "camas", pie,
+      mini: os ? chispa(os.s.map(os.oc), "Ocupación de camas por mes", { ini: `${mesCorto(os.s[0].mes)}: ${pctTxt(os.oc(os.s[0]))}`,
+        fin: mesCorto(os.u.mes), periodo: `${mayus(mesTxt(os.s[0].mes))} a ${mesTxt(os.u.mes)}` }) : oc == null ? "" : medidor(oc),
+      frase: oc == null ? "El archivo de este mes no trae pacientes-día." : os?.prev ? `Hace un año, en ${mesTxt(os.prev.mes)}: ${pctTxt(os.oc(os.prev))}.` : "" });
   } else html += panel({ titulo: "Camas de hospitalización", cifra: "—", frase: "No se pudieron cargar los datos de SUSALUD." });
   if (h) {
     const sem = Object.keys(h.semanas).map(Number).sort((a, b) => a - b);
     html += panel({ titulo: "Hospitalizados por dengue", cifra: num(h.total), ud: `en ${anioD()}`, vence: "d26",
-      mini: chispa(sem.map(s => h.semanas[s]), `Hospitalizados por dengue por semana en ${anioD()}`),
-      frase: `En la semana ${d.se}: ${num(h.semanas[d.se] ?? 0)} hospitalizados (${g("preliminar", "preliminar")}).`,
+      mini: chispa(sem.map(s => h.semanas[s]), `Hospitalizados por dengue por semana en ${anioD()}`,
+        { ini: `SE ${sem[0]}: ${num(h.semanas[sem[0]])}`, fin: `SE ${sem.at(-1)}: ${num(h.semanas[sem.at(-1)])}`, periodo: `Semanas ${sem[0]} a ${sem.at(-1)} de ${anioD()}` }),
+      frase: `Las últimas semanas son ${g("preliminar", "preliminares")}.`,
       pie: `DIRESA Piura, semana ${d.se}, datos al ${fecha(d.fecha_corte)}` });
   }
   html += panel({ titulo: "Vacunación contra el dengue", clase: "pendiente", extra: distintivo("tramite", "En trámite: pedido a la DIRESA Piura"),
     frase: "El Minsa no publica las dosis aplicadas en un archivo abierto; se pidieron a la DIRESA." });
+  if (D.camasSerie) html += panel({ titulo: "Ocupación de camas, mes a mes", clase: "ancho",
+    extra: `<div class="grafico" id="g-ocupacion"></div><p class="nota antes-grafico">Establecimientos que reportaron cada mes: el grupo cambia
+      de un mes a otro, así que parte de los cambios puede deberse a quiénes reportan.</p><div class="grafico tira-reportes" id="g-reportaron"></div>`,
+    pie: `SUSALUD, Consulta D1, ${mesTxt(D.camasSerie.serie[0].mes)} a ${mesTxt(D.camasSerie.serie.at(-1).mes)}. Ocupación = pacientes-día / días-cama disponibles de los que reportaron.` });
+  else html += sinDatos("Ocupación de camas, mes a mes", "la serie mensual de SUSALUD");
+  html += panel({ titulo: `Establecimientos con camas y su ocupación${c ? `, ${esc(c.periodo)}` : ""}`, clase: "ancho",
+    extra: `<label class="interruptor"><input type="checkbox" id="capa-dengue"> Mostrar casos de dengue por distrito de fondo</label>
+      <div class="grafico" id="mapa-salud"></div><div class="leyenda cajas" id="leyenda-salud"></div><p class="pie" id="nota-mapa-salud"></p>` });
   $("salud-paneles").innerHTML = html;
+  $("capa-dengue").onchange = mapaSalud;
+  graficoOcupacion(); mapaSalud();
   if (c) {
     const e = c.establecimientos, rep = e.filter(x => x.reporto), conPd = rep.every(x => x.pacientes_dia != null);
     llenar("camas", e, x => {
@@ -1329,7 +1439,7 @@ function pintarBrecha() {
   for (const r of D.gasto.rows) if (r.tipo === "2") entidad[r.codigo] ||= n.entidad[r.entidad] || r.entidad;
   el.innerHTML = b.lista.length ? `<div class="tabla"><table class="ancha"><thead><tr><th class="nombre">Proyecto</th><th>Entidad</th>
       <th class="n">Costo actualizado (S/)</th><th class="n">Avance financiero</th><th class="n">Avance físico</th><th class="n">Brecha</th></tr></thead><tbody>` +
-    b.lista.slice(0, 10).map(r => `<tr><td>${esc(r.cui)}: ${esc(n.codigo[r.cui] || "")}</td><td>${esc(entidad[r.cui] || "—")}</td>
+    b.lista.slice(0, 10).map(r => `<tr><td><span class="cod">${esc(r.cui)}</span>: ${esc(n.codigo[r.cui] || "")}</td><td>${esc(entidad[r.cui] || "—")}</td>
       <td class="n">${num(r.costo_actualizado)}</td><td class="n">${pctTxt(r.avance_financiero)}</td>
       <td class="n">${pctTxt(r.avance_fisico)}</td><td class="n">${num(b.brecha(r), 1)} puntos</td></tr>`).join("") + `</tbody></table></div>`
     : `<p>${fraseBrecha()}</p>`;
@@ -1347,11 +1457,13 @@ function frasePrecios(u) {
 
 const MES_CORTO = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Set", "Oct", "Nov", "Dic"];
 // Gráfico por mes: líneas (varias series) o barras (una serie). Eje y en %, con el cero marcado.
-function graficoMeses(el, meses, series, tipo = "lineas") {
+// Gráfico de líneas o barras por mes; con op.anual, por año ("2016"…), y con op.soles, valores en soles en vez de porcentajes
+function graficoMeses(el, meses, series, tipo = "lineas", op = {}) {
+  const fmt = op.fmt || (op.soles ? v => `S/\u00a0${num(v)}` : pct2);
   const W = Math.max(300, Math.min(1040, el.clientWidth || 720)), H = W < 500 ? 220 : 260;
   const m = { l: 48, r: tipo === "lineas" ? 104 : 12, t: 12, b: 34 }, n = meses.length;
   const vals = series.flatMap(s => s.v).filter(v => v != null);
-  const paso = [0.25, 0.5, 1, 2, 5].find(p => (Math.max(0, ...vals) - Math.min(0, ...vals)) / p <= 6) || 10;
+  const paso = [0.25, 0.5, 1, 2, 5, 10, 20, 50, 100, 200].find(p => (Math.max(0, ...vals) - Math.min(0, ...vals)) / p <= 6) || 500;
   const lo = Math.floor(Math.min(0, ...vals) / paso) * paso, hi = Math.ceil(Math.max(0, ...vals) / paso) * paso;
   const ancho = (W - m.l - m.r) / n;
   const x = i => tipo === "lineas" ? m.l + i * (W - m.l - m.r) / (n - 1) : m.l + (i + .5) * ancho;
@@ -1359,8 +1471,9 @@ function graficoMeses(el, meses, series, tipo = "lineas") {
   let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(series.map(s => s.nombre).join(" y "))}, por mes">`;
   for (let v = lo; v <= hi + 1e-9; v += paso)
     svg += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}" stroke="${Math.abs(v) < 1e-9 ? "var(--texto-3)" : "var(--linea)"}"/>
-      <text x="${m.l - 6}" y="${y(v) + 4}" text-anchor="end">${num(v, paso % 1 === 0 ? 0 : paso === 0.5 ? 1 : 2)} %</text>`;
-  meses.forEach((am, i) => {
+      <text x="${m.l - 6}" y="${y(v) + 4}" text-anchor="end">${op.soles ? num(v) : `${num(v, paso % 1 === 0 ? 0 : paso === 0.5 ? 1 : 2)} %`}</text>`;
+  if (op.anual) meses.forEach((a, i) => { if (W >= 500 || i % 2 === 0 || i === n - 1) svg += `<text x="${x(i)}" y="${H - m.b + 15}" text-anchor="middle">${a}</text>`; });
+  else meses.forEach((am, i) => {
     const [a, mm] = am.split("-").map(Number);
     // año bajo cada enero; en el primer punto solo si el siguiente enero queda lejos (si no, se enciman)
     if (mm === 1 || (i === 0 && mm <= 9)) svg += `<text x="${x(i)}" y="${H - 4}" text-anchor="middle">${a}</text>`;
@@ -1376,7 +1489,7 @@ function graficoMeses(el, meses, series, tipo = "lineas") {
         points="${s.v.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ")}"/>`;
       svg += `<circle cx="${x(n - 1).toFixed(1)}" cy="${y(s.v.at(-1)).toFixed(1)}" r="${s.principal ? 3.5 : 3}" fill="${s.color}"
         stroke="var(--superficie)" stroke-width="2"/>`;
-      rot.push({ t: `${s.nombre} ${pct2(s.v.at(-1))}`, y: y(s.v.at(-1)) });
+      rot.push({ t: `${s.nombre} ${fmt(s.v.at(-1))}`, y: y(s.v.at(-1)) });
     }
     rot.sort((a, b) => b.y - a.y).forEach((r, i, arr) => { if (i && arr[i - 1].y - r.y < 13) r.y = arr[i - 1].y - 13; });
     rot.forEach(r => svg += `<text class="rotulo" x="${W - m.r + 6}" y="${r.y + 4}">${esc(r.t)}</text>`);
@@ -1395,8 +1508,8 @@ function graficoMeses(el, meses, series, tipo = "lineas") {
     const caja = svgEl.getBoundingClientRect(), k = W / caja.width, px = (ev.clientX - caja.left) * k;
     const i = Math.max(0, Math.min(n - 1, tipo === "lineas" ? Math.round((px - m.l) * (n - 1) / (W - m.l - m.r)) : Math.floor((px - m.l) / ancho)));
     guia.setAttribute("x1", x(i)); guia.setAttribute("x2", x(i)); guia.setAttribute("visibility", "visible");
-    globo.innerHTML = `<strong>${esc(mesTxt(meses[i]))}</strong><br>` + series.map(s =>
-      `<span style="color:${s.color}">■</span> ${esc(s.nombre)}: ${pct2(s.v[i])}`).join("<br>");
+    globo.innerHTML = `<strong>${esc(op.anual ? meses[i] : mesTxt(meses[i]))}</strong><br>` + series.map(s =>
+      `<span style="color:${s.color}">■</span> ${esc(s.nombre)}: ${fmt(s.v[i])}`).join("<br>");
     globo.style.display = "block";
     const pxp = x(i) / k;
     globo.style.left = (pxp > caja.width / 2 ? pxp - globo.offsetWidth - 10 : pxp + 10) + "px";
@@ -1407,11 +1520,13 @@ function graficoMeses(el, meses, series, tipo = "lineas") {
 
 function pintarPrecios() {
   const p = D.ipc, el = $("precios-paneles");
-  const sisap = panel({ titulo: "Precios en mercados (SISAP, MIDAGRI)", clase: "pendiente",
-    frase: `En preparación. Precios por producto en los mercados de Piura; el SISAP no ofrece archivos descargables.
+  const sisap = panel({ titulo: "Evolución de precios de productos: limón, papa, arroz, huevos y otros", clase: "pendiente ancho reserva-grafico",
+    frase: `En preparación con datos del SISAP del MIDAGRI, que publica precios mayoristas y minoristas en Piura. Aquí irá un gráfico
+      que compare la evolución de varios productos; falta resolver la descarga, porque el SISAP no ofrece archivos descargables.
       <a href="http://sistemas.midagri.gob.pe/sisap/portal2/ciudades/" target="_blank" rel="noopener">Ver el SISAP</a>` });
   if (!p?.serie?.length) {
-    el.innerHTML = sinDatos("IPC de Piura", "precios del INEI") + sisap;
+    el.innerHTML = sinDatos("IPC de Piura", "precios del INEI") + panelCanasta() + sisap;
+    graficoCanasta();
     return;
   }
   const s = p.serie.slice(-24), u = p.serie.at(-1), pie = `INEI, ${mesTxt(u.mes)}, publicado el ${fecha(u.publicado)}`;
@@ -1426,8 +1541,8 @@ function pintarPrecios() {
         <div class="grafico" id="g-ipc-12"></div>` }) +
     panel({ titulo: "Variación mensual de Piura", clase: "ancho", pie,
       extra: `<p class="nota antes-grafico">Barras hacia abajo: meses en que los precios bajaron.</p><div class="grafico" id="g-ipc-mes"></div>` }) +
-    sisap;
-  graficosIPC();
+    panelCanasta() + sisap;
+  graficosIPC(); graficoCanasta();
   $("ipc-cuerpo").innerHTML = [...p.serie].reverse().map(x => `<tr><td>${esc(mesTxt(x.mes))}</td><td class="n">${pct2(x.mensual)}</td>
     <td class="n">${pct2(x.acumulada)}</td><td class="n">${pct2(x.doce_meses)}</td><td class="n">${pct2(x.nacional_doce_meses)}</td>
     <td><a href="${esc(x.pdf)}" target="_blank" rel="noopener">PDF</a></td></tr>`).join("");
@@ -1440,6 +1555,30 @@ function pintarPrecios() {
     <li>Coherencia: la variación en 12 meses y la acumulada se comparan con las mensuales compuestas.
       ${p.avisos?.length ? `<span class="revisar">${p.avisos.map(esc).join("; ")}.</span>` : "Todos los meses verificables coinciden."}</li>`;
 }
+// Canasta básica: líneas de pobreza del INEI en el dominio Costa urbana (el INEI no publica líneas por departamento)
+function panelCanasta() {
+  const l = D.pobreza?.lineas;
+  if (!l) return sinDatos("¿Cuánto cuesta la canasta básica?", "líneas de pobreza del INEI");
+  const a = l.total.anios.at(-1), pie = `INEI, Evolución de la Pobreza Monetaria 2016-${a}, Cuadros 3.1 y 3.2`;
+  const filasT = [["Total", "total"], ["Extrema", "extrema"]].flatMap(([t, k]) => [["Costa urbana", "costa_urbana"], ["Costa rural", "costa_rural"],
+    ["Nacional", "nacional"]].map(([d, kd]) => `<tr><td>${t}</td><td>${d}</td>${l[k][kd].map(v => `<td class="n">${num(v)}</td>`).join("")}</tr>`));
+  $("tabla-pobreza").innerHTML = `<thead><tr><th>Línea</th><th>Dominio</th>${l.total.anios.map(x => `<th class="n">${x}</th>`).join("")}</tr></thead>
+    <tbody>${filasT.join("")}</tbody><caption class="nota">${enlace(D.pobreza)}. Soles por persona al mes. Piura está en los dominios Costa urbana
+    y Costa rural; el INEI no publica las líneas por departamento.</caption>`;
+  return panel({ titulo: "¿Cuánto cuesta la canasta básica?", clase: "ancho", cifra: `S/ ${num(l.total.costa_urbana.at(-1))}`,
+    ud: `al mes por persona en ${a}: línea de pobreza total del dominio Costa urbana, que incluye la ciudad de Piura`,
+    frase: `Es el gasto mínimo por persona al mes para cubrir una canasta de alimentos (pobreza extrema: S/ ${num(l.extrema.costa_urbana.at(-1))})
+      o de alimentos y otros bienes y servicios (pobreza total); quien gasta menos se considera pobre.`,
+    extra: `<div class="leyenda"><span style="--c:var(--acento)">Total</span><span style="--c:var(--comp1)">Extrema</span></div><div class="grafico" id="g-canasta"></div>`,
+    pie: `${pie}. Costa rural y nacional, en el detalle.` });
+}
+function graficoCanasta() {
+  const l = D.pobreza?.lineas;
+  if (!l || !$("g-canasta")) return;
+  graficoMeses($("g-canasta"), l.total.anios, [{ nombre: "Total", color: "var(--acento)", principal: true, v: l.total.costa_urbana },
+    { nombre: "Extrema", color: "var(--comp1)", ancho: 1.75, v: l.extrema.costa_urbana }], "lineas", { anual: true, soles: true });
+}
+
 function graficosIPC() {
   const p = D.ipc;
   if (!p?.serie?.length || !$("g-ipc-12")) return;
@@ -1487,7 +1626,6 @@ function pintarResumen() {
       ? `<h3>Piden atención</h3><ul>${al.map(x => `<li>${x}</li>`).join("")}</ul>`
       : `<h3>Ningún indicador en alerta</h3><p class="nota">Según las reglas del observatorio, descritas en Fuentes y método.</p>`}</div>`;
   // Cada panel: título con el hallazgo (reglas en "Fuentes y método"), cifra, mini-gráfica, una frase, enlace y fuente con su fecha
-  const mesCorto = am => { const [a, m] = am.split("-"); return `${MESES[+m - 1].slice(0, 3)} ${a}`; };
   if (d?.totales) {
     const dir = !sem ? null : sem.act > sem.ant ? "sube" : sem.act < sem.ant ? "baja" : "se mantiene";
     const s0 = d.serie[0], s1 = d.serie.at(-1);
@@ -1519,8 +1657,12 @@ function pintarResumen() {
   if (D.camas) {
     const rep = D.camas.establecimientos.filter(x => x.reporto), conPd = rep.every(x => x.pacientes_dia != null);
     const oc = conPd ? pct(suma(rep, "pacientes_dia"), suma(rep, "dias_cama")) : null;
-    ps.push(panel({ titulo: "¿Está preparada la salud?", cifra: pctTxt(oc), ud: `de ocupación de camas, promedio de ${esc(D.camas.periodo)}`,
-      vence: "camas", mini: oc == null ? "" : medidor(oc), frase: `En ${num(rep.length)} establecimientos que reportaron.`,
+    const os = ocupacionSerie();
+    ps.push(panel({ titulo: os?.dir ? `La ocupación de camas ${os.dir} frente a hace un año` : "¿Está preparada la salud?", cifra: pctTxt(oc),
+      ud: `de ocupación de camas, promedio de ${esc(D.camas.periodo)}`, vence: "camas",
+      mini: os ? chispa(os.s.map(os.oc), "Ocupación de camas por mes", { ini: `${mesCorto(os.s[0].mes)}: ${pctTxt(os.oc(os.s[0]))}`,
+        fin: `${mesCorto(os.u.mes)}`, periodo: `${mayus(mesTxt(os.s[0].mes))} a ${mesTxt(os.u.mes)}` }) : oc == null ? "" : medidor(oc),
+      frase: `En ${num(rep.length)} establecimientos que reportaron.`,
       ver: ["#salud", "Ver salud"], pie: `SUSALUD, ${esc(D.camas.periodo)}` }));
   } else ps.push(sinDatos("¿Está preparada la salud?", "camas de SUSALUD"));
   if (D.ipc?.serie?.length) {
@@ -1528,8 +1670,8 @@ function pintarResumen() {
     ps.push(panel({ titulo: `La inflación en Piura es ${dif >= 0.1 ? "mayor que" : dif <= -0.1 ? "menor que" : "similar a"} la nacional`,
       cifra: pct2(u.doce_meses), ud: `de variación de precios en 12 meses, a ${mesTxt(u.mes)}`, vence: "ipc",
       mini: chispa(s.map(x => x.doce_meses), "Variación en 12 meses, últimos 24 meses",
-        { ini: `${mesCorto(s[0].mes)}: ${pct2(s[0].doce_meses)}`, fin: `${mesCorto(u.mes)}: ${pct2(u.doce_meses)}`,
-          periodo: `${mesTxt(s[0].mes)[0].toUpperCase() + mesTxt(s[0].mes).slice(1)} a ${mesTxt(u.mes)}` }),
+        { ini: `${mesCorto(s[0].mes)}: ${pct2(s[0].doce_meses)}`, fin: mesCorto(u.mes),
+          periodo: `${mayus(mesTxt(s[0].mes))} a ${mesTxt(u.mes)}` }),
       frase: `Nacional: ${pct2(u.nacional_doce_meses)}.`, ver: ["#precios", "Ver precios"], pie: `INEI, ${mesTxt(u.mes)}` }));
   } else ps.push(sinDatos("¿Cómo están los precios?", "precios del INEI"));
   el.innerHTML = ps.join("");
@@ -1546,6 +1688,9 @@ function pintarFuentes() {
     [`Dengue ${anioD()}: casos, graves, fallecidos, hospitalizados`, D.d26 && { ...D.d26, fecha_corte: `${fecha(D.d26.fecha_corte)} (semana ${D.d26.se})` }, "Semanal (viernes)", "d26"],
     ["Dengue 2000–2025 por distrito y semana", D.dh, "Archivo fijo; se actualiza a mano"],
     ["Capacidad hospitalaria", D.camas && { ...D.camas, fecha_corte: `${fecha(D.camas.fecha_corte)} (${D.camas.periodo})` }, "Mensual, a mano", "camas"],
+    ["Ocupación de camas, últimos 24 meses", D.camasSerie && { ...D.camasSerie, fecha_corte: `${fecha(D.camasSerie.fecha_corte)} (${mesTxt(D.camasSerie.serie.at(-1).mes)})` }, "Mensual, a mano (recalcula los 24 meses)"],
+    ["Ubicación de los establecimientos de salud", D.ipress, "Mensual, a mano"],
+    ["Líneas de pobreza (canasta básica)", D.pobreza && { ...D.pobreza, fecha_corte: `${fecha(D.pobreza.fecha_corte)} (año ${D.pobreza.lineas.total.anios.at(-1)})` }, "Anual (mayo), a mano"],
     ["IPC de Piura", D.ipc && { ...D.ipc, fecha_corte: `${fecha(D.ipc.fecha_corte)} (${mesTxt(D.ipc.ultimo_mes)})` }, "Mensual (día 1)", "ipc"],
     ["Límites distritales del mapa", D.mapa && { ...D.mapa, fecha_corte: "límites de 2007" }, "Fijo"],
   ];
@@ -1554,7 +1699,7 @@ function pintarFuentes() {
       `<br><span class="nota">Aviso si pasan más de ${PLAZOS[clave]} días</span>` : ""}</td>
       <td>${d ? fecha(d.fecha_corte) : "—"}${clave ? aviso(clave) : ""}</td></tr>`).join("") +
     `<tr><td>Vacunación contra el dengue</td><td>Pedido en trámite a la DIRESA Piura (no hay archivo abierto del Minsa)</td><td>—</td><td>—</td></tr>
-     <tr><td>Precios en mercados</td><td><a href="http://sistemas.midagri.gob.pe/sisap/portal2/ciudades/" target="_blank" rel="noopener">SISAP, MIDAGRI</a>: en preparación</td><td>—</td><td>—</td></tr>`;
+     <tr><td>Evolución de precios de productos</td><td><a href="http://sistemas.midagri.gob.pe/sisap/portal2/ciudades/" target="_blank" rel="noopener">SISAP, MIDAGRI</a>: en preparación</td><td>—</td><td>—</td></tr>`;
   const d = D.d26;
   if (d?.defunciones) $("m-fallecidos").textContent = `Fallecidos: se usa la tabla de defunciones por tipo de diagnóstico de la sala
     (semana ${d.se}: ${d.defunciones.confirmadas} confirmadas y ${d.defunciones.probables} probables, ${d.defunciones.total} en
@@ -1588,7 +1733,8 @@ document.addEventListener("click", async ev => {
 /* ---------- Pestañas: cada una con su dirección (#dengue, #gasto…) ---------- */
 function redibujar(tab) {
   if (tab === "dengue" && D.d26) graficoSemanas();
-  if (tab === "precios") graficosIPC();
+  if (tab === "precios") { graficosIPC(); graficoCanasta(); }
+  if (tab === "salud") graficoOcupacion();
 }
 function mostrar() {
   const h = decodeURIComponent(location.hash.slice(1)) || "resumen";
@@ -1621,9 +1767,9 @@ window.addEventListener("resize", () => {
 /* ---------- Arranque ---------- */
 (async () => {
   mostrar();
-  const [gasto, inv, fen, obras, dh, d26, camas, mapa, ipc] = await Promise.all(["gasto_piura.json", "inversiones_piura.json",
-    "fen_piura.json", "infobras_piura.json", "dengue_historico.json", "dengue_2026.json", "camas_piura.json",
-    "piura_distritos.json", "ipc_piura.json"].map(cargar));
+  const [gasto, inv, fen, obras, dh, d26, camas, mapa, ipc, camasSerie, ipress, pobreza] = await Promise.all(["gasto_piura.json",
+    "inversiones_piura.json", "fen_piura.json", "infobras_piura.json", "dengue_historico.json", "dengue_2026.json", "camas_piura.json",
+    "piura_distritos.json", "ipc_piura.json", "camas_serie.json", "ipress_piura.json", "lineas_pobreza.json"].map(cargar));
   if (!gasto) {
     $("resumen-paneles").innerHTML = `<p>No se pudieron cargar los datos. Si abriste el archivo directamente, sírvelo con
       <code>python3 -m http.server -d docs</code> y entra a http://localhost:8000.</p>`;
@@ -1632,7 +1778,7 @@ window.addEventListener("resize", () => {
   D.gasto = { ...gasto, rows: filas(gasto) };
   if (inv) { D.invMeta = inv; D.inv = Object.fromEntries(filas(inv).map(r => [r.cui, r])); }
   if (fen) D.fen = { ...fen, rows: filas(fen) };
-  Object.assign(D, { obras, dh, d26, camas, mapa, ipc });
+  Object.assign(D, { obras, dh, d26, camas, mapa, ipc, camasSerie, ipress, pobreza });
 
   document.querySelectorAll(".anio-d").forEach(e => e.textContent = anioD());
   const nombresTab = [...document.querySelectorAll(".pestanas a")].map(a => [a.getAttribute("href"), a.textContent]);
