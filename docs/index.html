@@ -9,6 +9,8 @@
 <link rel="icon" href="data:,">  <!-- sin ícono: evita que el navegador pida favicon.ico y registre un 404 -->
 <title>Observatorio FEN Piura</title>
 <meta name="theme-color" content="#002856">
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+<link rel="preconnect" href="https://tile.openstreetmap.org">
 <link rel="preload" href="fuentes/montserrat-latin-800-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fuentes/nunito-sans-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
 <style>
@@ -31,7 +33,6 @@
     /* Semáforo del avance del presupuesto frente al calendario (validado con dataviz: daltonismo ΔE ≥ 12, contraste ≥ 3:1 en blanco);
        siempre con su texto al lado */
     --ritmo-ok: #1a9a8a; --ritmo-lento: #c98200; --ritmo-muy-lento: var(--alerta);
-    --g1: #e1e5ea; --g2: #c7ced8; --g3: #a7b1bf; --g4: #848f9e;  /* datos: casos de dengue como fondo del mapa de salud */
     /* Tipografía: escala 1,25 sobre 16 px */
     --f-titulo: Montserrat, system-ui, sans-serif;
     --f-texto: "Nunito Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -49,7 +50,7 @@
       color-scheme: dark;
       --fondo: #121211; --superficie: #1a1a19; --linea: #33332f; --esqueleto: #2a2a27;
       --texto: #f0efec; --texto-2: #c3c2b7; --texto-3: #9a998f; --titulo: #9ec5f4;
-      --acento: #3987e5; --acento-suave: #23364d; --pista: #23364d; --alerta: #f59e0b; --alerta-suave: #2a2a27; --neutro: #2a2a27; --g1: #2c2c29; --g2: #3d3d39; --g3: #55554f; --g4: #727269;
+      --acento: #3987e5; --acento-suave: #23364d; --pista: #23364d; --alerta: #f59e0b; --alerta-suave: #2a2a27; --neutro: #2a2a27;
       --comp1: #916a18; --comp2: #914766; --comp3: #5da16d;  /* oscuro: ΔE 11,0 / 15,2; rosa 2,7:1, con rótulo visible */
     }
   }
@@ -57,7 +58,7 @@
     color-scheme: dark;
     --fondo: #121211; --superficie: #1a1a19; --linea: #33332f; --esqueleto: #2a2a27;
     --texto: #f0efec; --texto-2: #c3c2b7; --texto-3: #9a998f; --titulo: #9ec5f4;
-    --acento: #3987e5; --acento-suave: #23364d; --pista: #23364d; --alerta: #f59e0b; --alerta-suave: #2a2a27; --neutro: #2a2a27; --g1: #2c2c29; --g2: #3d3d39; --g3: #55554f; --g4: #727269;
+    --acento: #3987e5; --acento-suave: #23364d; --pista: #23364d; --alerta: #f59e0b; --alerta-suave: #2a2a27; --neutro: #2a2a27;
     --comp1: #916a18; --comp2: #914766; --comp3: #5da16d;
   }
   @font-face { font-family: "Montserrat"; font-weight: 700; font-display: swap; src: url(fuentes/montserrat-latin-700-normal.woff2) format("woff2"); }
@@ -225,6 +226,9 @@
   @media (max-width: 600px) { .mapa-l { height: 340px; } }
   .mapa-l .leaflet-popup-content { font: var(--t-sm)/1.4 var(--f-texto); color: var(--texto); }
   .punto-mapa { border-radius: 50%; background: var(--marino); box-shadow: 0 0 0 2px var(--superficie); }
+  .punto-mapa.excede { box-shadow: 0 0 0 2px var(--superficie), 0 0 0 4px var(--alerta); }
+  .punto-mapa.sin-coord { background: var(--superficie); box-shadow: inset 0 0 0 2px var(--marino); outline: 2px dashed var(--marino); outline-offset: 1px; }
+  .punto-mapa:focus-visible, .grupo-mapa:focus-visible { outline: 3px solid var(--acento); outline-offset: 2px; }
   .grupo-mapa { text-align: center; border-radius: 50%; background: var(--marino); color: #fff; font-weight: 700;
     font-size: var(--t-xs); box-shadow: 0 0 0 3px rgb(255 255 255 / .8); }
 
@@ -330,15 +334,8 @@
   #mapa path { stroke: var(--superficie); stroke-width: .8; }
   #mapa path:hover { stroke: var(--texto); stroke-width: 1.5; }
 
-  #mapa-salud { width: 100%; max-width: 520px; margin: 0 auto; }
-  #mapa-salud path { stroke: var(--superficie); stroke-width: .8; }
-  #mapa-salud circle { stroke: var(--q5); stroke-width: 1; fill-opacity: .9; }
-  #mapa-salud circle.excede { stroke: var(--texto); stroke-width: 2.5; }
-  #mapa-salud circle.sin-coord { fill: var(--superficie); stroke: var(--texto-2); stroke-width: 2; stroke-dasharray: 3 2; }
-  #mapa-salud circle:hover { stroke: var(--texto); stroke-width: 2.5; }
   .interruptor { display: inline-flex; align-items: center; gap: var(--e2); min-height: 44px; font-size: var(--t-sm); color: var(--texto-2); cursor: pointer; }
   .interruptor input { min-height: 0; width: 18px; height: 18px; accent-color: var(--acento); }
-  .tira-reportes { margin-top: var(--e1); }
 
   /* ===== Carga: esqueletos mientras llegan los datos ===== */
   .esqueleto { min-height: 260px; background: var(--superficie); position: relative; overflow: hidden; }
@@ -549,6 +546,10 @@
           <tbody id="camas"></tbody>
         </table></div>
         <button type="button" class="mas" id="camas-mas" hidden></button>
+        <h3>Establecimientos que reportaron cada mes</h3>
+        <p class="nota antes-grafico">Número de establecimientos de Piura que enviaron su producción de hospitalización a SUSALUD. El grupo
+          cambia de un mes a otro, así que parte de los cambios en la ocupación puede deberse a quiénes reportan.</p>
+        <div class="grafico" id="g-reportaron"></div>
         <h3 id="dengue-hospitalizados">Hospitalizados por dengue según establecimiento (<span class="anio-d">2026</span>)</h3>
         <div class="tabla alta"><table class="tabla-640">
           <thead><tr><th>Establecimiento</th><th class="n">Hospitalizados en el año</th></tr></thead>
@@ -1320,74 +1321,78 @@ function ocupacionSerie() {
 const mesCorto = am => { const [a, m] = am.split("-"); return `${MESES[+m - 1].slice(0, 3)} ${a}`; };
 const mayus = t => t[0].toUpperCase() + t.slice(1);
 
-// Barras finas con cuántos establecimientos reportaron cada mes, alineadas con el gráfico de ocupación
-function tiraReportes(el, s) {
-  const W = Math.max(300, Math.min(1040, el.clientWidth || 720)), H = 44, m = { l: 48, r: 104 }, n = s.length;
-  const max = Math.max(...s.map(x => x.reportaron)), x = i => m.l + i * (W - m.l - m.r) / (n - 1), bw = Math.max(2, (W - m.l - m.r) / n - 3);
-  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Establecimientos que reportaron cada mes">` +
-    s.map((v, i) => `<rect x="${(x(i) - bw / 2).toFixed(1)}" y="${(H - 4 - 32 * v.reportaron / max).toFixed(1)}" width="${bw.toFixed(1)}"
-      height="${(32 * v.reportaron / max).toFixed(1)}" rx="1.5" fill="var(--g3)"><title>${esc(mesTxt(v.mes))}: ${num(v.reportaron)} reportaron</title></rect>`).join("") +
-    `<text x="${W - m.r + bw / 2 + 6}" y="${H - 8}">${num(s.at(-1).reportaron)} reportaron</text></svg>`;
+// Meses con pocos establecimientos: menos del 85 % de la mediana de la serie
+const POCOS_REPORTES = .85;
+function mesesPocos(s) {
+  const r = s.map(x => x.reportaron).sort((a, b) => a - b), med = (r[(r.length - 1) >> 1] + r[r.length >> 1]) / 2;
+  return { med, lim: POCOS_REPORTES * med, idx: s.map((x, i) => x.reportaron < POCOS_REPORTES * med ? i : -1).filter(i => i >= 0) };
 }
 function graficoOcupacion() {
   const o = ocupacionSerie();
   if (!o || !$("g-ocupacion")) return;
+  const pocos = mesesPocos(o.s);
   graficoMeses($("g-ocupacion"), o.s.map(x => x.mes), [{ nombre: "Piura", color: "var(--acento)", principal: true, v: o.s.map(o.oc) }],
-    "lineas", { fmt: pctTxt });
-  tiraReportes($("g-reportaron"), o.s);
+    "lineas", { fmt: pctTxt, marcas: pocos.idx.map(i => [i, `${mayus(mesTxt(o.s[i].mes))}: solo ${o.s[i].reportaron} establecimientos reportaron`]) });
+  $("nota-pocos").innerHTML = pocos.idx.length ? `Punto hueco: mes en que reportaron menos de ${num(Math.ceil(pocos.lim))} establecimientos
+    (el 85 % de la mediana, ${num(pocos.med)}): ${lista(pocos.idx.map(i => `${mesTxt(o.s[i].mes)} (${o.s[i].reportaron})`))}. Esos promedios
+    son menos comparables. Cuántos reportaron cada mes está en el detalle.` : `Todos los meses reportaron al menos ${num(Math.ceil(pocos.lim))}
+    establecimientos (el 85 % de la mediana, ${num(pocos.med)}). Cuántos reportaron cada mes está en el detalle.`;
+  graficoMeses($("g-reportaron"), o.s.map(x => x.mes), [{ nombre: "Establecimientos que reportaron", color: "var(--acento)", v: o.s.map(x => x.reportaron) }],
+    "barras", { fmt: v => num(v), eje: v => num(v) });
 }
 
-// Mapa de establecimientos con camas: círculo según camas, color según ocupación del mes; dengue por distrito como fondo opcional
-const CLASES_OC = [[50, "var(--q1)", "menos de 50 %"], [70, "var(--q2)", "50 a 70 %"], [85, "var(--q3)", "70 a 85 %"],
-  [100, "var(--q4)", "85 a 100 %"], [Infinity, "var(--q5)", "más de 100 % (a revisar)"]];
-function mapaSalud() {
-  const el = $("mapa-salud"), m = D.mapa, c = D.camas;
-  if (!el) return;
-  if (!m || !c) { el.innerHTML = `<p class="sin-datos">No se pudo cargar el mapa o los datos de camas.</p>`; return; }
+// Mapa de salud (Leaflet): distritos coloreados por casos de dengue del año (quintiles) y establecimientos con camas, agrupados
+const TONOS_Q = ["--q1", "--q2", "--q3", "--q4", "--q5"];
+function dengueDistritos() {
+  const val = {};
+  for (const f of datosDistritos(anioD()).filas) if (f.ubigeo) { const u = f.ubigeo === "200115" ? "200101" : f.ubigeo; val[u] = (val[u] || 0) + f.casos; }
+  const pos = Object.values(val).filter(v => v > 0).sort((a, b) => a - b);
+  const cortes = [.2, .4, .6, .8].map(q => pos[Math.floor(q * (pos.length - 1))] ?? 0);
+  return { val, cortes, clase: v => v > 0 ? cortes.filter(c => v > c).length : -1 };
+}
+let mapaSaludL, capaDengue;
+async function pintarMapaSalud() {
+  if (!$("mapa-salud") || !D.camas) return;
+  if (mapaSaludL) return (await mapaSaludL)?.invalidateSize();
+  mapaSaludL = crearMapaSalud();
+}
+async function crearMapaSalud() {
+  const el = $("mapa-salud"), c = D.camas, dg = D.d26 ? dengueDistritos() : null;
+  const relleno = u => { const k = dg && $("capa-dengue").checked ? dg.clase(dg.val[u] ?? 0) : -1;
+    return { fillColor: token(k >= 0 ? TONOS_Q[k] : "--neutro"), fillOpacity: k >= 0 ? .7 : .35 }; };
+  const m = await mapaBase(el, relleno, (u, d) => `<strong>${esc(u === "200101" ? "Piura (incluye Veintiséis de Octubre)" : mayus(d.nombre.toLowerCase()))}</strong>
+    (${esc(mayus(d.provincia.toLowerCase()))})<br>${!dg ? "Sin datos de dengue" : dg.val[u] == null ? "Dengue: sin detalle en la sala de la DIRESA (en «otros distritos»)"
+      : `Dengue en ${anioD()}: ${num(dg.val[u])} casos hasta la semana ${D.d26.se}`}`);
+  if (!m) return null;
+  capaDengue = relleno;
   const ub = Object.fromEntries((D.ipress?.establecimientos || []).map(x => [x.co_ipress, x]));
-  const conDengue = $("capa-dengue")?.checked && D.d26;
-  let fondo = {};
-  if (conDengue) {
-    const val = {};
-    for (const f of datosDistritos(anioD()).filas) if (f.ubigeo) val[f.ubigeo === "200115" ? "200101" : f.ubigeo] = (val[f.ubigeo === "200115" ? "200101" : f.ubigeo] || 0) + f.casos;
-    const pos = Object.values(val).filter(v => v > 0).sort((a, b) => a - b), cortes = [.25, .5, .75].map(q => pos[Math.floor(q * (pos.length - 1))] ?? 0);
-    fondo = Object.fromEntries(Object.entries(val).map(([u, v]) => [u, v > 0 ? `var(--g${1 + cortes.filter(k => v > k).length})` : "var(--neutro)"]));
-  }
-  const pr = m.proyeccion, xy = (lat, lon) => [(lon - pr.lon0) * pr.k * pr.escala, (pr.lat1 - lat) * pr.escala];
-  const est = c.establecimientos.filter(x => x.reporto && x.camas > 0).sort((a, b) => b.camas - a.camas);
-  const max = Math.max(...est.map(x => x.camas));
-  el.innerHTML = `<svg viewBox="${m.viewBox}" role="img" aria-label="Mapa de establecimientos de salud con camas en Piura y su ocupación, ${esc(c.periodo)}">` +
-    Object.entries(m.distritos).map(([u, d]) => `<path d="${d.d}" data-u="${u}" fill="${fondo[u] || "var(--neutro)"}"/>`).join("") + `</svg>
-    <div class="globo"></div>`;
-  const svg = el.querySelector("svg"), sinCoord = [];
-  const centro = u => {
-    const d = m.distritos[u === "200115" ? "200101" : u]?.d, n = d ? d.match(/-?[\d.]+/g).map(Number) : [];
-    if (!n.length) return null;
-    const xs = n.filter((_, i) => i % 2 === 0), ys = n.filter((_, i) => i % 2 === 1);
-    return [(Math.min(...xs) + Math.max(...xs)) / 2, (Math.min(...ys) + Math.max(...ys)) / 2];
-  };
+  const est = c.establecimientos.filter(x => x.reporto && x.camas > 0), max = Math.max(...est.map(x => x.camas));
+  const grupo = grupoPuntos(), sinCoord = [];
   for (const x of est) {
-    const g = ub[x.co_ipress], oc = ocupacion(x), clase = CLASES_OC.find(([t]) => oc < t);
-    let pos = g?.lat != null ? xy(g.lat, g.lon) : null, hueco = false;
-    if (!pos) { pos = g && centro(g.ubigeo); hueco = true; if (pos) sinCoord.push(x.razon_soc); }
-    if (!pos) continue;
-    const r = 5 + 19 * Math.sqrt(x.camas / max);
-    svg.insertAdjacentHTML("beforeend", `<circle cx="${pos[0].toFixed(1)}" cy="${pos[1].toFixed(1)}" r="${r.toFixed(1)}"
-      class="${hueco ? "sin-coord" : oc > 100 ? "excede" : ""}" fill="${clase[1]}"
-      data-t="${esc(x.razon_soc)} (${esc(x.distrito)}): ${num(x.camas)} camas, ocupación ${pctTxt(oc)}${hueco ? "; sin coordenadas, en el centro del distrito" : ""}"/>`);
+    const g_ = ub[x.co_ipress], oc = ocupacion(x);
+    let ll = g_?.lat != null ? [g_.lat, g_.lon] : null;
+    if (!ll && g_) { ll = centroDistrito(g_.ubigeo); if (ll) sinCoord.push(x.razon_soc); }
+    if (!ll) continue;
+    const t = Math.round(10 + 16 * Math.sqrt(x.camas / max));
+    grupo.addLayer(L.marker(ll, { keyboard: true, title: x.razon_soc, icon: L.divIcon({ className: `punto-mapa${g_?.lat == null ? " sin-coord" : oc > 100 ? " excede" : ""}`,
+      iconSize: [t, t] }) }).bindPopup(`<strong>${esc(x.razon_soc)}</strong><br>${esc(x.distrito)}. ${num(x.camas)} camas; ocupación de
+      ${esc(c.periodo)}: ${oc > 100 ? `<span class="revisar">${pctTxt(oc)}, dato a revisar en la fuente</span>` : pctTxt(oc)}${g_?.lat == null
+        ? "<br>Sin coordenadas en RENIPRESS: ubicado en el centro de su distrito." : ""}`));
   }
-  const globo = el.querySelector(".globo");
-  svg.querySelectorAll("circle").forEach(ci => {
-    ci.addEventListener("pointermove", ev => { const caja = el.getBoundingClientRect(), px = ev.clientX - caja.left;
-      globo.textContent = ci.dataset.t; globo.style.display = "block";
-      globo.style.left = (px > caja.width / 2 ? px - globo.offsetWidth - 10 : px + 10) + "px"; globo.style.top = (ev.clientY - caja.top + 12) + "px"; });
-    ci.addEventListener("pointerleave", () => globo.style.display = "none");
-  });
-  $("leyenda-salud").innerHTML = CLASES_OC.map(([, col, t]) => `<span style="--c:${col}">${t}</span>`).join("") +
-    (conDengue ? `<span style="--c:var(--g4)">Fondo: más casos de dengue en ${anioD()}</span><span style="--c:var(--g1)">menos casos</span>` : "");
-  $("nota-mapa-salud").innerHTML = `Tamaño del círculo: número de camas. ${sinCoord.length ? `Sin coordenadas en RENIPRESS, ubicados en el centro de su distrito
-    (círculo punteado): ${sinCoord.map(esc).join("; ")}.` : ""} ${D.ipress ? `Ubicación: ${enlace(D.ipress)}, datos al ${fecha(D.ipress.fecha_corte)}.` : ""}
-    Camas y ocupación: SUSALUD, ${esc(c.periodo)}.${conDengue ? ` Dengue: DIRESA Piura, semana ${D.d26.se}.` : ""}`;
+  m.addLayer(grupo);
+  $("leyenda-salud").innerHTML = dg ? `<span style="--c:var(--neutro)">Sin casos o sin detalle</span>` + TONOS_Q.map((t, k) =>
+    `<span style="--c:var(${t})">${k === 0 ? `hasta ${num(dg.cortes[0])}` : k === 4 ? `más de ${num(dg.cortes[3])}` : `${num(dg.cortes[k - 1] + 1)} a ${num(dg.cortes[k])}`}</span>`).join("") : "";
+  $("nota-mapa-salud").innerHTML = `Distritos: casos de dengue en ${anioD()} (confirmados y probables), en cinco grupos con el mismo número de
+    distritos. Puntos: establecimientos con camas que reportaron en ${esc(c.periodo)}; el tamaño indica las camas, el borde rojo una ocupación
+    de más de 100 % (a revisar) y los números agrupan establecimientos cercanos; toca uno para ver su dato.${sinCoord.length
+    ? ` Sin coordenadas en RENIPRESS, en el centro de su distrito (borde punteado): ${sinCoord.map(esc).join("; ")}.` : ""}
+    ${D.ipress ? `Ubicación: ${enlace(D.ipress)}, datos al ${fecha(D.ipress.fecha_corte)}.` : ""} Camas: SUSALUD, ${esc(c.periodo)}.${D.d26
+    ? ` Dengue: DIRESA Piura, semana ${D.d26.se}.` : ""} Límites: INEI 2007.`;
+  return m;
+}
+function cambiarCapaDengue() {
+  mapaSaludL?.then(m => m?.eachLayer(l => { if (l._u) l.setStyle(capaDengue(l._u)); }));
+  $("leyenda-salud").hidden = !$("capa-dengue").checked;
 }
 
 function pintarSalud() {
@@ -1411,23 +1416,24 @@ function pintarSalud() {
     const sem = Object.keys(h.semanas).map(Number).sort((a, b) => a - b);
     html += panel({ titulo: "Hospitalizados por dengue", cifra: num(h.total), ud: `en ${anioD()}`, vence: "d26",
       mini: chispa(sem.map(s => h.semanas[s]), `Hospitalizados por dengue por semana en ${anioD()}`,
-        { ini: `SE ${sem[0]}: ${num(h.semanas[sem[0]])}`, fin: `SE ${sem.at(-1)}: ${num(h.semanas[sem.at(-1)])}`, periodo: `Semanas ${sem[0]} a ${sem.at(-1)} de ${anioD()}` }),
-      frase: `Las últimas semanas son ${g("preliminar", "preliminares")}.`,
+        { ini: `SE ${sem[0]}: ${num(h.semanas[sem[0]])}`, fin: `SE ${sem.at(-1)} (preliminar)`, periodo: `Semanas ${sem[0]} a ${sem.at(-1)} de ${anioD()}`,
+          prelim: PRELIMINAR }),
+      frase: `Las ${PRELIMINAR} últimas semanas (punteadas) son ${g("preliminar", "preliminares")}.`,
       pie: `DIRESA Piura, semana ${d.se}, datos al ${fecha(d.fecha_corte)}` });
   }
   html += panel({ titulo: "Vacunación contra el dengue", clase: "pendiente", extra: distintivo("tramite", "En trámite: pedido a la DIRESA Piura"),
     frase: "El Minsa no publica las dosis aplicadas en un archivo abierto; se pidieron a la DIRESA." });
   if (D.camasSerie) html += panel({ titulo: "Ocupación de camas, mes a mes", clase: "ancho",
-    extra: `<div class="grafico" id="g-ocupacion"></div><p class="nota antes-grafico">Establecimientos que reportaron cada mes: el grupo cambia
-      de un mes a otro, así que parte de los cambios puede deberse a quiénes reportan.</p><div class="grafico tira-reportes" id="g-reportaron"></div>`,
+    extra: `<div class="grafico" id="g-ocupacion"></div><p class="nota" id="nota-pocos"></p>`,
     pie: `SUSALUD, Consulta D1, ${mesTxt(D.camasSerie.serie[0].mes)} a ${mesTxt(D.camasSerie.serie.at(-1).mes)}. Ocupación = pacientes-día / días-cama disponibles de los que reportaron.` });
   else html += sinDatos("Ocupación de camas, mes a mes", "la serie mensual de SUSALUD");
-  html += panel({ titulo: `Establecimientos con camas y su ocupación${c ? `, ${esc(c.periodo)}` : ""}`, clase: "ancho",
-    extra: `<label class="interruptor"><input type="checkbox" id="capa-dengue"> Mostrar casos de dengue por distrito de fondo</label>
-      <div class="grafico" id="mapa-salud"></div><div class="leyenda cajas" id="leyenda-salud"></div><p class="pie" id="nota-mapa-salud"></p>` });
+  html += panel({ titulo: `Establecimientos con camas y dengue por distrito${c ? `, ${esc(c.periodo)}` : ""}`, clase: "ancho",
+    extra: `<label class="interruptor"><input type="checkbox" id="capa-dengue" checked> Colorear los distritos por casos de dengue</label>
+      <div class="leyenda cajas" id="leyenda-salud"></div><div id="mapa-salud" class="mapa-l" role="region"
+      aria-label="Mapa de establecimientos de salud con camas y casos de dengue por distrito"></div><p class="pie" id="nota-mapa-salud"></p>` });
   $("salud-paneles").innerHTML = html;
-  $("capa-dengue").onchange = mapaSalud;
-  graficoOcupacion(); mapaSalud();
+  $("capa-dengue").onchange = cambiarCapaDengue;
+  graficoOcupacion();
   if (c) {
     const e = c.establecimientos, rep = e.filter(x => x.reporto), conPd = rep.every(x => x.pacientes_dia != null);
     llenar("camas", e, x => {
@@ -1529,17 +1535,19 @@ async function mapaBase(el, estilo, alClic) {
     return null;
   }
   el.innerHTML = "";
-  const m = L.map(el, { scrollWheelZoom: false, dragging: !L.Browser.mobile, tap: false, zoomSnap: .5 });
+  const m = L.map(el, { scrollWheelZoom: false, dragging: !L.Browser.mobile, tap: false, zoomSnap: .5, zoomControl: false });
+  L.control.zoom({ zoomInTitle: "Acercar", zoomOutTitle: "Alejar" }).addTo(m);
+  m.on("popupopen", e => e.popup.getElement()?.querySelector(".leaflet-popup-close-button")?.setAttribute("aria-label", "Cerrar"));
   m.attributionControl.setPrefix('<a href="https://leafletjs.com">Leaflet</a>');
   let avisado = false;
-  // CARTO (Positron) pide ahora una clave de API: fondo gris claro de Esri, sin clave (pendiente de confirmar, ver avance_tarea7)
-  L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}", { maxZoom: 16,
-    attribution: 'Teselas © <a href="https://www.esri.com">Esri</a> — Esri, DeLorme, NAVTEQ' })
+  // Teselas de OpenStreetMap (sin clave; uso ligero con atribución). CARTO Positron pide clave de API desde 2026.
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19,
+    attribution: '© <a href="https://www.openstreetmap.org/copyright">colaboradores de OpenStreetMap</a>' })
     .on("tileerror", () => { if (!avisado) { avisado = true;
       el.insertAdjacentHTML("afterend", `<p class="nota">No cargó el mapa de fondo; los distritos y los puntos se ven igual.</p>`); } })
     .addTo(m);
   const capa = L.featureGroup(Object.entries(D.mapa.distritos).map(([u, d]) =>
-    L.polygon(anillosDistrito(d.d), { weight: 1, color: token("--superficie"), fillOpacity: .55, ...estilo(u, d) })
+    Object.assign(L.polygon(anillosDistrito(d.d), { weight: 1, color: token("--superficie"), fillOpacity: .55, ...estilo(u, d) }), { _u: u })
       .on("click", ev => alClic && L.popup().setLatLng(ev.latlng).setContent(alClic(u, d)).openOn(m)))).addTo(m);
   m.fitBounds(capa.getBounds(), { padding: [8, 8] });
   if (L.Browser.mobile) el.insertAdjacentHTML("afterend", `<p class="nota">Usa dos dedos para acercar o mover el mapa.</p>`);
@@ -1548,7 +1556,7 @@ async function mapaBase(el, estilo, alClic) {
 const grupoPuntos = () => L.markerClusterGroup({ showCoverageOnHover: false, maxClusterRadius: 40,
   iconCreateFunction: c => { const n = c.getChildCount(), t = 24 + Math.min(16, 4 * Math.log2(n));
     return L.divIcon({ html: `<span style="line-height:${t}px">${n}</span>`, className: "grupo-mapa", iconSize: [t, t] }); } });
-const punto = (ll, html) => L.marker(ll, { icon: L.divIcon({ className: "punto-mapa", iconSize: [12, 12] }), keyboard: true }).bindPopup(html);
+const punto = (ll, html, nombre) => L.marker(ll, { icon: L.divIcon({ className: "punto-mapa", iconSize: [12, 12] }), keyboard: true, title: nombre }).bindPopup(html);
 
 // Se crea una vez (la promesa se guarda: redibujar puede llamar varias veces antes de que termine); después solo se ajusta
 let mapaObras;
@@ -1571,7 +1579,7 @@ async function crearMapaObras() {
     const c = centroDistrito(ub(x.provincia, x.distrito));
     if (!c) { sin.push(x); continue; }
     grupo.addLayer(punto(c, `<strong>${esc(nombreCorto(x.obra))}</strong><br>${distritoTxt(x)}<br>${x.costo_et == null ? "Costo no registrado"
-      : millones(x.costo_et)}. Paralizada hace ${duracion(diasParalizada(x))}.<br>Causa: ${esc(x.causal || "no registrada")}`));
+      : millones(x.costo_et)}. Paralizada hace ${duracion(diasParalizada(x))}.<br>Causa: ${esc(x.causal || "no registrada")}`, nombreCorto(x.obra)));
   }
   m.addLayer(grupo);
   $("nota-mapa-obras").innerHTML = `Cada punto es una obra, ubicada en el centro de su distrito (Infobras no trae coordenadas);
@@ -1716,7 +1724,7 @@ function graficoMeses(el, meses, series, tipo = "lineas", op = {}) {
   let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(series.map(s => s.nombre).join(" y "))}, por mes">`;
   for (let v = lo; v <= hi + 1e-9; v += paso)
     svg += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}" stroke="${Math.abs(v) < 1e-9 ? "var(--texto-3)" : "var(--linea)"}"/>
-      <text x="${m.l - 6}" y="${y(v) + 4}" text-anchor="end">${op.soles ? num(v) : `${num(v, paso % 1 === 0 ? 0 : paso === 0.5 ? 1 : 2)} %`}</text>`;
+      <text x="${m.l - 6}" y="${y(v) + 4}" text-anchor="end">${op.eje ? op.eje(v) : op.soles ? num(v) : `${num(v, paso % 1 === 0 ? 0 : paso === 0.5 ? 1 : 2)} %`}</text>`;
   if (op.anual) meses.forEach((a, i) => { if (W >= 500 || i % 2 === 0 || i === n - 1) svg += `<text x="${x(i)}" y="${H - m.b + 15}" text-anchor="middle">${a}</text>`; });
   else meses.forEach((am, i) => {
     const [a, mm] = am.split("-").map(Number);
@@ -1734,6 +1742,9 @@ function graficoMeses(el, meses, series, tipo = "lineas", op = {}) {
         points="${s.v.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ")}"/>`;
       svg += `<circle cx="${x(n - 1).toFixed(1)}" cy="${y(s.v.at(-1)).toFixed(1)}" r="${s.principal ? 3.5 : 3}" fill="${s.color}"
         stroke="var(--superficie)" stroke-width="2"/>`;
+      // meses marcados (op.marcas = [[índice, texto]]): punto hueco, con su explicación al pasar el cursor
+      if (s.principal) for (const [i, t] of op.marcas || []) svg += `<circle cx="${x(i).toFixed(1)}" cy="${y(s.v[i]).toFixed(1)}" r="5"
+        fill="var(--superficie)" stroke="${s.color}" stroke-width="2"><title>${esc(t)}</title></circle>`;
       rot.push({ t: `${s.nombre} ${fmt(s.v.at(-1))}`, y: y(s.v.at(-1)) });
     }
     rot.sort((a, b) => b.y - a.y).forEach((r, i, arr) => { if (i && arr[i - 1].y - r.y < 13) r.y = arr[i - 1].y - 13; });
@@ -1781,7 +1792,8 @@ function pintarPrecios() {
     panel({ titulo: g("doce", "Variación en 12 meses"), cifra: pct2(u.doce_meses), ud: `nacional: ${pct2(u.nacional_doce_meses)}`, vence: "ipc",
       mini: chispa(s.map(x => x.doce_meses), "Variación en 12 meses del IPC de Piura, últimos 24 meses"),
       frase: frasePrecios(u)[1], pie }) +
-    panel({ titulo: "Variación en 12 meses: Piura y nacional", clase: "ancho", pie,
+    panel({ titulo: "Inflación anual: Piura frente al promedio nacional", clase: "ancho", pie,
+      ud: "Cuánto subieron los precios respecto al mismo mes del año anterior",
       extra: `<div class="leyenda"><span style="--c:var(--acento)">Piura</span><span style="--c:var(--comp1)">Nacional</span></div>
         <div class="grafico" id="g-ipc-12"></div>` }) +
     panel({ titulo: "Variación mensual de Piura", clase: "ancho", pie,
@@ -1810,18 +1822,20 @@ function panelCanasta() {
   $("tabla-pobreza").innerHTML = `<thead><tr><th>Línea</th><th>Dominio</th>${l.total.anios.map(x => `<th class="n">${x}</th>`).join("")}</tr></thead>
     <tbody>${filasT.join("")}</tbody><caption class="nota">${enlace(D.pobreza)}. Soles por persona al mes. Piura está en los dominios Costa urbana
     y Costa rural; el INEI no publica las líneas por departamento.</caption>`;
-  return panel({ titulo: "¿Cuánto cuesta la canasta básica?", clase: "ancho", cifra: `S/ ${num(l.total.costa_urbana.at(-1))}`,
-    ud: `al mes por persona en ${a}: línea de pobreza total del dominio Costa urbana, que incluye la ciudad de Piura`,
-    frase: `Es el gasto mínimo por persona al mes para cubrir una canasta de alimentos (pobreza extrema: S/ ${num(l.extrema.costa_urbana.at(-1))})
-      o de alimentos y otros bienes y servicios (pobreza total); quien gasta menos se considera pobre.`,
-    extra: `<div class="leyenda"><span style="--c:var(--acento)">Total</span><span style="--c:var(--comp1)">Extrema</span></div><div class="grafico" id="g-canasta"></div>`,
-    pie: `${pie}. Costa rural y nacional, en el detalle.` });
+  const cu = l.total.costa_urbana, dif = cu.at(-1) - cu.at(-2);
+  return panel({ titulo: "¿Cuánto cuesta la canasta básica?", clase: "ancho", cifra: `S/ ${num(cu.at(-1))} en ${a}`,
+    ud: `${dif ? `S/ ${num(Math.abs(dif))} ${dif > 0 ? "más" : "menos"} que en ${l.total.anios.at(-2)}, ${dif > 0 ? "+" : "−"}${num(Math.abs(pct(dif, cu.at(-2))), 1)} %`
+      : `igual que en ${l.total.anios.at(-2)}`}. Al mes por persona: línea de pobreza total del dominio Costa urbana, que incluye la ciudad de Piura`,
+    frase: `Es el gasto mínimo por persona al mes para cubrir una canasta de alimentos y otros bienes y servicios; quien gasta menos se
+      considera pobre. La línea de pobreza extrema (solo alimentos) está en el detalle.`,
+    extra: `<div class="grafico" id="g-canasta"></div>`,
+    pie: `${pie}. Costa rural, nacional y pobreza extrema, en el detalle.` });
 }
 function graficoCanasta() {
   const l = D.pobreza?.lineas;
   if (!l || !$("g-canasta")) return;
-  graficoMeses($("g-canasta"), l.total.anios, [{ nombre: "Total", color: "var(--acento)", principal: true, v: l.total.costa_urbana },
-    { nombre: "Extrema", color: "var(--comp1)", ancho: 1.75, v: l.extrema.costa_urbana }], "lineas", { anual: true, soles: true });
+  graficoMeses($("g-canasta"), l.total.anios, [{ nombre: "Total", color: "var(--acento)", principal: true, v: l.total.costa_urbana }],
+    "lineas", { anual: true, soles: true });
 }
 
 function graficosIPC() {
@@ -1973,7 +1987,7 @@ document.addEventListener("click", async ev => {
 function redibujar(tab) {
   if (tab === "dengue" && D.d26) graficoSemanas();
   if (tab === "precios") { graficosIPC(); graficoCanasta(); }
-  if (tab === "salud") graficoOcupacion();
+  if (tab === "salud") { graficoOcupacion(); pintarMapaSalud(); }
   if (tab === "obras") pintarMapaObras();
 }
 function mostrar() {
@@ -2052,6 +2066,7 @@ window.addEventListener("resize", () => {
   $("f-obra").oninput = pintarListaObras;
 
   pintarSalud();
+  $("g-reportaron").closest("details").addEventListener("toggle", ev => ev.target.open && graficoOcupacion());
   pintarPrecios();
   pintarFuentes();
   ayudas();

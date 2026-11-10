@@ -11,6 +11,9 @@ Revisa, en escritorio (1280 px) y celular (375 px):
   - que los rótulos del gráfico semanal de dengue no se encimen ni se salgan del gráfico;
   - que las pestañas midan al menos 44 px de alto, y que estén el botón de compartir y los enlaces "Siguiente";
   - que los 5 títulos de la portada tengan texto y que el de salud cuadre con el mes de su cifra y su comparación;
+  - que el título del dengue siga la regla de semanas completas (las preliminares no cuentan) y que el semáforo del
+    presupuesto cambie en 5 y 15 puntos;
+  - que los mapas de Obras y Salud (Leaflet) se dibujen, o digan claramente que no cargaron;
   - que aparezca "Dato no actualizado" si se simula una fecha 60 días después.
 
 Requiere Playwright (pip3 install playwright) y un navegador Chromium: usa Brave o Chrome si están
@@ -139,6 +142,25 @@ def main():
                 return { t, sal, esperado, regla, desfasada };
             }""")
             revisar(len(r["t"]) == 5 and all(r["t"]), f"títulos de la portada: {r['t']}")
+            # Dengue: tendencia de las 4 últimas semanas completas; cambiar una semana preliminar no la mueve
+            r2 = pg.evaluate("""() => {
+                const d = D.d26, t = tendenciaDengue(d), titulo = document.querySelector('#resumen-paneles .destacado h3').textContent.trim();
+                const prelim = { ...d, serie: d.serie.map(([s, c]) => [s, s > d.se - PRELIMINAR ? 0 : c]) };
+                const sube = { ...d, serie: d.serie.map(([s, c]) => [s, s <= d.se - PRELIMINAR && s > d.se - PRELIMINAR - 4 ? c * 3 : c]) };
+                const baja = { ...d, serie: d.serie.map(([s, c]) => [s, s <= d.se - PRELIMINAR && s > d.se - PRELIMINAR - 4 ? 0 : c]) };
+                return { titulo, esperado: `El dengue ${t.dir} en las últimas 4 semanas completas`, igual: tendenciaDengue(prelim).dir === t.dir,
+                  sube: tendenciaDengue(sube).dir, baja: tendenciaDengue(baja).dir,
+                  semaforo: [semaforo(80, 85)[1], semaforo(79.9, 85)[1], semaforo(70, 85)[1], semaforo(69.9, 85)[1]] };
+            }""")
+            revisar(r2["titulo"] == r2["esperado"] and r2["igual"] and r2["sube"] == "sube" and r2["baja"] == "baja",
+                    f"regla del dengue: {r2}")
+            revisar(r2["semaforo"] == ["ok", "lento", "lento", "muy-lento"], f"semáforo: {r2['semaforo']}")
+            # Mapas con Leaflet: dibujados, o con su mensaje si el CDN no respondió
+            for tab, mapa in (("obras", "mapa-obras"), ("salud", "mapa-salud")):
+                pg.evaluate(f"location.hash = '#{tab}'")
+                pg.wait_for_function(f"document.querySelector('#{mapa} .leaflet-interactive, #{mapa} .sin-datos')", timeout=20000)
+                n = pg.evaluate(f"document.querySelectorAll('#{mapa} path.leaflet-interactive').length")
+                revisar(n >= 60 or pg.evaluate(f"!!document.querySelector('#{mapa} .sin-datos')"), f"mapa {mapa}: {n} distritos")
             revisar(r["sal"] == r["esperado"] and r["regla"] and r["desfasada"],
                     f"título de salud «{r['sal']}», esperado «{r['esperado']}», regla {r['regla']}, serie desfasada {r['desfasada']}")
             pg.close()
@@ -155,7 +177,7 @@ def main():
     if fallos:
         print("FALLA:\n  " + "\n  ".join(fallos))
         sys.exit(1)
-    print(f"OK: {len(PESTANAS)} pestañas a 1280 y 375 px, enlace antiguo, año de Dengue, rótulos del gráfico, pestañas, compartir, títulos de la portada y aviso de datos viejos")
+    print(f"OK: {len(PESTANAS)} pestañas a 1280 y 375 px, enlace antiguo, año de Dengue, rótulos del gráfico, pestañas, compartir, títulos de la portada, regla del dengue, semáforo, mapas y aviso de datos viejos")
 
 
 if __name__ == "__main__":
