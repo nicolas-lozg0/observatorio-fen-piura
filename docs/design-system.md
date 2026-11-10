@@ -65,16 +65,19 @@ Reglas:
 - **Espacios** en múltiplos de 4 y 8 px: `--e1` 4, `--e2` 8, `--e3` 12, `--e4` 16, `--e5` 24, `--e6` 32, `--e7` 48, `--e8` 64. Se agrupa con espacio: más espacio entre grupos que dentro de ellos.
 - **Radios**: `--r-panel` 16 px (paneles, detalle), `--r-control` 8 px (selectores, globos, avisos), `--r-pastilla` para botones, distintivos y barras.
 - **Radios concéntricos**: el radio interior es igual al radio exterior menos el relleno. Un panel de 16 px con relleno de 24 px deja el contenido en ángulo recto; el esqueleto de carga, con relleno de 24 px, usa `--r-control`.
-- **Sombra**: solo `--sombra-flotante`, para lo que flota sobre la página (aviso "Enlace copiado", definición del "?", globo de los gráficos). Los paneles no llevan sombra ni borde.
+- **Sombra**: solo `--sombra-flotante`, para lo que flota sobre la página (aviso "Enlace copiado", definición de un término, globo de los gráficos). Los paneles no llevan sombra ni borde.
 
 ## Componentes
 
-- **Panel** (`panel()` en el código): título, cifra principal (`--t-2xl`), unidad, distintivo de estado si aplica, mini-gráfica, una frase, enlace "Ver [pestaña] →" (solo en la portada) y pie con fuente y fecha.
+- **Panel** (`panel()` en el código): título, cifra principal (`--t-2xl`), unidad, distintivo de estado si aplica, mini-gráfica, una frase, enlace "Ver [pestaña] →" (solo en la portada) y pie con fuente y fecha. Si la tarjeta tiene un cálculo que explicar, el pie termina en "· Cómo se calcula", un botón que despliega la nota debajo (sin ventana). Puede llevar un subtítulo (`sub`) bajo el título.
 - **Mini-gráfica** (`chispa()`): sin ejes. Rotula el valor inicial y el final con su periodo, y debajo el periodo que cubre. El gráfico completo, con ejes, está en cada pestaña.
-- **Medidor**: barra de avance en `--acento` sobre `--pista`. En el presupuesto del año, la barra toma el color del semáforo, lleva su texto («A ritmo», «Algo lento», «Muy lento») y una marca vertical con lo esperado: el porcentaje del año transcurrido.
+- **Medidor**: barra de avance en `--acento` sobre `--pista`. En el presupuesto del año, la barra toma el color del semáforo, lleva su texto («A ritmo», «Algo lento», «Muy lento») y una marca vertical con lo esperado: el porcentaje del año transcurrido. En las barras grandes, la marca lleva el rótulo "esperado 85 %" (`esperadoTxt()`); en las filas de tabla, solo la marca.
 - **Panel destacado y compacto** (portada): el hallazgo más urgente (dengue) en `.destacado`, que ocupa dos filas; los otros 4 en `.compacto` (cifra `--t-xl`, sin frase), en 2 x 2 y de igual alto.
-- **Lista visual** (`.lista-visual`): nombre corto, monto a la derecha, barra proporcional y una línea de metadatos con etiquetas grises (`.etiqueta`).
-- **Barras dobles** (`barrasDobles()`): una fila por categoría con dos barras, número y monto, cada una con su propia escala.
+- **Lista visual** (`.lista-visual`): nombre corto (salta de línea, nunca se corta con "…"), monto destacado con su porcentaje del total y una línea de metadatos con etiquetas grises (`.etiqueta`). Sin barras.
+- **Barras horizontales** (`.barras-h`): una medida por categoría, ordenadas por esa medida; la categoría y el conteo como texto arriba, el monto al final de la barra. "Otras" siempre al final. Un solo color (`--acento`).
+- **Barras dobles** (`barrasDobles()`): una fila por categoría con dos barras, número y monto, cada una con su propia escala (provincias de Obras).
+- **Término con definición** (`g()` y `ayudas()`): subrayado punteado sutil en la primera aparición del término en cada tarjeta o párrafo. Es un botón con `aria-describedby="definicion"`: la definición se abre al pasar el cursor, con el foco o al tocar, y se cierra con Esc o al tocar fuera. Todas las definiciones están en `DEFINICIONES`.
+- **Nombres legibles**: entidades con nombre completo en mayúscula inicial y siglas entre paréntesis como las usa la prensa ("Ministerio de Desarrollo e Inclusión Social (Midis)"), desde `data/nombres_entidades.json`; si falta una, `legible()` aplica la regla al nombre original. Nombres cortos de obras desde `data/nombres_cortos_obras.json` o `nombreCorto()`.
 - **Mapa** (`mapaBase()`): Leaflet 1.9.4 y markercluster 1.5.3 desde cdnjs, con SRI, cargados solo al abrir la pestaña. Fondo de OpenStreetMap con su atribución, distritos de `piura_distritos.json`, puntos `--marino` agrupados, sin zoom con la rueda y, en celular, con dos dedos. Si no carga, lo dice.
 - **Botones**:
   - principal (`.boton`, "Siguiente"): relleno `--acento`;

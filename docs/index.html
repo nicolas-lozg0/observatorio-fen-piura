@@ -199,7 +199,7 @@
   .lista-visual .fila strong { white-space: nowrap; }
   .lista-visual .medidor { height: 6px; margin: var(--e1) 0; }
   .lista-visual .monto { font-weight: 700; color: var(--titulo); font-size: var(--t-sm); margin-top: 2px; }
-  .lista-visual .nombre { font-size: var(--t-sm); }
+  .lista-visual .nombre { font-size: var(--t-sm); overflow-wrap: anywhere; }
   /* Rótulo "esperado X %" junto a la marca vertical de un medidor */
   .rot-esperado { display: block; width: max-content; font-size: var(--t-xs); color: var(--texto-3); margin-top: calc(-1 * var(--e1));
     position: relative; left: var(--x); }
@@ -267,6 +267,7 @@
     .comparativa thead th, .comparativa th, .comparativa td { padding-left: 0; padding-right: 0; } }
   .diferencia { margin-top: var(--e4); }
   .diferencia .cifra { font-size: clamp(1.5rem, 7vw, var(--t-xl)); }
+  .diferencia .lista-visual { grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); }
 
   .medidor { position: relative; height: 10px; background: var(--pista); border-radius: var(--r-pastilla); overflow: hidden; margin: var(--e2) 0; }
   .medidor > div { height: 100%; background: var(--acento); border-radius: var(--r-pastilla); }
@@ -289,12 +290,17 @@
   .metodo { padding-left: var(--e5); }
   .metodo li { margin-bottom: var(--e2); }
 
-  /* Ayuda: ícono "?" con la explicación de un término */
-  .ayuda { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px;
-    margin: 0 0 0 var(--e1); padding: 0; border: 1px solid var(--texto-3); border-radius: 50%; background: transparent;
-    color: var(--texto-2); font: 700 10px/1 var(--f-texto); vertical-align: 2px; cursor: help; }
-  .ayuda::after { content: ""; position: absolute; inset: -6px; }  /* zona de toque más grande que el ícono */
-  .ayuda:hover, .ayuda:focus-visible, .ayuda[aria-expanded="true"] { border-color: var(--acento); color: var(--acento); }
+  /* Definiciones: término con subrayado punteado (abre una ventana pequeña) y "Cómo se calcula" en el pie */
+  .termino { display: inline; padding: 0; margin: 0; border: 0; background: none; font: inherit; color: inherit; cursor: help;
+    text-decoration: underline dotted; text-decoration-color: var(--texto-3); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+  .termino:hover, .termino:focus-visible { text-decoration-color: var(--acento); }
+  .como { padding: 0; border: 0; background: none; font: inherit; color: var(--acento); text-decoration: underline; cursor: pointer; }
+  .como:hover { text-decoration-thickness: 2px; }
+  .como[aria-expanded="true"] { color: var(--texto-2); }
+  .calculo { font-size: var(--t-xs); color: var(--texto-2); background: var(--fondo); border-radius: var(--r-control);
+    padding: var(--e2) var(--e3); margin-top: var(--e1); }
+  .calculo p { margin: 0 0 var(--e1); } .calculo p:last-child { margin: 0; }
+  .panel .sub { color: var(--texto-2); font-size: var(--t-sm); margin: calc(-1 * var(--e1)) 0 0; }
   #definicion { position: absolute; z-index: 20; max-width: 280px; padding: var(--e2) var(--e3); background: var(--superficie);
     border-radius: var(--r-control); box-shadow: var(--sombra-flotante); font-size: var(--t-sm); color: var(--texto); }
 
@@ -614,7 +620,7 @@
           <li><strong>Dos puntos de vista del gasto.</strong> «Gastado en Piura» cuenta lo que se gasta en Piura, lo ejecute
             quien lo ejecute (el criterio de la Consulta Amigable del MEF). «Gastado por entidades con sede en Piura» cuenta
             lo que gastan las entidades con sede en Piura, se gaste donde se gaste. Difieren porque las entidades nacionales
-            (ministerios, ANIN, programas nacionales) también invierten en Piura, y eso solo entra en el primero.</li>
+            (ministerios, ANIN, programas nacionales) también invierten en Piura, y eso solo entra en el primero.<span id="metodo-resto"></span></li>
           <li><strong>PIM y devengado.</strong> PIM: presupuesto institucional modificado, el presupuesto vigente del año.
             Devengado: gasto ya reconocido como obligación de pago. Avance del año = devengado / PIM.</li>
           <li><strong>Avance financiero y físico de un proyecto.</strong> La alerta de «más pagado que construido» compara el
@@ -719,13 +725,15 @@ const PESTANAS = ["resumen", "dengue", "gasto", "obras", "salud", "precios", "fu
 // Días que puede pasar una fuente sin actualizarse antes de avisar "Dato no actualizado desde…"
 const PLAZOS = { obras: 35, camas: 45, gasto: 3, inv: 3, fen: 3, d26: 14, ipc: 45 };
 
-// Explicaciones de una línea para el ícono "?"
-const GLOSARIO = {
+// Todas las definiciones de la página en un solo objeto: términos (subrayados en el texto) y cálculos ("Cómo se calcula")
+const DEFINICIONES = {
   pim: ["PIM", "Presupuesto institucional modificado: el presupuesto vigente del año, con los cambios aprobados."],
   devengado: ["Devengado", "Gasto que el Estado ya reconoció como obligación de pago: el bien, servicio u obra se recibió."],
   avance: ["Avance del año", "Devengado dividido entre el PIM del año."],
-  lugar: ["Gastado en Piura", "Todo lo que se gasta en Piura, lo ejecute quien lo ejecute (también ministerios con sede en Lima)."],
-  sede: ["Por entidades con sede en Piura", "Lo que gastan el gobierno regional, las municipalidades y otras entidades con sede en Piura."],
+  vistas: ["Dos vistas del gasto", "«Gastado en Piura»: todo lo que se gasta en Piura, lo ejecute quien lo ejecute (también ministerios con sede en Lima). «Por entidades con sede en Piura»: lo que gastan el gobierno regional, las municipalidades y otras entidades con sede en Piura, se gaste donde se gaste."],
+  semaforo: ["Colores del avance", "Lo esperado es el porcentaje del año transcurrido a la fecha de los datos (la línea vertical). A ritmo: hasta 5 puntos por debajo; algo lento: de 5 a 15 puntos por debajo; muy lento: más de 15."],
+  tendencia: ["Tendencia del dengue", "Se suman los casos de las 4 últimas semanas completas y se comparan con las 4 anteriores; las últimas semanas son preliminares y no entran. Más de +10 %: sube; menos de −10 %: baja; si no, se mantiene."],
+  tiempo: ["Tiempo paralizada", "Desde la fecha de paralización registrada en Infobras hasta la fecha del archivo, en años y meses completos. No se usa el campo «días paralizado», que no cuadra con esa fecha."],
   marco: ["Marco presupuestal", "Recursos autorizados por los decretos de emergencia por El Niño."],
   p0068: ["Programa 0068", "Programa presupuestal de reducción de vulnerabilidad y atención de emergencias por desastres."],
   p0017: ["Programa 0017", "Programa presupuestal de enfermedades metaxénicas y zoonosis; incluye el control del dengue."],
@@ -738,7 +746,7 @@ const GLOSARIO = {
   uci: ["Camas UCI", "Camas de unidades de cuidados intensivos."],
   paralizada: ["Obra paralizada", "Obra detenida, según lo que registra la entidad en Infobras."],
   fisico: ["Avance físico", "Porcentaje de la obra ya construida, según la entidad (Formato 12-B del MEF)."],
-  brecha: ["Más pagado que construido", "Avance financiero acumulado mayor que el avance físico."],
+  brecha: ["Más pagado que construido", "Proyectos de Piura cuyo avance financiero acumulado supera a su avance físico en más de 30 puntos, según el MEF."],
   ipc: ["IPC", "Índice de precios al consumidor: mide cómo cambia el precio de la canasta que compran los hogares."],
   doce: ["Variación en 12 meses", "Cuánto cambiaron los precios frente al mismo mes del año anterior."],
   mensual: ["Variación mensual", "Cuánto cambiaron los precios frente al mes anterior."],
@@ -756,7 +764,7 @@ const SEMAFORO = [[-TOLERANCIA, "ok", "A ritmo"], [-15, "lento", "Algo lento"], 
 const semaforo = (p, esperado) => p == null || esperado == null ? null : SEMAFORO.find(([d]) => p - esperado >= d);
 const ritmoTxt = sm => sm ? `<span class="ritmo" style="--c:var(--ritmo-${sm[1]})">${sm[2]}</span>` : "";
 const esperadoTxt = marca => marca == null ? "" :
-  `<span class="rot-esperado ${marca > 50 ? "a-la-izq" : "a-la-der"}" style="--x:${Math.min(100, marca)}%">esperado ${num(marca, 0)} %</span>`;
+  `<span class="rot-esperado ${marca > 50 ? "a-la-izq" : "a-la-der"}" style="--x:${Math.min(100, marca)}%">esperado ${num(marca, 0)}\u00a0%</span>`;
 const medidor = (p, marca, sm) => `<div class="medidor" title="${pctTxt(p)}"><div ${sm ? `class="${sm[1]}" ` : ""}style="width:${Math.min(100, Math.max(0, p || 0))}%"></div>${
   marca == null ? "" : `<span class="marca" style="left:calc(${Math.min(100, marca)}% - 1px)"></span>`}</div>`;
 function fecha(iso) {
@@ -795,7 +803,29 @@ const enAmbito = f => (f.ambito & ambito) > 0;
 const suma = (rs, k) => rs.reduce((s, r) => s + (r[k] || 0), 0);
 const sinTilde = s => String(s).normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase().trim();
 const $ = id => document.getElementById(id);
-const g = (k, texto) => `<span data-g="${k}">${texto ?? GLOSARIO[k][0]}</span>`;  // término con ayuda
+const g = (k, texto) => `<span data-g="${k}">${texto ?? DEFINICIONES[k][0]}</span>`;  // término con definición
+// "Cómo se calcula": botón para el pie de una tarjeta y la nota que despliega debajo (sin ventana)
+let nCalculo = 0;
+function comoSeCalcula(claves) {
+  if (!claves?.length) return ["", ""];
+  const id = "calculo-" + ++nCalculo;
+  return [`<button type="button" class="como" aria-expanded="false" aria-controls="${id}">Cómo se calcula</button>`,
+    `<div class="calculo" id="${id}" hidden>${claves.map(k => `<p><strong>${DEFINICIONES[k][0]}.</strong> ${DEFINICIONES[k][1]}</p>`).join("")}</div>`];
+}
+// Nombres legibles: diccionario (data/nombres_entidades.json) y, si falta, una regla sobre el nombre original
+const CONECTORES = new Set(["de", "del", "la", "las", "los", "el", "y", "e", "en", "a", "para", "por", "con"]);
+function legible(raw) {
+  const t = D.nombres?.tildes || {}, s0 = String(raw ?? "").replace(/\s+/g, " ").trim();
+  const sig = s0.match(/^(.*?)\s*-\s*([A-ZÑ]{2,6})$/);  // "NOMBRE - SIGLA" → "Nombre (SIGLA)"
+  const r = (sig ? sig[1] : s0).split(" ").map((w, i) => {
+    const l = w.toLowerCase();
+    return t[w.toUpperCase()] || (i && CONECTORES.has(l) ? l : l.charAt(0).toUpperCase() + l.slice(1));
+  }).join(" ").replace(/\b(Distrital|Provincial) de (el|la|las|los)\b/g, (m, a, b) => `${a} de ${b[0].toUpperCase()}${b.slice(1)}`)
+    .replace(/\bde el\b/g, "de El");
+  return sig ? `${r} (${sig[2]})` : r;
+}
+const lugar = legible;  // provincias y distritos: misma regla y tildes
+const entidadObra = raw => D.nombres?.infobras?.[String(raw ?? "").replace(/\s+/g, " ").trim()] || legible(raw);
 const lista = xs => xs.length < 2 ? xs.join("") : xs.slice(0, -1).join(", ") + " y " + xs.at(-1);
 
 async function cargar(nombre) {
@@ -815,10 +845,12 @@ function llenar(id, lista_, fila, cols, vacio = "Sin resultados.") {
 }
 
 // Panel: título, cifra principal, unidad, mini-gráfica, frase, enlace "Ver …" y pie con fuente y fecha
-const panel = ({ id = "", titulo, cifra, ud = "", mini = "", frase = "", pie = "", clase = "", extra = "", vence, ver }) =>
-  `<div class="panel ${clase}" ${id ? `id="${id}"` : ""}><h3>${titulo}</h3>${cifra != null ? `<div class="cifra">${cifra}</div>` : ""}
+const panel = ({ id = "", titulo, sub = "", cifra, ud = "", mini = "", frase = "", pie = "", clase = "", extra = "", vence, ver, calc }) => {
+  const [boton, nota] = comoSeCalcula(calc);
+  return `<div class="panel ${clase}" ${id ? `id="${id}"` : ""}><h3>${titulo}</h3>${sub ? `<p class="sub">${sub}</p>` : ""}${cifra != null ? `<div class="cifra">${cifra}</div>` : ""}
     ${ud ? `<div class="ud">${ud}</div>` : ""}${aviso(vence)}${mini}${frase ? `<p class="frase">${frase}</p>` : ""}${extra}
-    ${ver ? `<a class="ver-mas" href="${ver[0]}">${ver[1]} →</a>` : ""}${pie ? `<p class="pie">${pie}</p>` : ""}</div>`;
+    ${ver ? `<a class="ver-mas" href="${ver[0]}">${ver[1]} →</a>` : ""}${pie || boton ? `<p class="pie">${pie}${pie && boton ? " · " : ""}${boton}</p>${nota}` : ""}</div>`;
+};
 // Panel de una fuente que no cargó: lo dice y sugiere qué hacer
 const sinDatos = (titulo, fuente_) => panel({ titulo, clase: "pendiente",
   frase: `<span class="sin-datos">No se pudieron cargar los datos de ${fuente_}. Vuelve a cargar la página; si sigue así, la fuente no respondió en la última actualización.</span>` });
@@ -841,33 +873,44 @@ function chispa(vals, etiqueta, rot) {
       <p class="chispa-periodo">${rot.periodo}</p>` : "");
 }
 
-/* ---------- Ayuda "?" ---------- */
+/* ---------- Definiciones ---------- */
+// Cada término pasa a ser un botón subrayado (solo la primera vez en cada tarjeta o párrafo); su definición
+// va en una ventana pequeña (#definicion, role="tooltip") que se abre con el cursor, el foco o un toque.
 function ayudas(raiz = document) {
-  raiz.querySelectorAll("[data-g]:not([data-listo])").forEach(el => {
-    const d = GLOSARIO[el.dataset.g];
-    if (!d) return;
-    el.dataset.listo = "1";
-    el.insertAdjacentHTML("afterend", `<button type="button" class="ayuda" data-def="${esc(d[1])}"
-      aria-label="Qué significa ${esc(d[0])}" aria-expanded="false" title="${esc(d[1])}">?</button>`);
+  const vistos = new Map();
+  raiz.querySelectorAll("span[data-g]").forEach(el => {
+    if (!DEFINICIONES[el.dataset.g]) return;
+    const zona = el.closest(".panel, .intro, td, th, li, .cuerpo-detalle") || document.body, ya = vistos.get(zona) || new Set();
+    vistos.set(zona, ya);
+    if (ya.has(el.dataset.g)) { el.replaceWith(...el.childNodes); return; }
+    ya.add(el.dataset.g);
+    const b = Object.assign(document.createElement("button"), { type: "button", className: "termino", innerHTML: el.innerHTML });
+    b.dataset.g = el.dataset.g; b.setAttribute("aria-describedby", "definicion");
+    el.replaceWith(b);
   });
 }
-document.addEventListener("click", ev => {
-  const b = ev.target.closest(".ayuda"), caja = $("definicion");
-  document.querySelectorAll('.ayuda[aria-expanded="true"]').forEach(x => x !== b && x.setAttribute("aria-expanded", "false"));
-  if (!b) { caja.hidden = true; return; }
-  ev.stopPropagation(); ev.preventDefault();
-  const abierto = b.getAttribute("aria-expanded") === "true";
-  b.setAttribute("aria-expanded", String(!abierto));
-  if (abierto) { caja.hidden = true; return; }
-  caja.textContent = b.dataset.def; caja.hidden = false;
-  const r = b.getBoundingClientRect(), ancho = Math.min(280, document.documentElement.clientWidth - 32);
-  caja.style.maxWidth = ancho + "px";
+let defFija = null;  // término abierto con clic o toque: no se cierra al salir el cursor
+function verDefinicion(b) {
+  const caja = $("definicion"), r = b.getBoundingClientRect(), ancho = Math.min(280, document.documentElement.clientWidth - 32);
+  caja.textContent = DEFINICIONES[b.dataset.g][1]; caja.hidden = false; caja.style.maxWidth = ancho + "px";
   caja.style.left = Math.max(16, Math.min(r.left + scrollX - 8, scrollX + document.documentElement.clientWidth - ancho - 16)) + "px";
   caja.style.top = (r.bottom + scrollY + 6) + "px";
+}
+function cerrarDefinicion() { $("definicion").hidden = true; defFija = null; }
+const termino = ev => ev.target.closest?.(".termino");
+document.addEventListener("mouseover", ev => { const b = termino(ev); if (b && !defFija) verDefinicion(b); });
+document.addEventListener("mouseout", ev => { const b = termino(ev); if (b && !defFija && !b.contains(ev.relatedTarget)) $("definicion").hidden = true; });
+document.addEventListener("focusin", ev => { const b = termino(ev); if (b) verDefinicion(b); });
+document.addEventListener("focusout", ev => { if (termino(ev) && !defFija) $("definicion").hidden = true; });
+document.addEventListener("click", ev => {
+  const b = termino(ev);
+  if (b) { ev.preventDefault(); ev.stopPropagation(); if (defFija === b) cerrarDefinicion(); else { defFija = b; verDefinicion(b); } return; }
+  if (!ev.target.closest("#definicion")) cerrarDefinicion();
+  const c = ev.target.closest(".como");
+  if (c) { const abierto = c.getAttribute("aria-expanded") === "true";
+    c.setAttribute("aria-expanded", String(!abierto)); $(c.getAttribute("aria-controls")).hidden = abierto; }
 }, true);
-document.addEventListener("keydown", ev => {
-  if (ev.key === "Escape") { $("definicion").hidden = true; document.querySelectorAll('.ayuda[aria-expanded="true"]').forEach(x => x.setAttribute("aria-expanded", "false")); }
-});
+document.addEventListener("keydown", ev => { if (ev.key === "Escape") cerrarDefinicion(); });
 
 /* ---------- Gasto ---------- */
 function gastoDe(cond, amb = ambito) {
@@ -905,33 +948,34 @@ function pintarGastoPaneles() {
     [`Reconstrucción: ${g("anin")}`, "Autoridad Nacional de Infraestructura", de(esAnin), "PIM", trans],
     [`Salud y dengue: ${g("p0017")}`, "Enfermedades metaxénicas y zoonosis", de(r => r.programa === "0017"), "PIM", trans],
   ];
+  const cv = comoSeCalcula(["avance", "vistas", "semaforo"]);
   $("gasto-comparativa").removeAttribute("aria-busy");
   $("gasto-comparativa").innerHTML = aviso(["gasto", "fen"]) + `<div class="tabla"><table>
     <caption class="visualmente-oculto">Avance del gasto en las dos vistas</caption>
-    <thead><tr><th scope="col">Concepto</th><th scope="col">${g("lugar")}</th><th scope="col">${g("sede")}</th></tr></thead><tbody>` +
+    <thead><tr><th scope="col">Concepto</th><th scope="col">Gastado en Piura</th><th scope="col">Por entidades con sede en Piura</th></tr></thead><tbody>` +
     filasC.map(([t, nota, [v1, v2], base, marca]) => `<tr><th scope="row">${t}${nota ? `<span class="nota">${nota}</span>` : ""}</th>
       ${celdaVista(v1, base, marca)}${celdaVista(v2, base, marca, v1.pim > 0)}</tr>`).join("") + `</tbody></table></div>
-    <p class="nota">Avance: devengado entre PIM (o marco). La marca vertical es lo esperado a la fecha: el ${num(trans, 0)} % del año
-      transcurrido. A ritmo: hasta 5 puntos por debajo; algo lento: de 5 a 15; muy lento: más de 15. La emergencia FEN no lleva
-      semáforo: su marco no es un presupuesto anual.
-      ${f}${D.fen ? `; emergencia FEN, datos al ${fecha(D.fen.fecha_corte)}` : ""}.</p>`;
+    <p class="nota">La línea vertical es lo esperado a la fecha: el ${num(trans, 0)} % del año transcurrido. La emergencia FEN no
+      lleva colores: su marco no es un presupuesto anual.</p>
+    <p class="nota">${f}${D.fen ? `; emergencia FEN, datos al ${fecha(D.fen.fecha_corte)}` : ""} · ${cv[0]}</p>${cv[1]}`;
 
   // Lo único que cambia entre las vistas: el gobierno nacional que gasta en Piura con sede fuera de la región
   const fuera = gs.rows.filter(r => r.ambito === 1 && r.nivel === "E"), tf = { pim: suma(fuera, "pim"), dev: suma(fuera, "devengado") };
   const porEnt = new Map();
   for (const r of fuera) { const x = porEnt.get(r.entidad) || { pim: 0, dev: 0 }; x.pim += r.pim; x.dev += r.devengado; porEnt.set(r.entidad, x); }
-  const top = [...porEnt.entries()].filter(([e]) => e !== "029").sort((a, b) => b[1].pim - a[1].pim).slice(0, 5);
+  const top = [...porEnt.entries()].sort((a, b) => b[1].pim - a[1].pim).slice(0, 6), pf = pct(tf.dev, tf.pim), smf = semaforo(pf, trans);
   // Regional y local: lo que solo entra en una vista (con sede en Piura, gastado fuera, o al revés)
   const resto = NIVELES.filter(([n]) => n !== "E").map(([n, nombre]) => [nombre.toLowerCase(),
     suma(gs.rows.filter(r => r.nivel === n && r.ambito !== 3), "pim")]).filter(([, v]) => v > 0);
-  $("gasto-diferencia").innerHTML = panel({ titulo: "Lo que cambia entre las dos vistas: el gobierno nacional con sede fuera de Piura",
-    cifra: millones(tf.pim), ud: `de PIM que se gasta en Piura y solo entra en «Gastado en Piura»`, clase: "ancho",
-    mini: medidor(pct(tf.dev, tf.pim)), frase: `Avance de ${pctTxt(pct(tf.dev, tf.pim))}: devengado de ${millones(tf.dev)}.`,
-    extra: `<h3>Principales entidades, además de ANIN (en la tabla)</h3><ol class="lista-corta">${top.map(([e, x]) =>
-      `<li>${esc(gs.nombres.entidad[e] || e)}: ${millones(x.pim)}, avance ${pctTxt(pct(x.dev, x.pim))}</li>`).join("")}</ol>
-      <p class="frase">Los gobiernos regional y locales tienen sede en Piura, por eso coinciden en ambas vistas${resto.length
-        ? `, salvo ${lista(resto.map(([n, v]) => `${millones(v)} del gobierno ${n === "gobiernos locales" ? "local" : "regional"}`))} gastados fuera de Piura` : ""}.</p>`,
-    pie: f });
+  $("gasto-diferencia").innerHTML = panel({ titulo: "Ministerios y organismos nacionales que gastan en Piura",
+    sub: "Tienen sede en Lima, así que no aparecen si solo se miran las entidades de Piura", clase: "ancho",
+    cifra: millones(tf.pim), ud: `de presupuesto del año · ${pctTxt(pf)} ejecutado`,
+    mini: medidor(pf, trans, smf) + esperadoTxt(trans) + ritmoTxt(smf),
+    extra: `<h4 class="antes-lista">Las ${num(top.length)} principales</h4><ol class="lista-visual">${top.map(([e, x]) =>
+      `<li><div class="nombre">${esc(gs.nombres.entidad[e] || e)}</div><div class="monto">${millones(x.pim)} · ${pctTxt(pct(x.dev, x.pim))} ejecutado</div></li>`).join("")}</ol>`,
+    pie: f, calc: ["vistas", "semaforo"] });
+  $("metodo-resto").textContent = resto.length ? ` Los gobiernos regional y locales tienen sede en Piura, por eso coinciden en ambas vistas, salvo ${
+    lista(resto.map(([n, v]) => `${millones(v)} del gobierno ${n === "gobiernos locales" ? "local" : "regional"}`))} gastados fuera de Piura.` : "";
 
   // Detalle: desglose por nivel de gobierno (una sola vez en la pestaña)
   const celda = t => t.pim ? `<td class="n">${pctTxt(pct(t.dev, t.pim))}<br>${ritmoTxt(semaforo(pct(t.dev, t.pim), trans))}</td><td class="n">${num(t.dev / 1e6, 1)}</td><td class="n">${num(t.pim / 1e6, 1)}</td>`
@@ -985,7 +1029,7 @@ function pintarTabla() {
   limite["t-cuerpo"] = LIMITE;
   llenar("t-cuerpo", lista_, x => {
     const inv = x.tipo === "2" ? D.inv?.[x.codigo] : null;
-    const dist = inv ? (inv.departamento === "PIURA" ? `${esc(inv.distrito)} (${esc(inv.provincia)})` : `Fuera de Piura: ${esc(inv.departamento)}`) : "—";
+    const dist = inv ? (inv.departamento === "PIURA" ? `${esc(lugar(inv.distrito))} (${esc(lugar(inv.provincia))})` : `Fuera de Piura: ${esc(lugar(inv.departamento))}`) : "—";
     return `<tr><td class="cod" translate="no">${esc(x.codigo)}</td><td>${esc(x.nombre)}</td><td>${esc(x.entidad)}</td>
       <td class="n">${num(x.pim)}</td><td class="n">${num(x.devengado)}</td><td class="n">${pctTxt(pct(x.devengado, x.pim))}</td>
       <td class="n">${fisTxt(inv?.avance_fisico)}</td><td>${dist}</td></tr>`;
@@ -1372,8 +1416,8 @@ async function crearMapaSalud() {
   const el = $("mapa-salud"), c = D.camas, dg = D.d26 ? dengueDistritos() : null;
   const relleno = u => { const k = dg && $("capa-dengue").checked ? dg.clase(dg.val[u] ?? 0) : -1;
     return { fillColor: token(k >= 0 ? TONOS_Q[k] : "--neutro"), fillOpacity: k >= 0 ? .7 : .35 }; };
-  const m = await mapaBase(el, relleno, (u, d) => `<strong>${esc(u === "200101" ? "Piura (incluye Veintiséis de Octubre)" : mayus(d.nombre.toLowerCase()))}</strong>
-    (${esc(mayus(d.provincia.toLowerCase()))})<br>${!dg ? "Sin datos de dengue" : dg.val[u] == null ? "Dengue: sin detalle en la sala de la DIRESA (en «otros distritos»)"
+  const m = await mapaBase(el, relleno, (u, d) => `<strong>${esc(u === "200101" ? "Piura (incluye Veintiséis de Octubre)" : lugar(d.nombre))}</strong>
+    (${esc(lugar(d.provincia))})<br>${!dg ? "Sin datos de dengue" : dg.val[u] == null ? "Dengue: sin detalle en la sala de la DIRESA (en «otros distritos»)"
       : `Dengue en ${anioD()}: ${num(dg.val[u])} casos hasta la semana ${D.d26.se}`}`);
   if (!m) return null;
   capaDengue = relleno;
@@ -1387,7 +1431,7 @@ async function crearMapaSalud() {
     if (!ll) continue;
     const t = Math.round(10 + 16 * Math.sqrt(x.camas / max));
     grupo.addLayer(L.marker(ll, { keyboard: true, title: x.razon_soc, icon: L.divIcon({ className: `punto-mapa${g_?.lat == null ? " sin-coord" : oc > 100 ? " excede" : ""}`,
-      iconSize: [t, t] }) }).bindPopup(`<strong>${esc(x.razon_soc)}</strong><br>${esc(x.distrito)}. ${num(x.camas)} camas; ocupación de
+      iconSize: [t, t] }) }).bindPopup(`<strong>${esc(x.razon_soc)}</strong><br>${esc(lugar(x.distrito))}. ${num(x.camas)} camas; ocupación de
       ${esc(c.periodo)}: ${oc > 100 ? `<span class="revisar">${pctTxt(oc)}, dato a revisar en la fuente</span>` : pctTxt(oc)}${g_?.lat == null
         ? "<br>Sin coordenadas en RENIPRESS: ubicado en el centro de su distrito." : ""}`));
   }
@@ -1418,7 +1462,7 @@ function pintarSalud() {
       ud: `${num(suma(rep, "uci"))} ${g("uci", "camas UCI")}`, pie,
       frase: `En ${num(rep.length)} establecimientos de Piura que reportaron en ${esc(c.periodo)}; ${num(e.length - rep.length)} no reportaron ese mes.` });
     const os = ocupacionSerie();
-    html += panel({ titulo: os?.dir ? `La ${g("ocupacion", "ocupación")} de camas ${os.dir} frente a hace un año` : `${g("ocupacion", "Ocupación")} de camas`,
+    html += panel({ titulo: os?.dir ? `La ocupación de camas ${os.dir} frente a hace un año` : "Ocupación de camas", calc: ["ocupacion"],
       cifra: pctTxt(oc), ud: `promedio de ${esc(c.periodo)}`, vence: "camas", pie,
       mini: os ? chispa(os.s.map(os.oc), "Ocupación de camas por mes", { ini: `${mesCorto(os.s[0].mes)}: ${pctTxt(os.oc(os.s[0]))}`,
         fin: mesCorto(os.u.mes), periodo: `${mayus(mesTxt(os.s[0].mes))} a ${mesTxt(os.u.mes)}` }) : oc == null ? "" : medidor(oc),
@@ -1451,10 +1495,10 @@ function pintarSalud() {
     llenar("camas", e, x => {
       const oc = conPd ? ocupacion(x) : null;
       return x.reporto
-        ? `<tr><td>${esc(x.razon_soc)}</td><td>${esc(x.sector)}</td><td>${esc(x.distrito)}</td><td class="n">${num(x.camas)}</td>
+        ? `<tr><td>${esc(x.razon_soc)}</td><td>${esc(x.sector)}</td><td>${esc(lugar(x.distrito))}</td><td class="n">${num(x.camas)}</td>
            <td class="n">${num(x.uci)}</td><td class="n">${oc > 100 ? `<span class="revisar" title="Más de 100 %: dato a revisar en la fuente">${pctTxt(oc)}</span>` : pctTxt(oc)}</td>
            <td class="n">${num(x.ingresos)}</td><td class="n">${num(x.egresos)}</td></tr>`
-        : `<tr><td>${esc(x.razon_soc)}</td><td>${esc(x.sector)}</td><td>${esc(x.distrito)}</td><td colspan="5" class="nota">No reportó en ${esc(c.periodo)}</td></tr>`;
+        : `<tr><td>${esc(x.razon_soc)}</td><td>${esc(x.sector)}</td><td>${esc(lugar(x.distrito))}</td><td colspan="5" class="nota">No reportó en ${esc(c.periodo)}</td></tr>`;
     }, 8);
     $("fuente-camas").innerHTML = fuente(c) + ` Último mes publicado: ${esc(c.periodo)}. Ocupación = pacientes-día / días-cama
       disponibles del mes. Camas UCI: servicios cuyo nombre incluye "cuidados intensivos". SUSALUD dejó de publicar la
@@ -1472,7 +1516,7 @@ const avanceObra = x => { const v = invObra(x)?.avance_fisico;
   return v == null ? "—" : fisTxt(v) + (x.obras_en_cui > 1 ? ` (inversión de ${x.obras_en_cui} obras)` : ""); };
 const notaInfobras = o => o.ultimo_avance ? `Archivo de datos abiertos de Infobras sin actualizar desde
   ${MESES[o.ultimo_avance.mes - 1]} de ${o.ultimo_avance.anio}; obras registradas después no aparecen.` : "";
-const distritoTxt = x => `${esc(x.distrito)} (${esc(x.provincia)})`;
+const distritoTxt = x => `${esc(lugar(x.distrito))} (${esc(lugar(x.provincia))})`;
 const porCosto = l => [...l].sort((a, b) => (b.costo_et || 0) - (a.costo_et || 0));
 
 // Causas por monto, con "Otras" (Otras causales y las causas con una sola obra) siempre al final
@@ -1517,7 +1561,7 @@ function nombreCorto(t) {
   r = sinSuf.length >= 6 ? sinSuf : sinPre.length >= 6 ? sinPre : r;  // si la regla lo deja casi vacío, se queda con el resto
   for (const [re, x] of SIGLAS) r = r.replace(re, x);
   for (const l of lugares) r = r.replace(new RegExp(`(?<!\\p{L})${l.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?!\\p{L})`, "gu"),
-    l.replace(/(^|[\s-])(\p{L})/gu, (m, a, b) => a + b.toUpperCase()));
+    lugar(l));
   r = r.replace(/[\s,;:.-]+$/, "");
   if (!r) return "Obra sin nombre";
   return r.charAt(0).toUpperCase() + r.slice(1);
@@ -1614,7 +1658,7 @@ async function crearMapaObras() {
   const porDist = {};
   for (const x of par) { const u = ub(x.provincia, x.distrito); (porDist[u === "200115" ? "200101" : u] ||= []).push(x); }
   const m = await mapaBase(el, u => ({ fillColor: porDist[u] ? token("--q2") : token("--neutro") }),
-    (u, d) => `<strong>${esc(mayus(d.nombre.toLowerCase()))}</strong> (${esc(mayus(d.provincia.toLowerCase()))})<br>${porDist[u]
+    (u, d) => `<strong>${esc(lugar(d.nombre))}</strong> (${esc(lugar(d.provincia))})<br>${porDist[u]
       ? `${num(porDist[u].length)} ${porDist[u].length > 1 ? "obras paralizadas" : "obra paralizada"}, ${millones(suma(porDist[u], "costo_et"))}` : "Sin obras paralizadas"}`);
   if (!m) return null;
   const grupo = grupoPuntos(), sin = [];
@@ -1627,7 +1671,7 @@ async function crearMapaObras() {
   m.addLayer(grupo);
   $("nota-mapa-obras").innerHTML = `Cada punto es una obra, ubicada en el centro de su distrito (Infobras no trae coordenadas);
     los números agrupan obras cercanas. Distritos en azul: con al menos una obra paralizada.${sin.length ? ` Sin polígono en el mapa:
-    ${sin.map(x => esc(x.distrito)).join(", ")}.` : ""} Límites: INEI 2007. ${pieInfobras(D.obras)}.`;
+    ${sin.map(x => esc(lugar(x.distrito))).join(", ")}.` : ""} Límites: INEI 2007. ${pieInfobras(D.obras)}.`;
   return m;
 }
 
@@ -1642,7 +1686,7 @@ function pintarObras() {
   const mayor = pr && porCosto(pr.l)[0], casi = pr && pr.monto && (mayor.costo_et || 0) > pr.monto / 2;
   const obrasTxt = n => `${num(n)} ${n === 1 ? "obra" : "obras"}`, pctE = (a, b) => `${num(pct(a, b), 0)}\u00a0%`;
   const provs = Object.entries(par.reduce((a, x) => ((a[x.provincia] ||= []).push(x), a), {}))
-    .map(([k, l]) => [mayus(k.toLowerCase()), l.length, costoDe(l)]).sort((a, b) => b[1] - a[1] || b[2] - a[2]);
+    .map(([k, l]) => [lugar(k), l.length, costoDe(l)]).sort((a, b) => b[1] - a[1] || b[2] - a[2]);
   const dias = par.map(diasParalizada).filter(d => d != null);
   const tramos = TRAMOS.map(([t, k], i) => [k, dias.filter(d => d < t && d >= (TRAMOS[i - 1]?.[0] ?? 0)).length]);
   const maxMonto = Math.max(...cm.map(c => c.monto));
@@ -1655,19 +1699,20 @@ function pintarObras() {
         ${pctE(costoDe(top5), total)} del costo de las ${num(par.length)}</h4><ol class="lista-visual">${top5.map(x =>
         `<li><div class="nombre" title="${esc(x.obra)}">${esc(nombreObra(x))}</div><div class="monto">${x.costo_et == null ? "Costo no registrado"
           : `${millones(x.costo_et)} · ${pctE(x.costo_et, total)}`}</div>
-        <div class="meta"><span>${esc(nombreCorto(`${x.distrito} (${x.provincia})`))}</span><span>· paralizada hace ${duracion(diasParalizada(x))}</span>
+        <div class="meta"><span>${distritoTxt(x)}</span><span>· paralizada hace ${duracion(diasParalizada(x))}</span>
           <span class="etiqueta">${esc(x.causal || "Causa no registrada")}</span></div></li>`).join("")}</ol>` : "" }) +
-    (par.length ? panel({ titulo: pr ? `Por monto, la causa principal es ${articulo(pr.k)} ${esc(pr.k.charAt(0).toLowerCase() + pr.k.slice(1))}:
+    (par.length ? panel({ titulo: pr ? `Por monto, ${pr.k === "No registrada" ? "lo principal son obras sin causa registrada"
+        : `la causa principal es ${articulo(pr.k)} ${esc(pr.k.charAt(0).toLowerCase() + pr.k.slice(1))}`}:
         ${millones(pr.monto)} en ${obrasTxt(pr.l.length)}${casi ? `, casi todo por la obra «${esc(nombreObra(mayor))}»` : ""}` : "Causas de paralización",
       ud: "costo de las obras paralizadas por causa registrada en Infobras; «Otras» reúne «Otras causales» y las causas con una sola obra",
       pie, vence: "obras", clase: "doble",
       extra: `<ol class="barras-h">${cm.map(c => `<li><div class="k"${c.detalle ? ` title="${esc(c.detalle)}"` : ""}>${esc(c.k)}
-        <small>${obrasTxt(c.l.length)}</small></div><div class="b"><i style="--p:${maxMonto ? c.monto / maxMonto : 0}"></i>
+        <small>${obrasTxt(c.l.length)}</small></div><div class="b"><i aria-hidden="true" style="--p:${maxMonto ? c.monto / maxMonto : 0}"></i>
         <span>${millones(c.monto).replace("\u00a0millones", "\u00a0M")}</span></div></li>`).join("")}</ol>
         <p class="nota">El desglose de «Otras» está en el detalle.</p>` }) +
     panel({ titulo: "Tiempo paralizada", ud: "obras paralizadas, desde su fecha de paralización hasta la fecha de los datos", pie, vence: "obras",
       extra: `<div class="barras">${tramos.map(([k, n]) => `<span>${k}</span><span>${num(n)}</span>${medidor(100 * n / Math.max(...tramos.map(t => t[1])))}`).join("")}</div>`,
-      frase: dias.length ? `La mitad lleva más de ${duracion([...dias].sort((a, b) => a - b)[Math.floor(dias.length / 2)])}.` : "" }) +
+      frase: dias.length ? `La mitad lleva más de ${duracion([...dias].sort((a, b) => a - b)[Math.floor(dias.length / 2)])}.` : "", calc: ["tiempo"] }) +
     panel({ titulo: "Obras paralizadas por provincia", clase: "ancho", pie, vence: "obras",
       extra: `<div class="provincias"><div>${barrasDobles(provs)}</div><div><div id="mapa-obras" class="mapa-l" role="region"
         aria-label="Mapa de obras paralizadas por distrito"></div><p class="nota" id="nota-mapa-obras"></p></div></div>` }) : "") +
@@ -1725,10 +1770,10 @@ function fraseBrecha() {
 }
 function panelBrecha() {
   const pie = D.invMeta ? `MEF, datos al ${fecha(D.invMeta.fecha_corte)}` : "", b = D.inv && datosBrecha();
-  if (!b?.lista.length) return panel({ id: "brecha-panel", titulo: g("brecha", "¿Más pagado que construido?"), clase: "ancho una-linea",
-    vence: "inv", frase: fraseBrecha(), pie });
+  if (!b?.lista.length) return panel({ id: "brecha-panel", titulo: "¿Más pagado que construido?", clase: "ancho una-linea",
+    vence: "inv", frase: fraseBrecha(), pie, calc: ["brecha"] });
   const n = D.gasto.nombres.codigo;
-  return panel({ id: "brecha-panel", titulo: g("brecha", "¿Más pagado que construido?"), clase: "ancho", vence: "inv", pie,
+  return panel({ id: "brecha-panel", titulo: "¿Más pagado que construido?", clase: "ancho", vence: "inv", pie, calc: ["brecha"],
     cifra: num(b.lista.length), ud: `proyectos con más de ${BRECHA} puntos entre lo pagado y lo construido`,
     extra: `<ol class="lista-visual">${b.lista.slice(0, 5).map(r => `<li><div class="fila"><span title="${esc(n[r.cui] || r.cui)}">${esc(nombreCorto(n[r.cui] || r.cui))}</span>
       <strong>${num(b.brecha(r), 1)} puntos</strong></div><div class="meta"><span>Pagado ${pctTxt(r.avance_financiero)}, construido ${pctTxt(r.avance_fisico)}</span>
@@ -1836,9 +1881,9 @@ function pintarPrecios() {
   }
   const s = p.serie.slice(-24), u = p.serie.at(-1), pie = `INEI, ${mesTxt(u.mes)}, publicado el ${fecha(u.publicado)}`;
   el.innerHTML =
-    panel({ titulo: g("mensual", "Variación mensual"), cifra: pct2(u.mensual), vence: "ipc", ud: `${mesTxt(u.mes)}; nacional: ${pct2(u.nacional_mensual)}`,
+    panel({ titulo: "Variación mensual", calc: ["mensual"], cifra: pct2(u.mensual), vence: "ipc", ud: `${mesTxt(u.mes)}; nacional: ${pct2(u.nacional_mensual)}`,
       frase: frasePrecios(u)[0], pie }) +
-    panel({ titulo: g("doce", "Variación en 12 meses"), cifra: pct2(u.doce_meses), ud: `nacional: ${pct2(u.nacional_doce_meses)}`, vence: "ipc",
+    panel({ titulo: "Variación en 12 meses", calc: ["doce"], cifra: pct2(u.doce_meses), ud: `nacional: ${pct2(u.nacional_doce_meses)}`, vence: "ipc",
       mini: chispa(s.map(x => x.doce_meses), "Variación en 12 meses del IPC de Piura, últimos 24 meses"),
       frase: frasePrecios(u)[1], pie }) +
     panel({ titulo: "Inflación anual: Piura frente al promedio nacional", clase: "ancho", pie,
@@ -1915,7 +1960,7 @@ function pintarResumen() {
     }
     ps.push(panel({ titulo: tend ? `El dengue ${tend.dir} en las últimas 4 semanas completas` : "¿Cómo está el dengue?", clase: "destacado",
       cifra: !tend ? num(d.totales.semana) : tend.cambio == null ? `${num(tend.act)} casos`
-        : `${tend.cambio > 0 ? "+" : tend.cambio < 0 ? "−" : ""}${num(Math.abs(tend.cambio), 0)}\u00a0%`,
+        : `${Math.round(tend.cambio) > 0 ? "+" : Math.round(tend.cambio) < 0 ? "−" : ""}${num(Math.abs(tend.cambio), 0)}\u00a0%`,
       ud: !tend ? `casos en la semana ${d.se}, ${g("preliminar", "preliminar")}` : `${num(tend.act)} casos en las semanas ${tend.fin - 3} a ${tend.fin}${
         tend.cambio == null ? "" : `, frente a ${num(tend.ant)} en las semanas ${tend.fin - 7} a ${tend.fin - 4}`}`, vence: "d26",
       mini: chispa(d.serie.map(x => x[1]), `Casos por semana en ${anioD()}; las ${PRELIMINAR} últimas, preliminares (punteadas)`,
@@ -1923,13 +1968,13 @@ function pintarResumen() {
           prelim: PRELIMINAR }),
       frase: `${tend?.prelim.length ? `${tend.prelim.length > 1 ? "Las semanas" : "La semana"} ${lista(tend.prelim.map(String))}
         ${tend.prelim.length > 1 ? "son" : "es"} ${g("preliminar", tend.prelim.length > 1 ? "preliminares" : "preliminar")}: van punteadas y no entran en la comparación. ` : ""}${anio}`,
-      ver: ["#dengue", "Ver dengue"], pie: `DIRESA Piura, semana ${d.se}, datos al ${fecha(d.fecha_corte)}` }));
+      ver: ["#dengue", "Ver dengue"], calc: ["tendencia"], pie: `DIRESA Piura, semana ${d.se}, datos al ${fecha(d.fecha_corte)}` }));
   } else ps.push(sinDatos("¿Cómo está el dengue?", "dengue de la DIRESA Piura").replace('class="panel ', 'class="panel destacado '));
   if (gasto) {
     const { p, trans } = gasto, r = ritmo(p, trans), sm = semaforo(p, trans);
     ps.push(panel({ titulo: `El gasto va ${r === "menor" ? "más lento que el" : r === "mayor" ? "más rápido que el" : "al ritmo del"} calendario`,
       clase: "compacto", cifra: pctTxt(p), ud: `del presupuesto del año, gastado en Piura`, vence: "gasto",
-      mini: medidor(p, trans, sm) + esperadoTxt(trans) + ritmoTxt(sm), ver: ["#gasto", "Ver gasto"], pie: `MEF, datos al ${fecha(D.gasto.fecha_corte)}` }));
+      mini: medidor(p, trans, sm) + esperadoTxt(trans) + ritmoTxt(sm), ver: ["#gasto", "Ver gasto"], calc: ["avance", "semaforo"], pie: `MEF, datos al ${fecha(D.gasto.fecha_corte)}` }));
   }
   if (D.obras) {
     const sh = pct(par.length, activas.length);
@@ -1946,7 +1991,7 @@ function pintarResumen() {
       clase: "compacto", ud: `de ocupación de camas en ${esc(D.camas.periodo)} (${num(rep.length)} establecimientos)`, vence: "camas",
       mini: os ? chispa(os.s.map(os.oc), "Ocupación de camas por mes", { ini: `${mesCorto(os.s[0].mes)}: ${pctTxt(os.oc(os.s[0]))}`,
         fin: `${mesCorto(os.u.mes)}`, periodo: `${mayus(mesTxt(os.s[0].mes))} a ${mesTxt(os.u.mes)}` }) : oc == null ? "" : medidor(oc),
-      ver: ["#salud", "Ver salud"], pie: `SUSALUD, ${esc(D.camas.periodo)}` }));
+      ver: ["#salud", "Ver salud"], pie: `SUSALUD, ${esc(D.camas.periodo)}`, calc: ["ocupacion"] }));
   } else ps.push(sinDatos("¿Está preparada la salud?", "camas de SUSALUD").replace('class="panel ', 'class="panel compacto '));
   if (D.ipc?.serie?.length) {
     const s = D.ipc.serie.slice(-24), u = s.at(-1), dif = u.doce_meses - u.nacional_doce_meses;
@@ -1955,7 +2000,7 @@ function pintarResumen() {
       mini: chispa(s.map(x => x.doce_meses), "Variación en 12 meses, últimos 24 meses",
         { ini: `${mesCorto(s[0].mes)}: ${pct2(s[0].doce_meses)}`, fin: mesCorto(u.mes),
           periodo: `${mayus(mesTxt(s[0].mes))} a ${mesTxt(u.mes)}` }),
-      ver: ["#precios", "Ver precios"], pie: `INEI, ${mesTxt(u.mes)}` }));
+      ver: ["#precios", "Ver precios"], pie: `INEI, ${mesTxt(u.mes)}`, calc: ["doce"] }));
   } else ps.push(sinDatos("¿Cómo están los precios?", "precios del INEI").replace('class="panel ', 'class="panel compacto '));
   el.innerHTML = ps.join("");
   el.removeAttribute("aria-busy");
@@ -1991,7 +2036,7 @@ function pintarFuentes() {
     `${esc(k.replace("_", " "))}, ${v === "ok" ? "cuadra" : `<span class="revisar">${esc(v)}</span>`}`).join("; ") + "." +
     (d.avisos?.length ? ` Avisos: ${d.avisos.map(esc).join("; ")}.` : "");
   document.querySelectorAll(".n-prelim").forEach(e => e.textContent = PRELIMINAR);
-  $("glosario").innerHTML = Object.values(GLOSARIO).map(([t, def]) => `<dt><strong>${esc(t)}</strong></dt><dd>${esc(def)}</dd>`).join("");
+  $("glosario").innerHTML = Object.values(DEFINICIONES).map(([t, def]) => `<dt><strong>${esc(t)}</strong></dt><dd>${esc(def)}</dd>`).join("");
 }
 
 /* ---------- Compartir la pestaña actual ---------- */
@@ -2031,7 +2076,7 @@ function mostrar() {
     if (activo) { a.setAttribute("aria-current", "page"); a.scrollIntoView({ block: "nearest", inline: "nearest" }); }
     else a.removeAttribute("aria-current");
   });
-  $("definicion").hidden = true;
+  cerrarDefinicion();
   redibujar(tab);
   if (destino && h !== tab) {
     const det = destino.closest("details"); if (det) det.open = true;
@@ -2053,9 +2098,9 @@ window.addEventListener("resize", () => {
 /* ---------- Arranque ---------- */
 (async () => {
   mostrar();
-  const [gasto, inv, fen, obras, dh, d26, camas, mapa, ipc, camasSerie, ipress, pobreza, cortos] = await Promise.all(["gasto_piura.json",
+  const [gasto, inv, fen, obras, dh, d26, camas, mapa, ipc, camasSerie, ipress, pobreza, cortos, nombres] = await Promise.all(["gasto_piura.json",
     "inversiones_piura.json", "fen_piura.json", "infobras_piura.json", "dengue_historico.json", "dengue_2026.json", "camas_piura.json",
-    "piura_distritos.json", "ipc_piura.json", "camas_serie.json", "ipress_piura.json", "lineas_pobreza.json", "nombres_cortos_obras.json"].map(cargar));
+    "piura_distritos.json", "ipc_piura.json", "camas_serie.json", "ipress_piura.json", "lineas_pobreza.json", "nombres_cortos_obras.json", "nombres_entidades.json"].map(cargar));
   if (!gasto) {
     $("resumen-paneles").innerHTML = `<p>No se pudieron cargar los datos. Si abriste el archivo directamente, sírvelo con
       <code>python3 -m http.server -d docs</code> y entra a http://localhost:8000.</p>`;
@@ -2064,7 +2109,10 @@ window.addEventListener("resize", () => {
   D.gasto = { ...gasto, rows: filas(gasto) };
   if (inv) { D.invMeta = inv; D.inv = Object.fromEntries(filas(inv).map(r => [r.cui, r])); }
   if (fen) D.fen = { ...fen, rows: filas(fen) };
-  Object.assign(D, { obras, dh, d26, camas, mapa, ipc, camasSerie, ipress, pobreza, cortos });
+  Object.assign(D, { obras, dh, d26, camas, mapa, ipc, camasSerie, ipress, pobreza, cortos, nombres });
+  // Nombres legibles de entidades: diccionario o, si falta, la regla sobre el nombre original
+  for (const k in gasto.nombres.entidad) gasto.nombres.entidad[k] = nombres?.mef?.[k] || legible(gasto.nombres.entidad[k]);
+  obras?.obras.forEach(x => x.entidad = entidadObra(x.entidad));
 
   document.querySelectorAll(".anio-d").forEach(e => e.textContent = anioD());
   const nombresTab = [...document.querySelectorAll(".pestanas a")].map(a => [a.getAttribute("href"), a.textContent]);

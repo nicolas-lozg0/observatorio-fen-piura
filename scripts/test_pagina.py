@@ -14,6 +14,7 @@ Revisa, en escritorio (1280 px) y celular (375 px):
   - que el título del dengue siga la regla de semanas completas (las preliminares no cuentan) y que el semáforo del
     presupuesto cambie en 5 y 15 puntos;
   - que los mapas de Obras y Salud (Leaflet) se dibujen, o digan claramente que no cargaron;
+  - los nombres cortos de obras, las duraciones en años y meses y los nombres legibles de entidades;
   - que aparezca "Dato no actualizado" si se simula una fecha 60 días después.
 
 Requiere Playwright (pip3 install playwright) y un navegador Chromium: usa Brave o Chrome si están
@@ -152,13 +153,17 @@ def main():
                   sube: tendenciaDengue(sube).dir, baja: tendenciaDengue(baja).dir,
                   semaforo: [semaforo(80, 85)[1], semaforo(79.9, 85)[1], semaforo(70, 85)[1], semaforo(69.9, 85)[1]],
                   nombres: [nombreCorto("  "), nombreCorto("A".repeat(90)).length, nombreCorto("MEJORAMIENTO DE LA I E SAN JOSE EN LA LOCALIDAD DE CASTILLA DISTRITO DE CASTILLA"),
-                    duracion(0), duracion(250), duracion(365.25 * 4 + 3), duracion(640)] };
+                    duracion(0), duracion(250), duracion(365.25 * 4 + 3), duracion(640)],
+                  entidades: [legible("MUNICIPALIDAD DISTRITAL DE LA UNION"), legible("MUNICIPALIDAD DISTRITAL DE SAN MIGUEL DE EL FAIQUE"),
+                    legible("MANCOMUNIDAD MUNICIPAL SIMON RODRIGUEZ - MMSR")] };
             }""")
             revisar(r2["titulo"] == r2["esperado"] and r2["igual"] and r2["sube"] == "sube" and r2["baja"] == "baja",
                     f"regla del dengue: {r2}")
             revisar(r2["semaforo"] == ["ok", "lento", "lento", "muy-lento"], f"semáforo: {r2['semaforo']}")
             revisar(r2["nombres"] == ["Obra sin nombre", 90, "I.E. san jose", "menos de 1 mes", "8 meses", "4 años", "1 año y 9 meses"],
                     f"nombres cortos y duraciones: {r2['nombres']}")
+            revisar(r2["entidades"] == ["Municipalidad Distrital de La Unión", "Municipalidad Distrital de San Miguel de El Faique",
+                                        "Mancomunidad Municipal Simón Rodríguez (MMSR)"], f"nombres de entidades: {r2['entidades']}")
             # Mapas con Leaflet: dibujados, o con su mensaje si el CDN no respondió
             for tab, mapa in (("obras", "mapa-obras"), ("salud", "mapa-salud")):
                 pg.evaluate(f"location.hash = '#{tab}'")
