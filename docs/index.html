@@ -28,6 +28,9 @@
     --comp1: #b48b40; --comp2: #aa5e7d; --comp3: #2f7442;
     --q1: #cde2fb; --q2: #9ec5f4; --q3: #6da7ec; --q4: #2a78d6; --q5: #184f95;
     --neutro: #e4e9f0;  /* datos: cero casos y fondo de zonas sin dato */
+    /* Semáforo del avance del presupuesto frente al calendario (validado con dataviz: daltonismo ΔE ≥ 12, contraste ≥ 3:1 en blanco);
+       siempre con su texto al lado */
+    --ritmo-ok: #1a9a8a; --ritmo-lento: #c98200; --ritmo-muy-lento: var(--alerta);
     --g1: #e1e5ea; --g2: #c7ced8; --g3: #a7b1bf; --g4: #848f9e;  /* datos: casos de dengue como fondo del mapa de salud */
     /* Tipografía: escala 1,25 sobre 16 px */
     --f-titulo: Montserrat, system-ui, sans-serif;
@@ -148,29 +151,38 @@
   .panel.reserva-grafico { min-height: 320px; justify-content: center; }
   .mapa-y-top { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: var(--e4); align-items: start; }
   @media (max-width: 760px) { .mapa-y-top { grid-template-columns: minmax(0, 1fr); } }
-  /* Distintivos de estado: solo "Dato no actualizado" y "En trámite"; siempre ícono + texto */
+  /* Distintivos de estado: solo "Dato no actualizado", "En trámite" y "Paralizada"; siempre ícono + texto */
   .distintivo { display: inline-flex; align-items: center; gap: var(--e2); width: fit-content; padding: var(--e1) var(--e3);
     border-radius: var(--r-pastilla); font-size: var(--t-xs); font-weight: 700; line-height: 1.3; }
   .distintivo svg { width: 14px; height: 14px; flex: none; }
   .d-desactualizado { color: var(--alerta); background: var(--alerta-suave); }
   .d-tramite { color: var(--titulo); background: var(--acento-suave); }
+  .d-paralizada { color: var(--alerta); background: var(--alerta-suave); }
 
   /* ===== Portada ===== */
-  .hoy { margin-bottom: var(--e6); }
+  .hoy { margin-bottom: var(--e5); }
   .hoy .fecha-hoy { color: var(--texto-3); margin: 0 0 var(--e1); }
-  .hoy .pregunta { font-size: clamp(1.75rem, 5vw, 2.75rem); line-height: 1.1; max-width: 20ch; margin: 0 0 var(--e5); }
+  .hoy .pregunta { font-size: clamp(1.75rem, 5vw, 2.75rem); line-height: 1.1; max-width: 20ch; margin: 0 0 var(--e4); }
   .atencion { background: var(--alerta-suave); border-radius: var(--r-panel); padding: var(--e4) var(--e5); max-width: 760px; }
   .atencion h3 { color: var(--alerta); margin-bottom: var(--e1); }
   .atencion ul { margin: 0; padding-left: var(--e5); }
   .atencion li { margin-bottom: var(--e1); }
   .atencion.calma { background: var(--acento-suave); }
   .atencion.calma h3 { color: var(--titulo); }
-  .resumen .paneles { grid-template-columns: repeat(6, minmax(0, 1fr)); }
-  .resumen .panel { grid-column: span 2; }
-  .resumen .panel:nth-child(4):nth-last-child(2) { grid-column: 2 / span 2; }  /* 5 paneles: la 2.ª fila, centrada */
-  @media (max-width: 760px) { .resumen .paneles { grid-template-columns: minmax(0, 1fr); }
-    .resumen .panel, .resumen .panel:nth-child(4):nth-last-child(2) { grid-column: auto; } }
+  /* Portada: el hallazgo más urgente (dengue) destacado y los otros 4 compactos en 2 x 2, todos de igual alto */
+  .resumen .paneles { grid-template-columns: minmax(0, 6fr) repeat(2, minmax(0, 4fr)); grid-auto-rows: 1fr; }
+  .resumen .panel.destacado { grid-row: span 2; }
+  @media (max-width: 1000px) { .resumen .paneles { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: auto; }
+    .resumen .panel.destacado { grid-column: 1 / -1; grid-row: auto; } }
+  @media (max-width: 600px) { .resumen .paneles { grid-template-columns: minmax(0, 1fr); } }
   .resumen .panel h3 { font-size: var(--t-md); color: var(--titulo); }
+  .resumen .panel.compacto { padding: var(--e4) var(--e5); }
+  .resumen .panel.compacto h3 { font-size: var(--t-base); }
+  .resumen .panel.compacto .cifra { font-size: var(--t-xl); }
+  .resumen .panel.compacto .chispa { height: 40px; }
+  .resumen .panel.destacado h3 { font-size: var(--t-lg); }
+  .resumen .panel.destacado .cifra { font-size: clamp(var(--t-2xl), 6vw, 3.5rem); }
+  .resumen .panel.destacado .chispa { height: 110px; }
   .resumen .panel .tema { color: var(--texto-3); font-size: var(--t-sm); font-weight: 700; margin: 0; }
   .resumen .panel .ver-mas { align-self: flex-start; margin-top: calc(-1 * var(--e2)); }
 
@@ -179,6 +191,42 @@
   .chispa-rotulos { display: flex; justify-content: space-between; gap: var(--e2); font-size: var(--t-xs); color: var(--texto-2); }
   .chispa-rotulos .fin { font-weight: 700; color: var(--acento); text-align: right; }
   .chispa-periodo { font-size: var(--t-xs); color: var(--texto-3); margin: 0; }
+  /* Semáforo: color de la barra y su texto (el texto va en tinta, el color en un cuadrito) */
+  .medidor > div.ok { background: var(--ritmo-ok); }
+  .medidor > div.lento { background: var(--ritmo-lento); }
+  .medidor > div.muy-lento { background: var(--ritmo-muy-lento); }
+  .ritmo { display: inline-flex; align-items: center; gap: var(--e1); font-size: var(--t-xs); font-weight: 700; color: var(--texto-2); white-space: nowrap; }
+  .ritmo::before { content: ""; width: 8px; height: 8px; border-radius: 2px; background: var(--c); }
+
+  /* Obras: listas visuales con barra proporcional */
+  .lista-visual { list-style: none; margin: var(--e2) 0 0; padding: 0; display: grid; gap: var(--e4); }
+  .lista-visual .fila { display: flex; justify-content: space-between; gap: var(--e3); font-size: var(--t-sm); }
+  .lista-visual .fila strong { white-space: nowrap; }
+  .lista-visual .medidor { height: 6px; margin: var(--e1) 0; }
+  .lista-visual .meta { display: flex; flex-wrap: wrap; gap: var(--e1) var(--e2); align-items: center; font-size: var(--t-xs); color: var(--texto-3); }
+  .etiqueta { display: inline-block; padding: 2px var(--e2); border-radius: var(--r-pastilla); background: var(--fondo); color: var(--texto-2);
+    font-size: var(--t-xs); line-height: 1.4; }
+  .barras-doble { display: grid; grid-template-columns: minmax(0, 1.3fr) repeat(2, minmax(0, 1fr)); gap: var(--e2) var(--e4);
+    font-size: var(--t-sm); align-items: end; }
+  .barras-doble .cab { color: var(--texto-3); font-size: var(--t-xs); font-weight: 700; }
+  .barras-doble .medidor { height: 8px; margin: var(--e1) 0 0; }
+  .barras-doble .val { font-variant-numeric: tabular-nums; }
+  @media (max-width: 600px) { .barras-doble { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .barras-doble .k { grid-column: 1 / -1; margin-top: var(--e2); } .barras-doble .cab.k { display: none; } }
+  .panel.una-linea { flex-direction: row; flex-wrap: wrap; align-items: baseline; gap: var(--e1) var(--e3); padding: var(--e4) var(--e5); }
+  .panel.una-linea h3 { margin: 0; } .panel.una-linea .frase { flex: 1 1 320px; } .panel.una-linea .pie { margin: 0; padding: 0; }
+  @media (min-width: 700px) { .panel.doble { grid-column: span 2; } }
+  .provincias { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: var(--e5); align-items: start; }
+  @media (max-width: 760px) { .provincias { grid-template-columns: minmax(0, 1fr); } }
+
+  /* Mapas con Leaflet: el contexto de apilamiento propio evita que el mapa tape la barra fija */
+  .mapa-l { position: relative; z-index: 0; isolation: isolate; height: 420px; border-radius: var(--r-control); background: var(--neutro);
+    font: var(--t-sm) var(--f-texto); }
+  @media (max-width: 600px) { .mapa-l { height: 340px; } }
+  .mapa-l .leaflet-popup-content { font: var(--t-sm)/1.4 var(--f-texto); color: var(--texto); }
+  .punto-mapa { border-radius: 50%; background: var(--marino); box-shadow: 0 0 0 2px var(--superficie); }
+  .grupo-mapa { text-align: center; border-radius: 50%; background: var(--marino); color: #fff; font-weight: 700;
+    font-size: var(--t-xs); box-shadow: 0 0 0 3px rgb(255 255 255 / .8); }
 
   .lista-corta { margin: 0; padding-left: var(--e5); font-size: var(--t-sm); }
   .lista-corta li { margin-bottom: var(--e2); }
@@ -449,10 +497,15 @@
         <h3 id="alertas">Obras paralizadas</h3>
         <div class="tabla"><table class="ancha">
           <thead><tr><th class="nombre">Obra</th><th>Entidad</th><th>Distrito</th><th class="n">Costo (S/)</th>
-            <th class="n">Avance físico de la inversión (MEF)</th><th>Paralizada desde</th><th>Causa</th></tr></thead>
+            <th class="n">Avance físico de la inversión (MEF)</th><th>Paralizada desde</th><th class="n">Tiempo paralizada</th><th>Causa</th></tr></thead>
           <tbody id="paralizadas"></tbody>
         </table></div>
         <button type="button" class="mas" id="paralizadas-mas" hidden></button>
+        <h3>Causas de paralización</h3>
+        <div class="tabla"><table>
+          <thead><tr><th>Causa registrada en Infobras</th><th class="n">Obras</th><th class="n">Costo (S/ millones)</th></tr></thead>
+          <tbody id="causas-tabla"></tbody>
+        </table></div>
         <h3 id="obras-lista">Obras en ejecución y paralizadas</h3>
         <div class="filtros">
           <label>Estado<select id="f-estado">
@@ -577,21 +630,33 @@
         <h3>Cómo se generan las frases</h3>
         <p class="nota">Cada frase se arma con reglas fijas a partir de los datos del momento; no hay conclusiones escritas a mano.</p>
         <ul class="metodo">
-          <li><strong>Dengue, semana.</strong> Compara los casos de la última semana con los de la semana anterior (más,
-            menos o igual) y avisa si alguna de las dos está entre las <span class="n-prelim"></span> últimas, que son preliminares.</li>
+          <li><strong>Dengue, tendencia.</strong> Las <span class="n-prelim"></span> últimas semanas son preliminares: la DIRESA
+            las corrige en salas posteriores, casi siempre hacia arriba. Por eso no entran en la comparación: se suman las últimas
+            4 semanas completas y se comparan con las 4 anteriores (tabla por distrito). «Sube» o «baja» si la diferencia pasa
+            del 10 %; si no, «se mantiene».</li>
           <li><strong>Dengue, año.</strong> Suma los casos del año en curso hasta la última semana y los compara con la suma hasta esa
             misma semana en 2017, 2023 y 2024 (confirmados y probables).</li>
           <li><strong>Gasto.</strong> Compara el porcentaje gastado del PIM con el porcentaje del año ya transcurrido a la
             fecha de los datos: «menor» o «mayor» si la diferencia supera 5 puntos; si no, «similar».</li>
-          <li><strong>Obras.</strong> Cuenta las obras paralizadas y su costo, y nombra la causa registrada con más obras.</li>
+          <li><strong>Colores del avance (semáforo).</strong> Solo en las barras de ejecución del presupuesto del año: gasto total,
+            niveles de gobierno, prevención (0068), ANIN y salud (0017). Lo esperado es el porcentaje del año transcurrido a la
+            fecha de los datos (marca vertical). «A ritmo» (verde azulado): el avance está como mucho 5 puntos por debajo;
+            «algo lento» (ámbar): entre 5 y 15 puntos por debajo; «muy lento» (rojo): más de 15. Es una referencia lineal: el
+            gasto público suele concentrarse en diciembre, así que en los últimos meses del año casi todo sale lento. La
+            emergencia FEN (su marco no es un presupuesto anual), el avance físico de obras y la ocupación de camas no miden
+            ritmo frente al calendario: van en azul, sin semáforo.</li>
+          <li><strong>Obras.</strong> Cuenta las obras paralizadas y su costo, y nombra la causa registrada con más obras. El
+            tiempo paralizada se cuenta desde la «fecha de paralización» de Infobras hasta la fecha de los datos; no se usa el
+            campo «días paralizado», que no cuadra con esa fecha (muchas obras paralizadas hace años dicen 30 o 31 días).
+            Los nombres de obra de las listas se acortan a 70 caracteres; el nombre completo está al pasar el cursor y en el detalle.</li>
           <li><strong>Salud.</strong> Ocupación promedio del último mes publicado y número de establecimientos que reportaron.</li>
-          <li><strong>Piden atención (portada).</strong> Se listan los indicadores que cumplen alguna regla: casos de dengue de la
-            última semana mayores que los de la anterior (ambas semanas de la tabla por distrito de la DIRESA); obras paralizadas (si hay al menos una); gasto con una proporción
+          <li><strong>Piden atención (portada).</strong> Se listan los indicadores que cumplen alguna regla: dengue que «sube»
+            según la tendencia de semanas completas (arriba); obras paralizadas (si hay al menos una); gasto con una proporción
             «menor» que el año transcurrido (regla del gasto, arriba); fuentes que pasaron su plazo sin actualizarse. Si ninguno
             la cumple, la portada lo dice.</li>
           <li><strong>Títulos de la portada.</strong> Dicen el hallazgo con las mismas reglas: dengue, «sube», «baja» o «se mantiene»
-            frente a la semana anterior (tabla por distrito), y en el año, por encima o por debajo de 2017, 2023 y 2024 a la misma
-            semana; gasto, el ritmo frente al calendario (regla del gasto); obras, la proporción de obras activas paralizadas;
+            en las últimas 4 semanas completas (tendencia, arriba), y en el año, por encima o por debajo de 2017, 2023 y 2024 a la
+            misma semana; gasto, el ritmo frente al calendario (regla del gasto); obras, la proporción de obras activas paralizadas;
             precios, la variación en 12 meses de Piura frente a la nacional («mayor» o «menor» si difiere en 0,1 puntos o más).
             salud, «sube», «baja» o «se mantiene» (diferencia menor de 1 punto) la ocupación de camas del último mes frente al
             mismo mes del año anterior; si falta ese mes, el título es la pregunta.</li>
@@ -639,7 +704,7 @@ const BRECHA = 30;  // puntos de diferencia entre avance financiero y físico pa
 // Megaproyectos sin relación con El Niño: fuera del costo total de obras (código Infobras → motivo)
 const APARTE = { "42412": "proyecto de Petroperú, sin relación con El Niño" };
 const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "setiembre", "octubre", "noviembre", "diciembre"];
-const PRELIMINAR = 3;  // últimas semanas del año en curso que se dibujan punteadas
+const PRELIMINAR = 2;  // últimas semanas del año en curso: preliminares (punteadas y fuera de la tendencia)
 const NIVELES = [["E", "Gobierno nacional"], ["R", "Gobierno regional"], ["M", "Gobiernos locales"]];
 const PESTANAS = ["resumen", "dengue", "gasto", "obras", "salud", "precios", "fuentes"];
 // Días que puede pasar una fuente sin actualizarse antes de avisar "Dato no actualizado desde…"
@@ -676,7 +741,11 @@ const millones = x => "S/\u00a0" + num(x / 1e6, 1) + "\u00a0millones";  // sin c
 const pct = (a, b) => b ? 100 * a / b : null;
 const pctTxt = p => p == null ? "—" : num(p, 1) + " %";
 const pct2 = p => p == null ? "—" : num(p, 2) + " %";
-const medidor = (p, marca) => `<div class="medidor" title="${pctTxt(p)}"><div style="width:${Math.min(100, Math.max(0, p || 0))}%"></div>${
+// Semáforo del avance del presupuesto anual frente a lo esperado (% del año transcurrido)
+const SEMAFORO = [[-5, "ok", "A ritmo"], [-15, "lento", "Algo lento"], [-Infinity, "muy-lento", "Muy lento"]];
+const semaforo = (p, esperado) => p == null || esperado == null ? null : SEMAFORO.find(([d]) => p - esperado >= d);
+const ritmoTxt = sm => sm ? `<span class="ritmo" style="--c:var(--ritmo-${sm[1]})">${sm[2]}</span>` : "";
+const medidor = (p, marca, sm) => `<div class="medidor" title="${pctTxt(p)}"><div ${sm ? `class="${sm[1]}" ` : ""}style="width:${Math.min(100, Math.max(0, p || 0))}%"></div>${
   marca == null ? "" : `<span class="marca" style="left:calc(${Math.min(100, marca)}% - 1px)"></span>`}</div>`;
 function fecha(iso) {
   if (!iso) return "fecha no disponible";
@@ -692,6 +761,7 @@ const DATOS = () => ({ obras: D.obras, camas: D.camas, gasto: D.gasto, inv: D.in
 // Distintivo de estado: desactualizado (reloj) o en trámite (reloj de arena); lo pendiente se dice en la frase del panel
 const ICONO_ESTADO = {
   desactualizado: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  paralizada: '<circle cx="12" cy="12" r="9"/><path d="M10 9v6M14 9v6"/>',
   tramite: '<path d="M7 3h10M7 21h10M8 3c0 5 8 5 8 9s-8 4-8 9M16 3c0 5-8 5-8 9s8 4 8 9"/>',
 };
 const distintivo = (tipo, texto, clase = "") => `<span class="distintivo d-${tipo} ${clase}"><svg viewBox="0 0 24 24" fill="none"
@@ -743,16 +813,17 @@ const sinDatos = (titulo, fuente_) => panel({ titulo, clase: "pendiente",
   frase: `<span class="sin-datos">No se pudieron cargar los datos de ${fuente_}. Vuelve a cargar la página; si sigue así, la fuente no respondió en la última actualización.</span>` });
 
 // Mini-gráfica de una serie (sin ejes): la forma de la evolución, con el valor inicial y el final y el periodo que cubre
-// (rot = { ini: "SE 1: 12", fin: "SE 42: 1.099", periodo: "Semanas 1 a 42 de 2026" })
+// (rot = { ini: "SE 1: 12", fin: "SE 42", periodo: "Semanas 1 a 42 de 2026", prelim: últimos puntos punteados })
 function chispa(vals, etiqueta, rot) {
   if (!vals || vals.length < 2) return "";
   const W = 200, H = 40, min = Math.min(...vals), max = Math.max(...vals);
   const pts = vals.map((v, i) => [i * W / (vals.length - 1), H - 4 - (max > min ? (v - min) / (max - min) : .5) * (H - 8)]);
-  const [ux, uy] = pts.at(-1);
+  const [ux, uy] = pts.at(-1), corte = Math.max(0, pts.length - 1 - (rot?.prelim || 0));
+  const linea = (ps, extra = "") => `<polyline points="${ps.map(p => p.map(n => n.toFixed(1)).join(",")).join(" ")}" fill="none"
+    stroke="var(--acento)" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke" ${extra}/>`;
   return `<svg class="chispa" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="${esc(etiqueta)}">
     <title>${esc(etiqueta)}</title>
-    <polyline points="${pts.map(p => p.map(n => n.toFixed(1)).join(",")).join(" ")}" fill="none" stroke="var(--acento)"
-      stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+    ${linea(pts.slice(0, corte + 1))}${corte < pts.length - 1 ? linea(pts.slice(corte), 'stroke-dasharray="4 3"') : ""}
     <line x1="${ux.toFixed(1)}" y1="${uy.toFixed(1)}" x2="${ux.toFixed(1)}" y2="${uy.toFixed(1)}" stroke="var(--acento)"
       stroke-width="7" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg>` +  // punto redondo aunque el SVG se estire
     (rot ? `<div class="chispa-rotulos"><span>${rot.ini}</span><span class="fin">${rot.fin}</span></div>
@@ -808,8 +879,8 @@ const ritmo = (p, t) => p < t - 5 ? "menor" : p > t + 5 ? "mayor" : "similar";
 // Celda de una vista en la tabla comparativa: avance, barra, devengado y presupuesto (PIM o marco)
 function celdaVista(t, base, marca, sinSede) {
   if (!t.pim) return `<td class="vacio">—${sinSede ? `<span class="nota"><br>Sede en Lima</span>` : ""}</td>`;
-  const p = pct(t.dev, t.pim);
-  return `<td><span class="av">${pctTxt(p)}</span>${medidor(p, marca)}<span class="montos">Devengado ${millones(t.dev)}<br>${base} ${millones(t.pim)}</span></td>`;
+  const p = pct(t.dev, t.pim), sm = semaforo(p, marca);
+  return `<td><span class="av">${pctTxt(p)}</span> ${ritmoTxt(sm)}${medidor(p, marca, sm)}<span class="montos">Devengado ${millones(t.dev)}<br>${base} ${millones(t.pim)}</span></td>`;
 }
 
 function pintarGastoPaneles() {
@@ -818,10 +889,10 @@ function pintarGastoPaneles() {
   const de = cond => [gastoDe(cond, 1), gastoDe(cond, 2)];
   const filasC = [
     ["Todo el gasto público", "", de(() => true), "PIM", trans],
-    [`Prevención: ${g("p0068")}`, "Reducción de vulnerabilidad y emergencias", de(r => r.programa === "0068"), "PIM"],
+    [`Prevención: ${g("p0068")}`, "Reducción de vulnerabilidad y emergencias", de(r => r.programa === "0068"), "PIM", trans],
     ...(D.fen ? [[`Emergencia por El Niño`, `${g("marco", "Marco")} de los decretos de emergencia`, [fenDe(1), fenDe(2)], "Marco"]] : []),
-    [`Reconstrucción: ${g("anin")}`, "Autoridad Nacional de Infraestructura", de(esAnin), "PIM"],
-    [`Salud y dengue: ${g("p0017")}`, "Enfermedades metaxénicas y zoonosis", de(r => r.programa === "0017"), "PIM"],
+    [`Reconstrucción: ${g("anin")}`, "Autoridad Nacional de Infraestructura", de(esAnin), "PIM", trans],
+    [`Salud y dengue: ${g("p0017")}`, "Enfermedades metaxénicas y zoonosis", de(r => r.programa === "0017"), "PIM", trans],
   ];
   $("gasto-comparativa").removeAttribute("aria-busy");
   $("gasto-comparativa").innerHTML = aviso(["gasto", "fen"]) + `<div class="tabla"><table>
@@ -829,7 +900,9 @@ function pintarGastoPaneles() {
     <thead><tr><th scope="col">Concepto</th><th scope="col">${g("lugar")}</th><th scope="col">${g("sede")}</th></tr></thead><tbody>` +
     filasC.map(([t, nota, [v1, v2], base, marca]) => `<tr><th scope="row">${t}${nota ? `<span class="nota">${nota}</span>` : ""}</th>
       ${celdaVista(v1, base, marca)}${celdaVista(v2, base, marca, v1.pim > 0)}</tr>`).join("") + `</tbody></table></div>
-    <p class="nota">Avance: devengado entre PIM (o marco). La marca en el total es el ${num(trans, 0)} % del año ya transcurrido.
+    <p class="nota">Avance: devengado entre PIM (o marco). La marca vertical es lo esperado a la fecha: el ${num(trans, 0)} % del año
+      transcurrido. A ritmo: hasta 5 puntos por debajo; algo lento: de 5 a 15; muy lento: más de 15. La emergencia FEN no lleva
+      semáforo: su marco no es un presupuesto anual.
       ${f}${D.fen ? `; emergencia FEN, datos al ${fecha(D.fen.fecha_corte)}` : ""}.</p>`;
 
   // Lo único que cambia entre las vistas: el gobierno nacional que gasta en Piura con sede fuera de la región
@@ -850,7 +923,7 @@ function pintarGastoPaneles() {
     pie: f });
 
   // Detalle: desglose por nivel de gobierno (una sola vez en la pestaña)
-  const celda = t => t.pim ? `<td class="n">${pctTxt(pct(t.dev, t.pim))}</td><td class="n">${num(t.dev / 1e6, 1)}</td><td class="n">${num(t.pim / 1e6, 1)}</td>`
+  const celda = t => t.pim ? `<td class="n">${pctTxt(pct(t.dev, t.pim))}<br>${ritmoTxt(semaforo(pct(t.dev, t.pim), trans))}</td><td class="n">${num(t.dev / 1e6, 1)}</td><td class="n">${num(t.pim / 1e6, 1)}</td>`
     : `<td class="n">—</td><td class="n">—</td><td class="n">—</td>`;
   $("gasto-niveles").innerHTML = `<thead><tr><th rowspan="2">Nivel de gobierno</th><th colspan="3">Gastado en Piura</th>
     <th colspan="3">Por entidades con sede en Piura</th></tr><tr>${'<th class="n">Avance</th><th class="n">Devengado (S/ millones)</th><th class="n">PIM (S/ millones)</th>'.repeat(2)}</tr></thead>
@@ -964,12 +1037,27 @@ function frenteABrotes() {
   return { comp, mas: comp.filter(([, c]) => c > d.totales.casos).map(([a]) => a), menos: comp.filter(([, c]) => c < d.totales.casos).map(([a]) => a) };
 }
 
+// Tendencia: las últimas 4 semanas completas frente a las 4 anteriores; las PRELIMINAR últimas no cuentan
+// (±10 %: "sube" o "baja"; si no, "se mantiene"). Serie de la tabla por distrito de la DIRESA.
+function tendenciaDengue(d = D.d26) {
+  const s = Object.fromEntries((d?.serie || []).map(([k, c]) => [k, c])), fin = d?.se - PRELIMINAR;
+  const tramo = a => { let t = 0; for (let k = a; k > a - 4; k--) { if (s[k] == null) return null; t += s[k]; } return t; };
+  const act = tramo(fin), ant = tramo(fin - 4);
+  if (act == null || ant == null) return null;
+  const cambio = pct(act - ant, ant);
+  const dir = cambio == null ? (act > 0 ? "sube" : "se mantiene") : cambio > 10 ? "sube" : cambio < -10 ? "baja" : "se mantiene";
+  const prelim = Array.from({ length: PRELIMINAR }, (_, i) => fin + 1 + i).filter(k => s[k] != null);
+  return { dir, act, ant, cambio, fin, prelim };
+}
+const fraseTendencia = t => !t ? "" : `Semanas ${t.fin - 3} a ${t.fin}: ${num(t.act)} casos${t.cambio == null ? "" :
+  `, ${t.cambio > 0 ? "+" : ""}${num(t.cambio, 0)} % frente a las semanas ${t.fin - 7} a ${t.fin - 4} (${num(t.ant)})`}.${t.prelim.length
+  ? ` ${t.prelim.length > 1 ? "Las semanas" : "La semana"} ${lista(t.prelim.map(String))} ${t.prelim.length > 1 ? "son" : "es"} ${g("preliminar",
+    t.prelim.length > 1 ? "preliminares" : "preliminar")} y no entran en la comparación.` : ""}`;
+
 // Frases del dengue (reglas en "Fuentes y método")
 function frasesDengue() {
-  const d = D.d26, serie = Object.fromEntries((d.serie || []).map(([s, c]) => [s, c])), se = d.se;
-  const ant = serie[se - 1], act = d.totales.semana;
-  const semana = ant == null ? "" : `${act > ant ? "Más" : act < ant ? "Menos" : "Igual"} que en la semana ${se - 1}
-    (${num(ant)})${PRELIMINAR >= 2 ? `; ambas cifras son ${g("preliminar", "preliminares")}` : ""}.`;
+  const d = D.d26;
+  const semana = fraseTendencia(tendenciaDengue(d));
   let anio = "";
   if (D.dh) {
     const { comp, mas, menos } = frenteABrotes();
@@ -988,7 +1076,8 @@ function pintarDenguePaneles() {
   el.innerHTML =
     panel({ titulo: `Casos de la semana ${d.se}`, cifra: num(t.semana), ud: g("cp"), vence: "d26",
       mini: d.serie?.length ? chispa(d.serie.map(s => s[1]), `Casos por semana en ${anioD()}`, { ini: `SE ${d.serie[0][0]}: ${num(d.serie[0][1])}`,
-        fin: `SE ${d.serie.at(-1)[0]}`, periodo: `Semanas ${d.serie[0][0]} a ${d.serie.at(-1)[0]} de ${anioD()}` }) : "", frase: fr.semana, pie }) +
+        fin: `SE ${d.serie.at(-1)[0]} (preliminar)`, periodo: `Semanas ${d.serie[0][0]} a ${d.serie.at(-1)[0]} de ${anioD()}`, prelim: PRELIMINAR }) : "",
+      frase: fr.semana, pie }) +
     panel({ titulo: "Casos en el año", cifra: num(t.casos), ud: `hasta la semana ${d.se}`, vence: "d26", frase: fr.anio, pie }) +
     panel({ titulo: "Fallecidos en el año", cifra: df ? num(df.total) : "—", vence: "d26",
       ud: df ? `${num(df.confirmadas)} confirmados y ${num(df.probables)} probables` : "sin dato validado",
@@ -1374,25 +1463,158 @@ function causas(par) {
   return Object.entries(c).sort((a, b) => b[1] - a[1]);
 }
 
+// Tiempo paralizada: desde la fecha de paralización de Infobras hasta la fecha de los datos (no el campo "días paralizado")
+const TRAMOS = [[183, "Menos de 6 meses"], [365, "De 6 a 12 meses"], [730, "De 1 a 2 años"], [Infinity, "Más de 2 años"]];
+const diasParalizada = x => { const f = aFecha(x.fecha_paralizacion), c = aFecha(D.obras.fecha_corte);
+  return f && c ? Math.max(0, Math.round((c - f) / 864e5)) : null; };
+const duracion = d => d == null ? "—" : d < 61 ? `${num(d)} días` : d < 730 ? `${num(Math.floor(d / 30.44))} meses` : `${num(d / 365.25, 1)} años`;
+
+// Nombre de obra en minúsculas, con provincias y distritos en mayúscula inicial, cortado a 70 caracteres en una palabra
+let lugares;
+function nombreCorto(t, max = 70) {
+  lugares ||= [...new Set([...D.obras.obras.flatMap(x => [x.provincia, x.distrito]), "Piura", "Perú"]
+    .filter(Boolean).map(x => x.toLowerCase().trim()))].sort((a, b) => b.length - a.length);
+  let r = String(t).trim().toLowerCase().replace(/\s+/g, " ");
+  for (const l of lugares) r = r.replace(new RegExp(`(?<!\\p{L})${l.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?!\\p{L})`, "gu"),
+    l.replace(/(^|[\s-])(\p{L})/gu, (m, a, b) => a + b.toUpperCase()));
+  r = r[0].toUpperCase() + r.slice(1);
+  return r.length <= max ? r : r.slice(0, r.lastIndexOf(" ", max)).replace(/[\s,;:.-]+$/, "") + "…";
+}
+
+// Barras de dos medidas (obras y costo) por categoría; filas = [[nombre, obras, costo, title?]]
+function barrasDobles(filas_) {
+  const mn = Math.max(...filas_.map(f => f[1])), mc = Math.max(...filas_.map(f => f[2] || 0));
+  return `<div class="barras-doble"><span class="cab k"></span><span class="cab">Obras</span><span class="cab">Costo</span>` +
+    filas_.map(([k, n, c, t]) => `<span class="k"${t ? ` title="${esc(t)}"` : ""}>${esc(k)}</span>
+      <span><span class="val">${num(n)}</span>${medidor(100 * n / mn)}</span>
+      <span><span class="val">${millones(c || 0).replace("\u00a0millones", "\u00a0M")}</span>${medidor(mc ? 100 * (c || 0) / mc : 0)}</span>`).join("") + `</div>`;
+}
+
+// Leaflet (versión fija desde cdnjs, con integridad), cargado solo cuando una pestaña lo necesita
+const CDN = "https://cdnjs.cloudflare.com/ajax/libs/";
+let leaflet;
+function cargarLeaflet() {
+  return leaflet ||= new Promise((ok, mal) => {
+    for (const [h, i] of [["leaflet/1.9.4/leaflet.min.css", "sha512-h9FcoyWjHcOcmEVkxOfTLnmZFWIH0iZhZT1H2TbOq55xssQGEJHEaIm+PgoUaZbRvQTNTluNOEfb1ZRy6D3BOw=="],
+      ["leaflet.markercluster/1.5.3/MarkerCluster.min.css", "sha512-ENrTWqddXrLJsQS2A86QmvA17PkJ0GVm1bqj5aTgpeMAfDKN2+SIOLpKG8R/6KkimnhTb+VW5qqUHB/r1zaRgg=="]])
+      document.head.insertAdjacentHTML("beforeend", `<link rel="stylesheet" href="${CDN}${h}" integrity="${i}" crossorigin="anonymous">`);
+    const js = (h, i) => new Promise((a, b) => document.head.append(Object.assign(document.createElement("script"),
+      { src: CDN + h, integrity: i, crossOrigin: "anonymous", onload: a, onerror: b })));
+    js("leaflet/1.9.4/leaflet.min.js", "sha512-puJW3E/qXDqYp9IfhAI54BJEaWIfloJ7JWs7OeD5i6ruC9JZL1gERT1wjtwXFlh7CjE7ZJ+/vcRZRkIYIb6p4g==")
+      .then(() => js("leaflet.markercluster/1.5.3/leaflet.markercluster.min.js", "sha512-TiMWaqipFi2Vqt4ugRzsF8oRoGFlFFuqIi30FFxEPNw58Ov9mOy6LgC05ysfkxwLE0xVeZtmr92wVg9siAFRWA=="))
+      .then(ok, mal);
+  });
+}
+const token = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();  // Leaflet no entiende var(--…)
+// Trazados de piura_distritos.json (ya proyectados) de vuelta a latitud y longitud: la proyección es lineal
+function anillosDistrito(d) {
+  const P = D.mapa.proyeccion;
+  return d.split("Z").filter(Boolean).map(r => r.slice(1).split("L").map(q => { const [x, y] = q.split(",").map(Number);
+    return [P.lat1 - y / P.escala, P.lon0 + x / (P.k * P.escala)]; }));
+}
+function centroDistrito(u) {
+  const ll = D.mapa?.distritos[u === "200115" ? "200101" : u] && anillosDistrito(D.mapa.distritos[u === "200115" ? "200101" : u].d).flat();
+  if (!ll?.length) return null;
+  const la = ll.map(x => x[0]), lo = ll.map(x => x[1]);
+  return [(Math.min(...la) + Math.max(...la)) / 2, (Math.min(...lo) + Math.max(...lo)) / 2];
+}
+const ubigeoMapa = () => { const r = {};
+  for (const [u, d] of Object.entries(D.mapa?.distritos || {})) r[sinTilde(d.provincia + "|" + d.nombre)] = u;
+  return (prov, dist) => sinTilde(dist) === "VEINTISEIS DE OCTUBRE" ? "200115" : r[sinTilde(prov + "|" + dist)]; };
+// Mapa base: distritos de Piura sobre el mapa claro de CARTO; sin rueda del ratón y, en celular, con dos dedos
+async function mapaBase(el, estilo, alClic) {
+  if (!D.mapa) { el.innerHTML = `<p class="sin-datos">No se pudieron cargar los límites distritales.</p>`; return null; }
+  try { await cargarLeaflet(); } catch (e) {
+    el.innerHTML = `<p class="sin-datos">No se pudo cargar el mapa (Leaflet, desde cdnjs). Los datos están en la tabla del detalle.</p>`;
+    return null;
+  }
+  el.innerHTML = "";
+  const m = L.map(el, { scrollWheelZoom: false, dragging: !L.Browser.mobile, tap: false, zoomSnap: .5 });
+  m.attributionControl.setPrefix('<a href="https://leafletjs.com">Leaflet</a>');
+  let avisado = false;
+  // CARTO (Positron) pide ahora una clave de API: fondo gris claro de Esri, sin clave (pendiente de confirmar, ver avance_tarea7)
+  L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}", { maxZoom: 16,
+    attribution: 'Teselas © <a href="https://www.esri.com">Esri</a> — Esri, DeLorme, NAVTEQ' })
+    .on("tileerror", () => { if (!avisado) { avisado = true;
+      el.insertAdjacentHTML("afterend", `<p class="nota">No cargó el mapa de fondo; los distritos y los puntos se ven igual.</p>`); } })
+    .addTo(m);
+  const capa = L.featureGroup(Object.entries(D.mapa.distritos).map(([u, d]) =>
+    L.polygon(anillosDistrito(d.d), { weight: 1, color: token("--superficie"), fillOpacity: .55, ...estilo(u, d) })
+      .on("click", ev => alClic && L.popup().setLatLng(ev.latlng).setContent(alClic(u, d)).openOn(m)))).addTo(m);
+  m.fitBounds(capa.getBounds(), { padding: [8, 8] });
+  if (L.Browser.mobile) el.insertAdjacentHTML("afterend", `<p class="nota">Usa dos dedos para acercar o mover el mapa.</p>`);
+  return m;
+}
+const grupoPuntos = () => L.markerClusterGroup({ showCoverageOnHover: false, maxClusterRadius: 40,
+  iconCreateFunction: c => { const n = c.getChildCount(), t = 24 + Math.min(16, 4 * Math.log2(n));
+    return L.divIcon({ html: `<span style="line-height:${t}px">${n}</span>`, className: "grupo-mapa", iconSize: [t, t] }); } });
+const punto = (ll, html) => L.marker(ll, { icon: L.divIcon({ className: "punto-mapa", iconSize: [12, 12] }), keyboard: true }).bindPopup(html);
+
+// Se crea una vez (la promesa se guarda: redibujar puede llamar varias veces antes de que termine); después solo se ajusta
+let mapaObras;
+async function pintarMapaObras() {
+  if (!$("mapa-obras") || !D.obras) return;
+  if (mapaObras) return (await mapaObras)?.invalidateSize();
+  mapaObras = crearMapaObras();
+}
+async function crearMapaObras() {
+  const el = $("mapa-obras");
+  const par = D.obras.obras.filter(x => !APARTE[x.codigo_infobras] && x.estado === "Paralizada"), ub = ubigeoMapa();
+  const porDist = {};
+  for (const x of par) { const u = ub(x.provincia, x.distrito); (porDist[u === "200115" ? "200101" : u] ||= []).push(x); }
+  const m = await mapaBase(el, u => ({ fillColor: porDist[u] ? token("--q2") : token("--neutro") }),
+    (u, d) => `<strong>${esc(mayus(d.nombre.toLowerCase()))}</strong> (${esc(mayus(d.provincia.toLowerCase()))})<br>${porDist[u]
+      ? `${num(porDist[u].length)} ${porDist[u].length > 1 ? "obras paralizadas" : "obra paralizada"}, ${millones(suma(porDist[u], "costo_et"))}` : "Sin obras paralizadas"}`);
+  if (!m) return null;
+  const grupo = grupoPuntos(), sin = [];
+  for (const x of par) {
+    const c = centroDistrito(ub(x.provincia, x.distrito));
+    if (!c) { sin.push(x); continue; }
+    grupo.addLayer(punto(c, `<strong>${esc(nombreCorto(x.obra))}</strong><br>${distritoTxt(x)}<br>${x.costo_et == null ? "Costo no registrado"
+      : millones(x.costo_et)}. Paralizada hace ${duracion(diasParalizada(x))}.<br>Causa: ${esc(x.causal || "no registrada")}`));
+  }
+  m.addLayer(grupo);
+  $("nota-mapa-obras").innerHTML = `Cada punto es una obra, ubicada en el centro de su distrito (Infobras no trae coordenadas);
+    los números agrupan obras cercanas. Distritos en azul: con al menos una obra paralizada.${sin.length ? ` Sin polígono en el mapa:
+    ${sin.map(x => esc(x.distrito)).join(", ")}.` : ""} Límites: INEI 2007. Infobras, datos al ${fecha(D.obras.fecha_corte)}.`;
+  return m;
+}
+
 function pintarObras() {
   const o = D.obras;
   if (!o) { $("obras-paneles").innerHTML = `<p class="nota">No se pudieron cargar los datos de Infobras.</p>`; return; }
   const activas = o.obras.filter(x => !APARTE[x.codigo_infobras]), aparte = o.obras.filter(x => APARTE[x.codigo_infobras]);
   const de = e => activas.filter(x => x.estado === e), par = de("Paralizada"), eje = de("En Ejecución");
-  const cs = causas(par), top = cs.slice(0, 5), otras = cs.slice(5).reduce((s, [, n]) => s + n, 0);
-  const pie = `Infobras, datos al ${fecha(o.fecha_corte)}`;
+  const cs = causas(par), pie = `Infobras, datos al ${fecha(o.fecha_corte)}`;
+  const costoDe = l => suma(l, "costo_et"), deCausa = k => par.filter(x => (x.causal || "No registrada") === k);
+  const unicas = cs.filter(([, n]) => n === 1), filasCausa = cs.filter(([, n]) => n > 1).map(([k, n]) => [k, n, costoDe(deCausa(k))]);
+  if (unicas.length > 1) filasCausa.push([`Otras ${unicas.length} causas, con 1 obra cada una`, unicas.length,
+    costoDe(unicas.flatMap(([k]) => deCausa(k))), unicas.map(([k]) => k).join("; ")]);
+  else if (unicas.length) filasCausa.push([unicas[0][0], 1, costoDe(deCausa(unicas[0][0]))]);
+  const provs = Object.entries(par.reduce((a, x) => ((a[x.provincia] ||= []).push(x), a), {}))
+    .map(([k, l]) => [mayus(k.toLowerCase()), l.length, costoDe(l)]).sort((a, b) => b[1] - a[1] || b[2] - a[2]);
+  const dias = par.map(diasParalizada).filter(d => d != null);
+  const tramos = TRAMOS.map(([t, k], i) => [k, dias.filter(d => d < t && d >= (TRAMOS[i - 1]?.[0] ?? 0)).length]);
+  const maxCosto = Math.max(...par.map(x => x.costo_et || 0));
   const conMef = eje.filter(x => invObra(x)?.avance_fisico != null);
   $("obras-paneles").innerHTML =
-    panel({ titulo: g("paralizada", "Obras paralizadas"), cifra: num(par.length), ud: `costo total ${millones(suma(par, "costo_et"))}`, vence: "obras",
-      clase: "alerta ancho", pie, frase: cs.length ? `La causa registrada con más obras es «${esc(cs[0][0])}» (${num(cs[0][1])} de ${num(par.length)}).` : "",
-      extra: `<p class="nota antes-lista">Las 5 de mayor costo:</p><ol class="lista-corta">${porCosto(par).slice(0, 5).map(x =>
-        `<li><strong>${x.costo_et == null ? "Costo no registrado" : millones(x.costo_et)}</strong>: <span class="nombre-obra" title="${esc(x.obra)}">${esc(x.obra)}</span> ${distritoTxt(x)}.
-        Causa: ${esc(x.causal || "no registrada")}</li>`).join("")}</ol>` }) +
-    panel({ titulo: "Causas de paralización", ud: "número de obras paralizadas por causa registrada", pie, vence: "obras",
-      extra: `<div class="barras">${[...top, ...(otras ? [["Otras causas", otras]] : [])].map(([k, n]) =>
-        `<span>${esc(k)}</span><span>${num(n)}</span>${medidor(100 * n / top[0][1])}`).join("")}</div>` }) +
-    panel({ id: "brecha-panel", titulo: g("brecha", "¿Más pagado que construido?"), vence: "inv", pie: D.invMeta ? `MEF, datos al ${fecha(D.invMeta.fecha_corte)}` : "",
-      frase: fraseBrecha() }) +
+    panel({ titulo: g("paralizada", "Obras paralizadas"), cifra: num(par.length), ud: `costo total ${millones(costoDe(par))}`, vence: "obras",
+      clase: "ancho", pie, mini: par.length ? distintivo("paralizada", "Requieren atención") : "",
+      frase: cs.length ? `La causa registrada con más obras es «${esc(cs[0][0])}» (${num(cs[0][1])} de ${num(par.length)}).` : "",
+      extra: par.length ? `<h4 class="nota antes-lista">Las 5 de mayor costo</h4><ol class="lista-visual">${porCosto(par).slice(0, 5).map(x =>
+        `<li><div class="fila"><span title="${esc(x.obra)}">${esc(nombreCorto(x.obra))}</span><strong>${x.costo_et == null ? "Costo no registrado"
+          : millones(x.costo_et)}</strong></div>${medidor(maxCosto ? 100 * (x.costo_et || 0) / maxCosto : 0)}
+        <div class="meta"><span>${esc(nombreCorto(`${x.distrito} (${x.provincia})`))}</span><span>· paralizada hace ${duracion(diasParalizada(x))}</span>
+          <span class="etiqueta">${esc(x.causal || "Causa no registrada")}</span></div></li>`).join("")}</ol>` : "" }) +
+    (par.length ? panel({ titulo: "Causas de paralización", ud: "obras paralizadas y su costo, por causa registrada en Infobras", pie, vence: "obras", clase: "doble",
+      extra: barrasDobles(filasCausa) }) +
+    panel({ titulo: "Tiempo paralizada", ud: "obras paralizadas, desde su fecha de paralización hasta la fecha de los datos", pie, vence: "obras",
+      extra: `<div class="barras">${tramos.map(([k, n]) => `<span>${k}</span><span>${num(n)}</span>${medidor(100 * n / Math.max(...tramos.map(t => t[1])))}`).join("")}</div>`,
+      frase: dias.length ? `La mitad lleva más de ${duracion([...dias].sort((a, b) => a - b)[Math.floor(dias.length / 2)])}.` : "" }) +
+    panel({ titulo: "Obras paralizadas por provincia", clase: "ancho", pie, vence: "obras",
+      extra: `<div class="provincias"><div>${barrasDobles(provs)}</div><div><div id="mapa-obras" class="mapa-l" role="region"
+        aria-label="Mapa de obras paralizadas por distrito"></div><p class="nota" id="nota-mapa-obras"></p></div></div>` }) : "") +
+    panelBrecha(pie) +
     panel({ titulo: "Obras en ejecución", cifra: num(eje.length), ud: `costo total ${millones(suma(eje, "costo_et"))}`, clase: "ancho", vence: ["obras", "inv"],
       frase: `${num(conMef.length)} de ${num(eje.length)} tienen ${g("fisico", "avance físico")} en el MEF (por código único de
         inversión).`, extra: (o.ultimo_avance ? distintivo("desactualizado",
@@ -1410,7 +1632,9 @@ function pintarObras() {
   llenar("paralizadas", porCosto(par), x =>
     `<tr><td>${esc(x.obra)}</td><td>${esc(x.entidad)}</td><td>${distritoTxt(x)}</td>
       <td class="n">${x.costo_et == null ? "—" : num(x.costo_et)}</td><td class="n">${avanceObra(x)}</td>
-      <td>${esc(x.fecha_paralizacion || "—")}</td><td>${esc(x.causal || "—")}</td></tr>`, 7);
+      <td>${esc(x.fecha_paralizacion || "—")}</td><td class="n">${duracion(diasParalizada(x))}</td><td>${esc(x.causal || "—")}</td></tr>`, 8);
+  $("causas-tabla").innerHTML = cs.map(([k, n]) => `<tr><td>${esc(k)}</td><td class="n">${num(n)}</td>
+    <td class="n">${num(costoDe(deCausa(k)) / 1e6, 1)}</td></tr>`).join("");
   pintarListaObras();
   $("fuente-obras").innerHTML = fuente(o) + " Estado y causa según lo registrado por cada entidad en Infobras. " +
     notaInfobras(o) + (D.invMeta ? ` Avance físico de la inversión: ${enlace(D.invMeta)}. Datos MEF al ${fecha(D.invMeta.fecha_corte)}.` : "") +
@@ -1441,6 +1665,17 @@ function fraseBrecha() {
   return b.lista.length ? `${num(b.lista.length)} proyectos de Piura llevan pagado más de ${BRECHA} puntos por encima de lo
     construido; la lista está en el detalle.` : `Ningún proyecto supera hoy los ${BRECHA} puntos entre lo pagado y lo construido
     (la mayor diferencia es de ${num(b.max, 1)}, entre ${num(b.conAmbos.length)} proyectos).`;
+}
+function panelBrecha() {
+  const pie = D.invMeta ? `MEF, datos al ${fecha(D.invMeta.fecha_corte)}` : "", b = D.inv && datosBrecha();
+  if (!b?.lista.length) return panel({ id: "brecha-panel", titulo: g("brecha", "¿Más pagado que construido?"), clase: "ancho una-linea",
+    vence: "inv", frase: fraseBrecha(), pie });
+  const n = D.gasto.nombres.codigo;
+  return panel({ id: "brecha-panel", titulo: g("brecha", "¿Más pagado que construido?"), clase: "ancho", vence: "inv", pie,
+    cifra: num(b.lista.length), ud: `proyectos con más de ${BRECHA} puntos entre lo pagado y lo construido`,
+    extra: `<ol class="lista-visual">${b.lista.slice(0, 5).map(r => `<li><div class="fila"><span title="${esc(n[r.cui] || r.cui)}">${esc(nombreCorto(n[r.cui] || r.cui))}</span>
+      <strong>${num(b.brecha(r), 1)} puntos</strong></div><div class="meta"><span>Pagado ${pctTxt(r.avance_financiero)}, construido ${pctTxt(r.avance_fisico)}</span>
+      <span class="cod" translate="no">${esc(r.cui)}</span></div></li>`).join("")}</ol>${b.lista.length > 5 ? `<p class="nota">La lista completa está en el detalle.</p>` : ""}` });
 }
 function pintarBrecha() {
   const el = $("brecha");
@@ -1601,15 +1836,10 @@ function graficosIPC() {
 /* ---------- Resumen ---------- */
 // Lo que pide atención hoy: reglas fijas sobre los datos (se listan en "Fuentes y método")
 // Semana actual y anterior de dengue, ambas de la tabla por distrito (la de provincias puede diferir en pocos casos)
-function semanasDengue(d) {
-  const de = s => d?.serie?.find(x => x[0] === s)?.[1];
-  const act = de(d?.se), ant = de(d?.se - 1);
-  return act != null && ant != null ? { act, ant } : null;
-}
-function alertasHoy({ sem, par, gasto }) {
+function alertasHoy({ tend, par, gasto }) {
   const items = [];
-  if (sem && sem.act > sem.ant)
-    items.push(`El dengue sube frente a la semana anterior.`);
+  if (tend?.dir === "sube")
+    items.push(`El dengue sube en las últimas 4 semanas completas.`);
   if (par?.length) items.push(`Hay obras paralizadas, con un costo de ${millones(suma(par, "costo_et"))}.`);
   if (gasto) {
     const { p, trans } = gasto;
@@ -1625,11 +1855,11 @@ function alertasHoy({ sem, par, gasto }) {
 function pintarResumen() {
   const el = $("resumen-paneles"), ps = [];
   const hoy = new Date().toLocaleDateString("es-PE", { day: "numeric", month: "long", year: "numeric" });
-  const d = D.d26, sem = semanasDengue(d);
+  const d = D.d26, tend = d?.totales && tendenciaDengue(d);
   const activas = D.obras ? D.obras.obras.filter(x => !APARTE[x.codigo_infobras]) : [], par = activas.filter(x => x.estado === "Paralizada");
   const t = D.gasto && gastoDe(() => true, 1);
   const gasto = D.gasto && { p: pct(t.dev, t.pim), trans: anioTranscurrido(D.gasto.fecha_corte, D.gasto.anio) };
-  const al = alertasHoy({ sem, par: D.obras && par, gasto });
+  const al = alertasHoy({ tend, par: D.obras && par, gasto });
   $("hoy").innerHTML = `<p class="fecha-hoy">Hoy, ${hoy}</p>
     <h2 class="pregunta">¿Cómo está Piura frente a El&nbsp;Niño?</h2>
     <div class="atencion${al.length ? "" : " calma"}">${al.length
@@ -1637,7 +1867,6 @@ function pintarResumen() {
       : `<h3>Ningún indicador en alerta</h3><p class="nota">Según las reglas del observatorio, descritas en Fuentes y método.</p>`}</div>`;
   // Cada panel: título con el hallazgo (reglas en "Fuentes y método"), cifra, mini-gráfica, una frase, enlace y fuente con su fecha
   if (d?.totales) {
-    const dir = !sem ? null : sem.act > sem.ant ? "sube" : sem.act < sem.ant ? "baja" : "se mantiene";
     const s0 = d.serie[0], s1 = d.serie.at(-1);
     let anio = "";
     if (D.dh) {
@@ -1645,45 +1874,45 @@ function pintarResumen() {
       anio = `En el año va ${mas.length && menos.length ? `por debajo de ${txt(mas)} y por encima de ${txt(menos)}`
         : mas.length ? `por debajo de ${txt(mas)}` : `por encima de ${txt(menos)}`} a la misma semana.`;
     }
-    ps.push(panel({ titulo: dir ? `El dengue ${dir} frente a la semana anterior` : "¿Cómo está el dengue?", cifra: num(d.totales.semana),
-      ud: `casos en la semana ${d.se}; cifras preliminares`, vence: "d26",
-      mini: chispa(d.serie.map(x => x[1]), `Casos por semana en ${anioD()}`,
-        { ini: `SE ${s0[0]}: ${num(s0[1])}`, fin: `SE ${s1[0]}`, periodo: `Semanas ${s0[0]} a ${s1[0]} de ${anioD()}` }),
-      frase: anio, ver: ["#dengue", "Ver dengue"], pie: `DIRESA Piura, semana ${d.se}, datos al ${fecha(d.fecha_corte)}` }));
-  } else ps.push(sinDatos("¿Cómo está el dengue?", "dengue de la DIRESA Piura"));
+    ps.push(panel({ titulo: tend ? `El dengue ${tend.dir} en las últimas 4 semanas completas` : "¿Cómo está el dengue?", clase: "destacado",
+      cifra: num(d.totales.semana), ud: `casos en la semana ${d.se}, ${g("preliminar", "preliminar")}`, vence: "d26",
+      mini: chispa(d.serie.map(x => x[1]), `Casos por semana en ${anioD()}; las ${PRELIMINAR} últimas, preliminares (punteadas)`,
+        { ini: `SE ${s0[0]}: ${num(s0[1])}`, fin: `SE ${s1[0]} (preliminar)`, periodo: `Semanas ${s0[0]} a ${s1[0]} de ${anioD()}`,
+          prelim: PRELIMINAR }),
+      frase: `${fraseTendencia(tend)} ${anio}`, ver: ["#dengue", "Ver dengue"], pie: `DIRESA Piura, semana ${d.se}, datos al ${fecha(d.fecha_corte)}` }));
+  } else ps.push(sinDatos("¿Cómo está el dengue?", "dengue de la DIRESA Piura").replace('class="panel ', 'class="panel destacado '));
   if (gasto) {
-    const { p, trans } = gasto, r = ritmo(p, trans);
+    const { p, trans } = gasto, r = ritmo(p, trans), sm = semaforo(p, trans);
     ps.push(panel({ titulo: `El gasto va ${r === "menor" ? "más lento que el" : r === "mayor" ? "más rápido que el" : "al ritmo del"} calendario`,
-      cifra: pctTxt(p), ud: "del presupuesto del año, gastado en Piura", vence: "gasto", mini: medidor(p, trans),
-      frase: `Ya pasó el ${num(trans, 0)} % del año (marca vertical).`, ver: ["#gasto", "Ver gasto"], pie: `MEF, datos al ${fecha(D.gasto.fecha_corte)}` }));
+      clase: "compacto", cifra: pctTxt(p), ud: `del presupuesto del año, gastado en Piura. Esperado: ${num(trans, 0)} % (marca)`, vence: "gasto",
+      mini: medidor(p, trans, sm) + ritmoTxt(sm), ver: ["#gasto", "Ver gasto"], pie: `MEF, datos al ${fecha(D.gasto.fecha_corte)}` }));
   }
   if (D.obras) {
-    const cs = causas(par), sh = pct(par.length, activas.length);
+    const sh = pct(par.length, activas.length);
     ps.push(panel({ titulo: par.length ? `El ${pctTxt(sh)} de las obras activas está paralizado` : "Ninguna obra activa está paralizada",
-      cifra: num(par.length), ud: "obras paralizadas", vence: "obras", mini: medidor(sh),
-      frase: cs.length ? `La causa más registrada es «${esc(cs[0][0])}».` : "", ver: ["#obras", "Ver obras"],
+      clase: "compacto", cifra: num(par.length), ud: `obras paralizadas, de ${num(activas.length)} activas`, vence: "obras", mini: medidor(sh),
+      ver: ["#obras", "Ver obras"],
       pie: `Infobras, datos al ${fecha(D.obras.fecha_corte)}` }));
-  } else ps.push(sinDatos("¿Cómo van las obras?", "obras de Infobras"));
+  } else ps.push(sinDatos("¿Cómo van las obras?", "obras de Infobras").replace('class="panel ', 'class="panel compacto '));
   if (D.camas) {
     const rep = D.camas.establecimientos.filter(x => x.reporto), conPd = rep.every(x => x.pacientes_dia != null);
     const oc = conPd ? pct(suma(rep, "pacientes_dia"), suma(rep, "dias_cama")) : null;
     const os = ocupacionSerie();
     ps.push(panel({ titulo: os?.dir ? `La ocupación de camas ${os.dir} frente a hace un año` : "¿Está preparada la salud?", cifra: pctTxt(oc),
-      ud: `de ocupación de camas, promedio de ${esc(D.camas.periodo)}`, vence: "camas",
+      clase: "compacto", ud: `de ocupación de camas en ${esc(D.camas.periodo)} (${num(rep.length)} establecimientos)`, vence: "camas",
       mini: os ? chispa(os.s.map(os.oc), "Ocupación de camas por mes", { ini: `${mesCorto(os.s[0].mes)}: ${pctTxt(os.oc(os.s[0]))}`,
         fin: `${mesCorto(os.u.mes)}`, periodo: `${mayus(mesTxt(os.s[0].mes))} a ${mesTxt(os.u.mes)}` }) : oc == null ? "" : medidor(oc),
-      frase: `En ${num(rep.length)} establecimientos que reportaron.`,
       ver: ["#salud", "Ver salud"], pie: `SUSALUD, ${esc(D.camas.periodo)}` }));
-  } else ps.push(sinDatos("¿Está preparada la salud?", "camas de SUSALUD"));
+  } else ps.push(sinDatos("¿Está preparada la salud?", "camas de SUSALUD").replace('class="panel ', 'class="panel compacto '));
   if (D.ipc?.serie?.length) {
     const s = D.ipc.serie.slice(-24), u = s.at(-1), dif = u.doce_meses - u.nacional_doce_meses;
     ps.push(panel({ titulo: `La inflación en Piura es ${dif >= 0.1 ? "mayor que" : dif <= -0.1 ? "menor que" : "similar a"} la nacional`,
-      cifra: pct2(u.doce_meses), ud: `de variación de precios en 12 meses, a ${mesTxt(u.mes)}`, vence: "ipc",
+      clase: "compacto", cifra: pct2(u.doce_meses), ud: `de variación de precios en 12 meses, a ${mesTxt(u.mes)}. Nacional: ${pct2(u.nacional_doce_meses)}`, vence: "ipc",
       mini: chispa(s.map(x => x.doce_meses), "Variación en 12 meses, últimos 24 meses",
         { ini: `${mesCorto(s[0].mes)}: ${pct2(s[0].doce_meses)}`, fin: mesCorto(u.mes),
           periodo: `${mayus(mesTxt(s[0].mes))} a ${mesTxt(u.mes)}` }),
-      frase: `Nacional: ${pct2(u.nacional_doce_meses)}.`, ver: ["#precios", "Ver precios"], pie: `INEI, ${mesTxt(u.mes)}` }));
-  } else ps.push(sinDatos("¿Cómo están los precios?", "precios del INEI"));
+      ver: ["#precios", "Ver precios"], pie: `INEI, ${mesTxt(u.mes)}` }));
+  } else ps.push(sinDatos("¿Cómo están los precios?", "precios del INEI").replace('class="panel ', 'class="panel compacto '));
   el.innerHTML = ps.join("");
   el.removeAttribute("aria-busy");
 }
@@ -1745,6 +1974,7 @@ function redibujar(tab) {
   if (tab === "dengue" && D.d26) graficoSemanas();
   if (tab === "precios") { graficosIPC(); graficoCanasta(); }
   if (tab === "salud") graficoOcupacion();
+  if (tab === "obras") pintarMapaObras();
 }
 function mostrar() {
   const h = decodeURIComponent(location.hash.slice(1)) || "resumen";
