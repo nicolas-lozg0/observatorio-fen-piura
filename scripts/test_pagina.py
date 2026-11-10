@@ -150,11 +150,13 @@ def main():
                 const baja = { ...d, serie: d.serie.map(([s, c]) => [s, s <= d.se - PRELIMINAR && s > d.se - PRELIMINAR - 4 ? 0 : c]) };
                 return { titulo, esperado: `El dengue ${t.dir} en las últimas 4 semanas completas`, igual: tendenciaDengue(prelim).dir === t.dir,
                   sube: tendenciaDengue(sube).dir, baja: tendenciaDengue(baja).dir,
-                  semaforo: [semaforo(80, 85)[1], semaforo(79.9, 85)[1], semaforo(70, 85)[1], semaforo(69.9, 85)[1]] };
+                  semaforo: [semaforo(80, 85)[1], semaforo(79.9, 85)[1], semaforo(70, 85)[1], semaforo(69.9, 85)[1]],
+                  nombres: [nombreCorto("  "), nombreCorto("A".repeat(90)).length, nombreCorto("MEJORAMIENTO DE LA I.E. EN PIURA")] };
             }""")
             revisar(r2["titulo"] == r2["esperado"] and r2["igual"] and r2["sube"] == "sube" and r2["baja"] == "baja",
                     f"regla del dengue: {r2}")
             revisar(r2["semaforo"] == ["ok", "lento", "lento", "muy-lento"], f"semáforo: {r2['semaforo']}")
+            revisar(r2["nombres"] == ["Obra sin nombre", 71, "Mejoramiento de la i.e. en Piura"], f"nombres cortos: {r2['nombres']}")
             # Mapas con Leaflet: dibujados, o con su mensaje si el CDN no respondió
             for tab, mapa in (("obras", "mapa-obras"), ("salud", "mapa-salud")):
                 pg.evaluate(f"location.hash = '#{tab}'")

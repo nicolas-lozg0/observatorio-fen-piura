@@ -28,7 +28,8 @@ Punto de partida: la identidad de https://www.udep.edu.pe/fen/ (azul marino inst
 
 **Colores de datos** (validados con la skill dataviz; no se usan en la interfaz):
 - Comparación (años de brote del dengue, IPC nacional): `--comp1` `#b48b40`, `--comp2` `#aa5e7d`, `--comp3` `#2f7442`.
-- Escala secuencial del mapa: `--q1` a `--q5`, de `#cde2fb` a `#184f95`.
+- Escala secuencial del mapa: `--q1` a `--q5`, de `#cde2fb` a `#184f95`. En el mapa de Salud colorea los casos de dengue por distrito.
+- Semáforo del presupuesto anual: `--ritmo-ok` `#1a9a8a` (a ritmo), `--ritmo-lento` `#c98200` (algo lento) y `--ritmo-muy-lento` (= `--alerta`, muy lento). Solo para la ejecución del presupuesto del año frente al calendario, siempre con su texto al lado. Separación para daltonismo de 12,3 o más y contraste de 3:1 o más sobre blanco; sobre `--pista` baja de 3:1, por eso el texto es obligatorio.
 
 La página está fija en modo claro (`data-theme="light"`, porque se incrustará en la web de la UDEP). Los tokens tienen versión oscura por si se activa.
 
@@ -70,12 +71,16 @@ Reglas:
 
 - **Panel** (`panel()` en el código): título, cifra principal (`--t-2xl`), unidad, distintivo de estado si aplica, mini-gráfica, una frase, enlace "Ver [pestaña] →" (solo en la portada) y pie con fuente y fecha.
 - **Mini-gráfica** (`chispa()`): sin ejes. Rotula el valor inicial y el final con su periodo, y debajo el periodo que cubre. El gráfico completo, con ejes, está en cada pestaña.
-- **Medidor**: barra de avance en `--acento` sobre `--pista`. La marca vertical es el porcentaje del año transcurrido.
+- **Medidor**: barra de avance en `--acento` sobre `--pista`. En el presupuesto del año, la barra toma el color del semáforo, lleva su texto («A ritmo», «Algo lento», «Muy lento») y una marca vertical con lo esperado: el porcentaje del año transcurrido.
+- **Panel destacado y compacto** (portada): el hallazgo más urgente (dengue) en `.destacado`, que ocupa dos filas; los otros 4 en `.compacto` (cifra `--t-xl`, sin frase), en 2 x 2 y de igual alto.
+- **Lista visual** (`.lista-visual`): nombre corto, monto a la derecha, barra proporcional y una línea de metadatos con etiquetas grises (`.etiqueta`).
+- **Barras dobles** (`barrasDobles()`): una fila por categoría con dos barras, número y monto, cada una con su propia escala.
+- **Mapa** (`mapaBase()`): Leaflet 1.9.4 y markercluster 1.5.3 desde cdnjs, con SRI, cargados solo al abrir la pestaña. Fondo de OpenStreetMap con su atribución, distritos de `piura_distritos.json`, puntos `--marino` agrupados, sin zoom con la rueda y, en celular, con dos dedos. Si no carga, lo dice.
 - **Botones**:
   - principal (`.boton`, "Siguiente"): relleno `--acento`;
   - secundario (`.boton-2`, "Ver detalle", "Ver más"): borde `--linea` y texto `--acento`.
   - Todos miden al menos 44 px de alto.
-- **Distintivos de estado**: solo dos, siempre con ícono y texto. "Dato no actualizado desde…" (reloj, rojo) y "En trámite" (reloj de arena, azul suave). Lo pendiente se dice en la frase del panel, con borde punteado.
+- **Distintivos de estado**: solo tres, siempre con ícono y texto. "Dato no actualizado desde…" (reloj, rojo), "En trámite" (reloj de arena, azul suave) y "Requieren atención" en obras paralizadas (pausa, rojo suave; reemplaza el borde de alerta). Lo pendiente se dice en la frase del panel, con borde punteado.
 - **Tabla comparativa** (Gasto): una fila por concepto y una columna por vista. En celular, el concepto va arriba y las dos vistas lado a lado.
 - **Carga y errores**: esqueletos mientras llegan los datos. Si una fuente no carga, su panel lo dice y sugiere volver a cargar.
 

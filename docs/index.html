@@ -743,7 +743,8 @@ const pct = (a, b) => b ? 100 * a / b : null;
 const pctTxt = p => p == null ? "—" : num(p, 1) + " %";
 const pct2 = p => p == null ? "—" : num(p, 2) + " %";
 // Semáforo del avance del presupuesto anual frente a lo esperado (% del año transcurrido)
-const SEMAFORO = [[-5, "ok", "A ritmo"], [-15, "lento", "Algo lento"], [-Infinity, "muy-lento", "Muy lento"]];
+const TOLERANCIA = 5;  // puntos frente al año transcurrido: título del gasto y semáforo ("a ritmo")
+const SEMAFORO = [[-TOLERANCIA, "ok", "A ritmo"], [-15, "lento", "Algo lento"], [-Infinity, "muy-lento", "Muy lento"]];
 const semaforo = (p, esperado) => p == null || esperado == null ? null : SEMAFORO.find(([d]) => p - esperado >= d);
 const ritmoTxt = sm => sm ? `<span class="ritmo" style="--c:var(--ritmo-${sm[1]})">${sm[2]}</span>` : "";
 const medidor = (p, marca, sm) => `<div class="medidor" title="${pctTxt(p)}"><div ${sm ? `class="${sm[1]}" ` : ""}style="width:${Math.min(100, Math.max(0, p || 0))}%"></div>${
@@ -875,7 +876,7 @@ function anioTranscurrido(iso, anio) {
   const c = new Date(String(iso).slice(0, 10) + "T12:00:00"), i = new Date(anio, 0, 1), f = new Date(anio + 1, 0, 1);
   return 100 * (c - i) / (f - i);
 }
-const ritmo = (p, t) => p < t - 5 ? "menor" : p > t + 5 ? "mayor" : "similar";
+const ritmo = (p, t) => p < t - TOLERANCIA ? "menor" : p > t + TOLERANCIA ? "mayor" : "similar";
 
 // Celda de una vista en la tabla comparativa: avance, barra, devengado y presupuesto (PIM o marco)
 function celdaVista(t, base, marca, sinSede) {
@@ -1328,8 +1329,12 @@ function mesesPocos(s) {
   return { med, lim: POCOS_REPORTES * med, idx: s.map((x, i) => x.reportaron < POCOS_REPORTES * med ? i : -1).filter(i => i >= 0) };
 }
 function graficoOcupacion() {
-  const o = ocupacionSerie();
-  if (!o || !$("g-ocupacion")) return;
+  const s = D.camasSerie?.serie, o = ocupacionSerie();
+  if (s?.length && $("g-reportaron")) graficoMeses($("g-reportaron"), s.map(x => x.mes),
+    [{ nombre: "Establecimientos que reportaron", color: "var(--acento)", v: s.map(x => x.reportaron) }], "barras", { fmt: v => num(v), eje: v => num(v) });
+  if (!$("g-ocupacion")) return;
+  if (!o) { $("nota-pocos").textContent = `La serie llega a ${s?.length ? mesTxt(s.at(-1).mes) : "otro mes"} y la cifra es de ${D.camas?.periodo ?? "otro mes"}:
+    no se mezclan. Se pondrán al día en la próxima actualización.`; return; }
   const pocos = mesesPocos(o.s);
   graficoMeses($("g-ocupacion"), o.s.map(x => x.mes), [{ nombre: "Piura", color: "var(--acento)", principal: true, v: o.s.map(o.oc) }],
     "lineas", { fmt: pctTxt, marcas: pocos.idx.map(i => [i, `${mayus(mesTxt(o.s[i].mes))}: solo ${o.s[i].reportaron} establecimientos reportaron`]) });
@@ -1337,8 +1342,6 @@ function graficoOcupacion() {
     (el 85 % de la mediana, ${num(pocos.med)}): ${lista(pocos.idx.map(i => `${mesTxt(o.s[i].mes)} (${o.s[i].reportaron})`))}. Esos promedios
     son menos comparables. Cuántos reportaron cada mes está en el detalle.` : `Todos los meses reportaron al menos ${num(Math.ceil(pocos.lim))}
     establecimientos (el 85 % de la mediana, ${num(pocos.med)}). Cuántos reportaron cada mes está en el detalle.`;
-  graficoMeses($("g-reportaron"), o.s.map(x => x.mes), [{ nombre: "Establecimientos que reportaron", color: "var(--acento)", v: o.s.map(x => x.reportaron) }],
-    "barras", { fmt: v => num(v), eje: v => num(v) });
 }
 
 // Mapa de salud (Leaflet): distritos coloreados por casos de dengue del año (quintiles) y establecimientos con camas, agrupados
@@ -1483,8 +1486,10 @@ function nombreCorto(t, max = 70) {
   let r = String(t).trim().toLowerCase().replace(/\s+/g, " ");
   for (const l of lugares) r = r.replace(new RegExp(`(?<!\\p{L})${l.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?!\\p{L})`, "gu"),
     l.replace(/(^|[\s-])(\p{L})/gu, (m, a, b) => a + b.toUpperCase()));
-  r = r[0].toUpperCase() + r.slice(1);
-  return r.length <= max ? r : r.slice(0, r.lastIndexOf(" ", max)).replace(/[\s,;:.-]+$/, "") + "…";
+  if (!r) return "Obra sin nombre";
+  r = r.charAt(0).toUpperCase() + r.slice(1);
+  const corte = r.lastIndexOf(" ", max);
+  return r.length <= max ? r : r.slice(0, corte > 0 ? corte : max).replace(/[\s,;:.-]+$/, "") + "…";
 }
 
 // Barras de dos medidas (obras y costo) por categoría; filas = [[nombre, obras, costo, title?]]
