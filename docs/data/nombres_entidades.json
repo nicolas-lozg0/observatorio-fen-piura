@@ -58,6 +58,8 @@
     "342": "Instituto Peruano del Deporte (IPD)",
     "345": "Consejo Nacional para la Integración de la Persona con Discapacidad (Conadis)",
     "457": "Gobierno Regional de Piura",
+    "301561": "Municipalidad Distrital de Salitral (Morropón)",
+    "301580": "Municipalidad Distrital de Salitral (Sullana)",
     "521": "Universidad Nacional de Piura (UNP)",
     "548": "Universidad Nacional de Frontera (UNF)",
     "566": "Universidad Nacional de Sechura",
@@ -65,6 +67,8 @@
   },
   "infobras": {
     "AUTORIDAD NACIONAL DE INFRAESTRUCTURA": "Autoridad Nacional de Infraestructura (ANIN)",
+    "MUNICIPALIDAD DISTRITAL DE SALITRAL MORROPON": "Municipalidad Distrital de Salitral (Morropón)",
+    "MUNICIPALIDAD DISTRITAL DE SALITRAL SULLANA": "Municipalidad Distrital de Salitral (Sullana)",
     "GOBIERNO REGIONAL PIURA": "Gobierno Regional de Piura",
     "GERENCIA SUB REGIONAL LUCIANO CASTILLO COLONNA": "Gerencia Subregional Luciano Castillo Colonna",
     "GERENCIA SUB REGIONAL MORROPON HUANCABAMBA": "Gerencia Subregional Morropón Huancabamba",

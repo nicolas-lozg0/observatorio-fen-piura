@@ -52,7 +52,7 @@ Para verla en local: `python3 -m http.server 8000 -d docs` y abrir http://localh
   - Cada una va con su nombre completo y la sigla entre paréntesis.
 - **Nota de los S/ 0,2 millones:** la del gobierno regional pasó a «Fuentes y método», en «Dos puntos de vista del gasto».
 - **Nombres legibles en toda la página** (gasto, filtros, tablas y obras), desde `docs/data/nombres_entidades.json`:
-  - 61 entidades del MEF por código y 22 de Infobras por nombre, escritos a mano;
+  - 63 entidades del MEF por código y 24 de Infobras por nombre, escritos a mano. Las dos municipalidades de Salitral llevan su provincia: «Municipalidad Distrital de Salitral (Morropón)» y «(Sullana)»;
   - una lista de tildes («Morropón», «Colán», «Máncora», «Los Órganos», «Sícchez»…);
   - si falta una entidad, una regla la escribe con mayúscula inicial y conectores en minúscula a partir del nombre original: «Municipalidad Distrital de La Unión».
   - Provincias y distritos también llevan sus tildes.
@@ -121,7 +121,6 @@ Las otras pestañas en celular:
 
 ## Pendiente
 
-- Dos municipalidades distintas se llaman «Municipalidad Distrital de Salitral» (Morropón y Sullana). El MEF tampoco las distingue. Se podría agregar la provincia en el diccionario.
 - Probar los términos subrayados con un lector de pantalla real (VoiceOver o NVDA). Se probaron con teclado y con el navegador.
 - Sigue pendiente lo de la ronda 7: probar el mapa en un celular real y decidir el mapa de fondo.
 
