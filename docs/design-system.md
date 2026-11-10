@@ -7,7 +7,7 @@ Punto de partida: la identidad de https://www.udep.edu.pe/fen/ (azul marino inst
 ## Principios
 
 1. **Un solo acento.** El azul `--acento` marca lo importante: Piura, el año en curso y el botón principal. Lo demás es neutro.
-2. **El rojo es un estado, no un adorno.** Solo para alertas: "Piden atención" y "Dato no actualizado".
+2. **El rojo es un estado, no un adorno.** Solo para alertas: la cifra de obras paralizadas, el semáforo «Muy lento» y "Dato no actualizado".
 3. **Jerarquía con tipografía, tamaño y espacio.** Sin íconos decorativos, sin líneas ni cajas que no informen. Los paneles son superficies blancas separadas por espacio.
 4. **Títulos que dicen el hallazgo.** Salen de reglas fijas sobre los datos (documentadas en "Fuentes y método"); si ninguna aplica, el título es la pregunta.
 5. **Cada cifra con su fuente y fecha.**
@@ -80,7 +80,7 @@ Reglas:
   - principal (`.boton`, "Siguiente"): relleno `--acento`;
   - secundario (`.boton-2`, "Ver detalle", "Ver más"): borde `--linea` y texto `--acento`.
   - Todos miden al menos 44 px de alto.
-- **Distintivos de estado**: solo tres, siempre con ícono y texto. "Dato no actualizado desde…" (reloj, rojo), "En trámite" (reloj de arena, azul suave) y "Requieren atención" en obras paralizadas (pausa, rojo suave; reemplaza el borde de alerta). Lo pendiente se dice en la frase del panel, con borde punteado.
+- **Distintivos de estado**: solo dos, siempre con ícono y texto. "Dato no actualizado desde…" (reloj, rojo) y "En trámite" (reloj de arena, azul suave). Una cifra que pide atención (obras paralizadas) va en el rojo de alerta, sin etiqueta (clase `cifra-alerta`). Lo pendiente se dice en la frase del panel, con borde punteado.
 - **Tabla comparativa** (Gasto): una fila por concepto y una columna por vista. En celular, el concepto va arriba y las dos vistas lado a lado.
 - **Carga y errores**: esqueletos mientras llegan los datos. Si una fuente no carga, su panel lo dice y sugiere volver a cargar.
 

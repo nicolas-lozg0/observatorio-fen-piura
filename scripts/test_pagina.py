@@ -122,7 +122,7 @@ def main():
                 # Todo var(--token) usado en la página (estilos y SVG generados) debe estar definido
                 sin_definir = pg.evaluate("""() => { const css = getComputedStyle(document.documentElement);
                     const usados = new Set([...document.documentElement.outerHTML.matchAll(/var\\((--[\\w-]+)[),]/g)].map(m => m[1]));
-                    return [...usados].filter(v => v !== '--c' && !css.getPropertyValue(v).trim()); }""")
+                    return [...usados].filter(v => !['--c', '--x', '--p'].includes(v) && !css.getPropertyValue(v).trim()); }""")
                 revisar(not sin_definir, f"{ancho}px: tokens sin definir: {sin_definir}")
                 revisar(not errores, f"{ancho}px: errores en la consola: {errores[:3]}")
                 pg.close()
@@ -151,12 +151,14 @@ def main():
                 return { titulo, esperado: `El dengue ${t.dir} en las últimas 4 semanas completas`, igual: tendenciaDengue(prelim).dir === t.dir,
                   sube: tendenciaDengue(sube).dir, baja: tendenciaDengue(baja).dir,
                   semaforo: [semaforo(80, 85)[1], semaforo(79.9, 85)[1], semaforo(70, 85)[1], semaforo(69.9, 85)[1]],
-                  nombres: [nombreCorto("  "), nombreCorto("A".repeat(90)).length, nombreCorto("MEJORAMIENTO DE LA I.E. EN PIURA")] };
+                  nombres: [nombreCorto("  "), nombreCorto("A".repeat(90)).length, nombreCorto("MEJORAMIENTO DE LA I E SAN JOSE EN LA LOCALIDAD DE CASTILLA DISTRITO DE CASTILLA"),
+                    duracion(0), duracion(250), duracion(365.25 * 4 + 3), duracion(640)] };
             }""")
             revisar(r2["titulo"] == r2["esperado"] and r2["igual"] and r2["sube"] == "sube" and r2["baja"] == "baja",
                     f"regla del dengue: {r2}")
             revisar(r2["semaforo"] == ["ok", "lento", "lento", "muy-lento"], f"semáforo: {r2['semaforo']}")
-            revisar(r2["nombres"] == ["Obra sin nombre", 71, "Mejoramiento de la i.e. en Piura"], f"nombres cortos: {r2['nombres']}")
+            revisar(r2["nombres"] == ["Obra sin nombre", 90, "I.E. san jose", "menos de 1 mes", "8 meses", "4 años", "1 año y 9 meses"],
+                    f"nombres cortos y duraciones: {r2['nombres']}")
             # Mapas con Leaflet: dibujados, o con su mensaje si el CDN no respondió
             for tab, mapa in (("obras", "mapa-obras"), ("salud", "mapa-salud")):
                 pg.evaluate(f"location.hash = '#{tab}'")

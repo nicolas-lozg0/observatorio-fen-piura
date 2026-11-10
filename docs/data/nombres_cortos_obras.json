@@ -1,0 +1,15 @@
+{
+  "nota": "Nombres cortos corregidos a mano, por código Infobras. El CUI es solo de referencia. El nombre completo sigue en el detalle. Si una obra no está aquí, la página aplica la regla de nombreCorto().",
+  "obras": {
+    "44422": { "cui": "2040186", "corto": "Presa Tronera Sur y túnel trasandino del Alto Piura" },
+    "88999": { "cui": "2260867", "corto": "Tratamiento de aguas servidas de Sullana y Bellavista" },
+    "154126": { "cui": "2250179", "corto": "Banda ancha para la región Piura" },
+    "114837": { "cui": "2427250", "corto": "Pistas y veredas de Ayabaca" },
+    "176278": { "cui": "2566149", "corto": "Camino vecinal de Santa Elena a Chipillico" },
+    "44190": { "cui": "0", "corto": "Impermeabilización de tuberías en la refinería Talara" },
+    "172051": { "cui": "2559517", "corto": "Centro de salud I-3 de Jililí" },
+    "127594": { "cui": "2047334", "corto": "I.E. Señor de los Milagros de Paita" },
+    "167367": { "cui": "2536052", "corto": "Bocatoma Chipillico" },
+    "102522": { "cui": "2225783", "corto": "Pavimentación de vías y veredas de Salitral" }
+  }
+}

@@ -158,18 +158,12 @@
   .distintivo svg { width: 14px; height: 14px; flex: none; }
   .d-desactualizado { color: var(--alerta); background: var(--alerta-suave); }
   .d-tramite { color: var(--titulo); background: var(--acento-suave); }
-  .d-paralizada { color: var(--alerta); background: var(--alerta-suave); }
+  .panel.cifra-alerta .cifra { color: var(--alerta); }  /* cifra que pide atención: el rojo de alerta, sin etiqueta */
 
   /* ===== Portada ===== */
   .hoy { margin-bottom: var(--e5); }
-  .hoy .fecha-hoy { color: var(--texto-3); margin: 0 0 var(--e1); }
-  .hoy .pregunta { font-size: clamp(1.75rem, 5vw, 2.75rem); line-height: 1.1; max-width: 20ch; margin: 0 0 var(--e4); }
-  .atencion { background: var(--alerta-suave); border-radius: var(--r-panel); padding: var(--e4) var(--e5); max-width: 760px; }
-  .atencion h3 { color: var(--alerta); margin-bottom: var(--e1); }
-  .atencion ul { margin: 0; padding-left: var(--e5); }
-  .atencion li { margin-bottom: var(--e1); }
-  .atencion.calma { background: var(--acento-suave); }
-  .atencion.calma h3 { color: var(--titulo); }
+  .hoy .pregunta { font-size: clamp(1.75rem, 4.2vw, 2.5rem); line-height: 1.1; margin: 0; text-align: left; text-wrap: balance; }
+  @media (min-width: 1000px) { .hoy .pregunta { white-space: nowrap; } }  /* una sola línea en escritorio */
   /* Portada: el hallazgo más urgente (dengue) destacado y los otros 4 compactos en 2 x 2, todos de igual alto */
   .resumen .paneles { grid-template-columns: minmax(0, 6fr) repeat(2, minmax(0, 4fr)); grid-auto-rows: 1fr; }
   .resumen .panel.destacado { grid-row: span 2; }
@@ -204,6 +198,21 @@
   .lista-visual .fila { display: flex; justify-content: space-between; gap: var(--e3); font-size: var(--t-sm); }
   .lista-visual .fila strong { white-space: nowrap; }
   .lista-visual .medidor { height: 6px; margin: var(--e1) 0; }
+  .lista-visual .monto { font-weight: 700; color: var(--titulo); font-size: var(--t-sm); margin-top: 2px; }
+  .lista-visual .nombre { font-size: var(--t-sm); }
+  /* Rótulo "esperado X %" junto a la marca vertical de un medidor */
+  .rot-esperado { display: block; width: max-content; font-size: var(--t-xs); color: var(--texto-3); margin-top: calc(-1 * var(--e1));
+    position: relative; left: var(--x); }
+  .rot-esperado.a-la-izq { transform: translateX(calc(-100% + 1px)); padding-right: var(--e1); border-right: 1px solid var(--texto-3); }
+  .rot-esperado.a-la-der { padding-left: var(--e1); border-left: 1px solid var(--texto-3); }
+  /* Barras horizontales de una medida: categoría y conteo arriba, barra con su monto al final */
+  .barras-h { list-style: none; margin: var(--e2) 0 0; padding: 0; display: grid; gap: var(--e3); }
+  .barras-h .k { font-size: var(--t-sm); }
+  .barras-h .k small { color: var(--texto-3); font-size: var(--t-xs); white-space: nowrap; }
+  .barras-h .b { display: flex; align-items: center; gap: var(--e2); margin-top: 2px; }
+  .barras-h .b i { flex: none; height: 10px; width: calc((100% - 7.5rem) * var(--p)); min-width: 2px; background: var(--acento);
+    border-radius: 0 4px 4px 0; }
+  .barras-h .b span { font-size: var(--t-xs); font-weight: 700; color: var(--texto-2); white-space: nowrap; font-variant-numeric: tabular-nums; }
   .lista-visual .meta { display: flex; flex-wrap: wrap; gap: var(--e1) var(--e2); align-items: center; font-size: var(--t-xs); color: var(--texto-3); }
   .etiqueta { display: inline-block; padding: 2px var(--e2); border-radius: var(--r-pastilla); background: var(--fondo); color: var(--texto-2);
     font-size: var(--t-xs); line-height: 1.4; }
@@ -235,7 +244,6 @@
   .lista-corta { margin: 0; padding-left: var(--e5); font-size: var(--t-sm); }
   .lista-corta li { margin-bottom: var(--e2); }
   /* nombres de obra largos: dos líneas en la vista simple (el nombre completo va en la tabla del detalle) */
-  .nombre-obra { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
   /* ===== Gasto: tabla comparativa de las dos vistas ===== */
   .comparativa { background: var(--superficie); border-radius: var(--r-panel); padding: var(--e2) var(--e5) var(--e4); }
@@ -649,12 +657,12 @@
           <li><strong>Obras.</strong> Cuenta las obras paralizadas y su costo, y nombra la causa registrada con más obras. El
             tiempo paralizada se cuenta desde la «fecha de paralización» de Infobras hasta la fecha de los datos; no se usa el
             campo «días paralizado», que no cuadra con esa fecha (muchas obras paralizadas hace años dicen 30 o 31 días).
-            Los nombres de obra de las listas se acortan a 70 caracteres; el nombre completo está al pasar el cursor y en el detalle.</li>
+            El tiempo se escribe en años y meses completos. Los nombres de obra de las listas se acortan con una regla (sin
+            «Mejoramiento de», «Construcción de» y otros prefijos, ni la ubicación al final) o, para las de mayor costo, con un
+            nombre corregido a mano (docs/data/nombres_cortos_obras.json); el nombre completo está al pasar el cursor y en el
+            detalle. Las causas se ordenan por monto; «Otras» reúne «Otras causales» y las causas con una sola obra. Si una
+            sola obra explica más de la mitad del monto de la causa principal, el título la nombra.</li>
           <li><strong>Salud.</strong> Ocupación promedio del último mes publicado y número de establecimientos que reportaron.</li>
-          <li><strong>Piden atención (portada).</strong> Se listan los indicadores que cumplen alguna regla: dengue que «sube»
-            según la tendencia de semanas completas (arriba); obras paralizadas (si hay al menos una); gasto con una proporción
-            «menor» que el año transcurrido (regla del gasto, arriba); fuentes que pasaron su plazo sin actualizarse. Si ninguno
-            la cumple, la portada lo dice.</li>
           <li><strong>Títulos de la portada.</strong> Dicen el hallazgo con las mismas reglas: dengue, «sube», «baja» o «se mantiene»
             en las últimas 4 semanas completas (tendencia, arriba), y en el año, por encima o por debajo de 2017, 2023 y 2024 a la
             misma semana; gasto, el ritmo frente al calendario (regla del gasto); obras, la proporción de obras activas paralizadas;
@@ -747,6 +755,8 @@ const TOLERANCIA = 5;  // puntos frente al año transcurrido: título del gasto 
 const SEMAFORO = [[-TOLERANCIA, "ok", "A ritmo"], [-15, "lento", "Algo lento"], [-Infinity, "muy-lento", "Muy lento"]];
 const semaforo = (p, esperado) => p == null || esperado == null ? null : SEMAFORO.find(([d]) => p - esperado >= d);
 const ritmoTxt = sm => sm ? `<span class="ritmo" style="--c:var(--ritmo-${sm[1]})">${sm[2]}</span>` : "";
+const esperadoTxt = marca => marca == null ? "" :
+  `<span class="rot-esperado ${marca > 50 ? "a-la-izq" : "a-la-der"}" style="--x:${Math.min(100, marca)}%">esperado ${num(marca, 0)} %</span>`;
 const medidor = (p, marca, sm) => `<div class="medidor" title="${pctTxt(p)}"><div ${sm ? `class="${sm[1]}" ` : ""}style="width:${Math.min(100, Math.max(0, p || 0))}%"></div>${
   marca == null ? "" : `<span class="marca" style="left:calc(${Math.min(100, marca)}% - 1px)"></span>`}</div>`;
 function fecha(iso) {
@@ -763,7 +773,6 @@ const DATOS = () => ({ obras: D.obras, camas: D.camas, gasto: D.gasto, inv: D.in
 // Distintivo de estado: desactualizado (reloj) o en trámite (reloj de arena); lo pendiente se dice en la frase del panel
 const ICONO_ESTADO = {
   desactualizado: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
-  paralizada: '<circle cx="12" cy="12" r="9"/><path d="M10 9v6M14 9v6"/>',
   tramite: '<path d="M7 3h10M7 21h10M8 3c0 5 8 5 8 9s-8 4-8 9M16 3c0 5-8 5-8 9s8 4 8 9"/>',
 };
 const distintivo = (tipo, texto, clase = "") => `<span class="distintivo d-${tipo} ${clase}"><svg viewBox="0 0 24 24" fill="none"
@@ -1466,6 +1475,17 @@ const notaInfobras = o => o.ultimo_avance ? `Archivo de datos abiertos de Infobr
 const distritoTxt = x => `${esc(x.distrito)} (${esc(x.provincia)})`;
 const porCosto = l => [...l].sort((a, b) => (b.costo_et || 0) - (a.costo_et || 0));
 
+// Causas por monto, con "Otras" (Otras causales y las causas con una sola obra) siempre al final
+function causasMonto(par) {
+  const c = {};
+  for (const x of par) { const k = x.causal || "No registrada"; (c[k] ||= []).push(x); }
+  const otras = Object.entries(c).filter(([k, l]) => k === "Otras causales" || l.length === 1);
+  const filas = Object.entries(c).filter(([k, l]) => !(k === "Otras causales" || l.length === 1))
+    .map(([k, l]) => ({ k, l, monto: suma(l, "costo_et") })).sort((a, b) => b.monto - a.monto);
+  const lo = otras.flatMap(([, l]) => l);
+  if (lo.length) filas.push({ k: "Otras", l: lo, monto: suma(lo, "costo_et"), detalle: otras.map(([k]) => k).join("; ") });
+  return filas;
+}
 function causas(par) {
   const c = {};
   for (const x of par) { const k = x.causal || "No registrada"; c[k] = (c[k] || 0) + 1; }
@@ -1476,21 +1496,39 @@ function causas(par) {
 const TRAMOS = [[183, "Menos de 6 meses"], [365, "De 6 a 12 meses"], [730, "De 1 a 2 años"], [Infinity, "Más de 2 años"]];
 const diasParalizada = x => { const f = aFecha(x.fecha_paralizacion), c = aFecha(D.obras.fecha_corte);
   return f && c ? Math.max(0, Math.round((c - f) / 864e5)) : null; };
-const duracion = d => d == null ? "—" : d < 61 ? `${num(d)} días` : d < 730 ? `${num(Math.floor(d / 30.44))} meses` : `${num(d / 365.25, 1)} años`;
+// Duración en años y meses completos: "4 años", "1 año y 9 meses", "8 meses"
+function duracion(d) {
+  if (d == null) return "—";
+  const m = Math.floor(d / 30.4375), a = Math.floor(m / 12), r = m % 12, pl = (n, u1, u2) => `${num(n)} ${n === 1 ? u1 : u2}`;
+  return !m ? "menos de 1 mes" : !a ? pl(r, "mes", "meses") : pl(a, "año", "años") + (r ? " y " + pl(r, "mes", "meses") : "");
+}
 
-// Nombre de obra en minúsculas, con provincias y distritos en mayúscula inicial, cortado a 70 caracteres en una palabra
+// Nombre corto de obra: sin prefijos genéricos ni sufijos de ubicación; lugares con mayúscula inicial y siglas conocidas.
+// No se corta: si no cabe, salta de línea. Los que la regla deja mal se corrigen en data/nombres_cortos_obras.json.
+const PREFIJO = /^((mejoramiento|ejecuci[oó]n|instalaci[oó]n|rehabilitaci[oó]n|creaci[oó]n|construcci[oó]n|ampliaci[oó]n)(\s*(,|y)\s*|\s+))+(del|de la|de los|de las|de|el|la|los|las)\s+/u;
+const SUFIJO = /\s*,?\s*(\ben (la localidad|el centro poblado|el caser[ií]o|los caser[ií]os) de\b|\bdistrito de\b|\bprovincia (y departamento )?de\b|\bdepartamento de piura\b).*$/u;
+const SIGLAS = [[/\bi\.?\s?e\.?(?=\s|$)/gu, "I.E."], [/\bse or\b/gu, "señor"], [/\b(pe|pi)(?=[\s-]\d)/gu, m => m.toUpperCase()]];
 let lugares;
-function nombreCorto(t, max = 70) {
+function nombreCorto(t) {
   lugares ||= [...new Set([...D.obras.obras.flatMap(x => [x.provincia, x.distrito]), "Piura", "Perú"]
     .filter(Boolean).map(x => x.toLowerCase().trim()))].sort((a, b) => b.length - a.length);
-  let r = String(t).trim().toLowerCase().replace(/\s+/g, " ");
+  let r = String(t ?? "").trim().toLowerCase().replace(/\s+/g, " ");
+  const sinPre = r.replace(PREFIJO, ""), sinSuf = sinPre.replace(SUFIJO, "");
+  r = sinSuf.length >= 6 ? sinSuf : sinPre.length >= 6 ? sinPre : r;  // si la regla lo deja casi vacío, se queda con el resto
+  for (const [re, x] of SIGLAS) r = r.replace(re, x);
   for (const l of lugares) r = r.replace(new RegExp(`(?<!\\p{L})${l.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?!\\p{L})`, "gu"),
     l.replace(/(^|[\s-])(\p{L})/gu, (m, a, b) => a + b.toUpperCase()));
+  r = r.replace(/[\s,;:.-]+$/, "");
   if (!r) return "Obra sin nombre";
-  r = r.charAt(0).toUpperCase() + r.slice(1);
-  const corte = r.lastIndexOf(" ", max);
-  return r.length <= max ? r : r.slice(0, corte > 0 ? corte : max).replace(/[\s,;:.-]+$/, "") + "…";
+  return r.charAt(0).toUpperCase() + r.slice(1);
 }
+const nombreObra = x => D.cortos?.obras?.[x.codigo_infobras]?.corto || nombreCorto(x.obra);
+// Pie de Infobras: fecha del archivo y último mes con registros nuevos
+const pieInfobras = o => `Infobras, archivo del ${fecha(o.fecha_corte)}${o.ultimo_avance
+  ? `; sin registros nuevos desde ${MESES[o.ultimo_avance.mes - 1]} de ${o.ultimo_avance.anio}` : ""}`;
+// Artículo para nombrar una causa en una frase ("el incumplimiento", "los vicios ocultos", "la falta…")
+const articulo = t => { const w = String(t).toLowerCase().split(/\s/)[0];
+  return w.endsWith("as") ? "las" : w.endsWith("s") ? "los" : /(a|ión|dad)$/.test(w) ? "la" : "el"; };
 
 // Barras de dos medidas (obras y costo) por categoría; filas = [[nombre, obras, costo, title?]]
 function barrasDobles(filas_) {
@@ -1583,13 +1621,13 @@ async function crearMapaObras() {
   for (const x of par) {
     const c = centroDistrito(ub(x.provincia, x.distrito));
     if (!c) { sin.push(x); continue; }
-    grupo.addLayer(punto(c, `<strong>${esc(nombreCorto(x.obra))}</strong><br>${distritoTxt(x)}<br>${x.costo_et == null ? "Costo no registrado"
-      : millones(x.costo_et)}. Paralizada hace ${duracion(diasParalizada(x))}.<br>Causa: ${esc(x.causal || "no registrada")}`, nombreCorto(x.obra)));
+    grupo.addLayer(punto(c, `<strong>${esc(nombreObra(x))}</strong><br>${distritoTxt(x)}<br>${x.costo_et == null ? "Costo no registrado"
+      : millones(x.costo_et)}. Paralizada hace ${duracion(diasParalizada(x))}.<br>Causa: ${esc(x.causal || "no registrada")}`, nombreObra(x)));
   }
   m.addLayer(grupo);
   $("nota-mapa-obras").innerHTML = `Cada punto es una obra, ubicada en el centro de su distrito (Infobras no trae coordenadas);
     los números agrupan obras cercanas. Distritos en azul: con al menos una obra paralizada.${sin.length ? ` Sin polígono en el mapa:
-    ${sin.map(x => esc(x.distrito)).join(", ")}.` : ""} Límites: INEI 2007. Infobras, datos al ${fecha(D.obras.fecha_corte)}.`;
+    ${sin.map(x => esc(x.distrito)).join(", ")}.` : ""} Límites: INEI 2007. ${pieInfobras(D.obras)}.`;
   return m;
 }
 
@@ -1598,29 +1636,35 @@ function pintarObras() {
   if (!o) { $("obras-paneles").innerHTML = `<p class="nota">No se pudieron cargar los datos de Infobras.</p>`; return; }
   const activas = o.obras.filter(x => !APARTE[x.codigo_infobras]), aparte = o.obras.filter(x => APARTE[x.codigo_infobras]);
   const de = e => activas.filter(x => x.estado === e), par = de("Paralizada"), eje = de("En Ejecución");
-  const cs = causas(par), pie = `Infobras, datos al ${fecha(o.fecha_corte)}`;
+  const cs = causas(par), pie = pieInfobras(o);
   const costoDe = l => suma(l, "costo_et"), deCausa = k => par.filter(x => (x.causal || "No registrada") === k);
-  const unicas = cs.filter(([, n]) => n === 1), filasCausa = cs.filter(([, n]) => n > 1).map(([k, n]) => [k, n, costoDe(deCausa(k))]);
-  if (unicas.length > 1) filasCausa.push([`Otras ${unicas.length} causas, con 1 obra cada una`, unicas.length,
-    costoDe(unicas.flatMap(([k]) => deCausa(k))), unicas.map(([k]) => k).join("; ")]);
-  else if (unicas.length) filasCausa.push([unicas[0][0], 1, costoDe(deCausa(unicas[0][0]))]);
+  const cm = causasMonto(par), total = costoDe(par), top5 = porCosto(par).slice(0, 5), pr = cm.find(c => c.k !== "Otras");
+  const mayor = pr && porCosto(pr.l)[0], casi = pr && pr.monto && (mayor.costo_et || 0) > pr.monto / 2;
+  const obrasTxt = n => `${num(n)} ${n === 1 ? "obra" : "obras"}`, pctE = (a, b) => `${num(pct(a, b), 0)}\u00a0%`;
   const provs = Object.entries(par.reduce((a, x) => ((a[x.provincia] ||= []).push(x), a), {}))
     .map(([k, l]) => [mayus(k.toLowerCase()), l.length, costoDe(l)]).sort((a, b) => b[1] - a[1] || b[2] - a[2]);
   const dias = par.map(diasParalizada).filter(d => d != null);
   const tramos = TRAMOS.map(([t, k], i) => [k, dias.filter(d => d < t && d >= (TRAMOS[i - 1]?.[0] ?? 0)).length]);
-  const maxCosto = Math.max(...par.map(x => x.costo_et || 0));
+  const maxMonto = Math.max(...cm.map(c => c.monto));
   const conMef = eje.filter(x => invObra(x)?.avance_fisico != null);
   $("obras-paneles").innerHTML =
     panel({ titulo: g("paralizada", "Obras paralizadas"), cifra: num(par.length), ud: `costo total ${millones(costoDe(par))}`, vence: "obras",
-      clase: "ancho", pie, mini: par.length ? distintivo("paralizada", "Requieren atención") : "",
+      clase: `ancho${par.length ? " cifra-alerta" : ""}`, pie,
       frase: cs.length ? `La causa registrada con más obras es «${esc(cs[0][0])}» (${num(cs[0][1])} de ${num(par.length)}).` : "",
-      extra: par.length ? `<h4 class="nota antes-lista">Las 5 de mayor costo</h4><ol class="lista-visual">${porCosto(par).slice(0, 5).map(x =>
-        `<li><div class="fila"><span title="${esc(x.obra)}">${esc(nombreCorto(x.obra))}</span><strong>${x.costo_et == null ? "Costo no registrado"
-          : millones(x.costo_et)}</strong></div>${medidor(maxCosto ? 100 * (x.costo_et || 0) / maxCosto : 0)}
+      extra: par.length ? `<h4 class="antes-lista">Las ${num(top5.length)} de mayor costo suman ${millones(costoDe(top5))}: el
+        ${pctE(costoDe(top5), total)} del costo de las ${num(par.length)}</h4><ol class="lista-visual">${top5.map(x =>
+        `<li><div class="nombre" title="${esc(x.obra)}">${esc(nombreObra(x))}</div><div class="monto">${x.costo_et == null ? "Costo no registrado"
+          : `${millones(x.costo_et)} · ${pctE(x.costo_et, total)}`}</div>
         <div class="meta"><span>${esc(nombreCorto(`${x.distrito} (${x.provincia})`))}</span><span>· paralizada hace ${duracion(diasParalizada(x))}</span>
           <span class="etiqueta">${esc(x.causal || "Causa no registrada")}</span></div></li>`).join("")}</ol>` : "" }) +
-    (par.length ? panel({ titulo: "Causas de paralización", ud: "obras paralizadas y su costo, por causa registrada en Infobras", pie, vence: "obras", clase: "doble",
-      extra: barrasDobles(filasCausa) }) +
+    (par.length ? panel({ titulo: pr ? `Por monto, la causa principal es ${articulo(pr.k)} ${esc(pr.k.charAt(0).toLowerCase() + pr.k.slice(1))}:
+        ${millones(pr.monto)} en ${obrasTxt(pr.l.length)}${casi ? `, casi todo por la obra «${esc(nombreObra(mayor))}»` : ""}` : "Causas de paralización",
+      ud: "costo de las obras paralizadas por causa registrada en Infobras; «Otras» reúne «Otras causales» y las causas con una sola obra",
+      pie, vence: "obras", clase: "doble",
+      extra: `<ol class="barras-h">${cm.map(c => `<li><div class="k"${c.detalle ? ` title="${esc(c.detalle)}"` : ""}>${esc(c.k)}
+        <small>${obrasTxt(c.l.length)}</small></div><div class="b"><i style="--p:${maxMonto ? c.monto / maxMonto : 0}"></i>
+        <span>${millones(c.monto).replace("\u00a0millones", "\u00a0M")}</span></div></li>`).join("")}</ol>
+        <p class="nota">El desglose de «Otras» está en el detalle.</p>` }) +
     panel({ titulo: "Tiempo paralizada", ud: "obras paralizadas, desde su fecha de paralización hasta la fecha de los datos", pie, vence: "obras",
       extra: `<div class="barras">${tramos.map(([k, n]) => `<span>${k}</span><span>${num(n)}</span>${medidor(100 * n / Math.max(...tramos.map(t => t[1])))}`).join("")}</div>`,
       frase: dias.length ? `La mitad lleva más de ${duracion([...dias].sort((a, b) => a - b)[Math.floor(dias.length / 2)])}.` : "" }) +
@@ -1633,7 +1677,7 @@ function pintarObras() {
         inversión).`, extra: (o.ultimo_avance ? distintivo("desactualizado",
         `Archivo de Infobras sin avances desde ${MESES[o.ultimo_avance.mes - 1]} de ${o.ultimo_avance.anio}`) : "") +
         `<p class="nota antes-lista">Las 5 de mayor costo, con el avance físico de su inversión según el MEF:</p>
-        <ol class="lista-corta">${porCosto(eje).slice(0, 5).map(x => `<li><strong>${avanceObra(x)}</strong>: <span class="nombre-obra" title="${esc(x.obra)}">${esc(x.obra)}</span>
+        <ol class="lista-corta">${porCosto(eje).slice(0, 5).map(x => `<li><strong>${avanceObra(x)}</strong>: <span title="${esc(x.obra)}">${esc(nombreObra(x))}</span>
         ${distritoTxt(x)}, ${x.costo_et == null ? "costo no registrado" : millones(x.costo_et)}.</li>`).join("")}</ol>`,
       pie: `${pie}${D.invMeta ? `; avance físico: MEF, datos al ${fecha(D.invMeta.fecha_corte)}` : ""}` });
 
@@ -1853,37 +1897,13 @@ function graficosIPC() {
 }
 
 /* ---------- Resumen ---------- */
-// Lo que pide atención hoy: reglas fijas sobre los datos (se listan en "Fuentes y método")
-// Semana actual y anterior de dengue, ambas de la tabla por distrito (la de provincias puede diferir en pocos casos)
-function alertasHoy({ tend, par, gasto }) {
-  const items = [];
-  if (tend?.dir === "sube")
-    items.push(`El dengue sube en las últimas 4 semanas completas.`);
-  if (par?.length) items.push(`Hay obras paralizadas, con un costo de ${millones(suma(par, "costo_et"))}.`);
-  if (gasto) {
-    const { p, trans } = gasto;
-    if (ritmo(p, trans) === "menor")
-      items.push(`El gasto público va más lento que el calendario.`);
-  }
-  const nombres = { obras: "obras", camas: "camas", gasto: "gasto", inv: "avance de proyectos", fen: "emergencia FEN", d26: "dengue", ipc: "precios" };
-  const viejos = Object.keys(PLAZOS).filter(k => aviso(k)).map(k => nombres[k]);
-  if (viejos.length) items.push(`Hay datos sin actualizar en el plazo esperado: ${lista(viejos)}.`);
-  return items;
-}
-
 function pintarResumen() {
   const el = $("resumen-paneles"), ps = [];
-  const hoy = new Date().toLocaleDateString("es-PE", { day: "numeric", month: "long", year: "numeric" });
   const d = D.d26, tend = d?.totales && tendenciaDengue(d);
   const activas = D.obras ? D.obras.obras.filter(x => !APARTE[x.codigo_infobras]) : [], par = activas.filter(x => x.estado === "Paralizada");
   const t = D.gasto && gastoDe(() => true, 1);
   const gasto = D.gasto && { p: pct(t.dev, t.pim), trans: anioTranscurrido(D.gasto.fecha_corte, D.gasto.anio) };
-  const al = alertasHoy({ tend, par: D.obras && par, gasto });
-  $("hoy").innerHTML = `<p class="fecha-hoy">Hoy, ${hoy}</p>
-    <h2 class="pregunta">¿Cómo está Piura frente a El&nbsp;Niño?</h2>
-    <div class="atencion${al.length ? "" : " calma"}">${al.length
-      ? `<h3>Piden atención</h3><ul>${al.map(x => `<li>${x}</li>`).join("")}</ul>`
-      : `<h3>Ningún indicador en alerta</h3><p class="nota">Según las reglas del observatorio, descritas en Fuentes y método.</p>`}</div>`;
+  $("hoy").innerHTML = `<h2 class="pregunta">¿Cómo está Piura frente a El&nbsp;Niño?</h2>`;
   // Cada panel: título con el hallazgo (reglas en "Fuentes y método"), cifra, mini-gráfica, una frase, enlace y fuente con su fecha
   if (d?.totales) {
     const s0 = d.serie[0], s1 = d.serie.at(-1);
@@ -1894,24 +1914,29 @@ function pintarResumen() {
         : mas.length ? `por debajo de ${txt(mas)}` : `por encima de ${txt(menos)}`} a la misma semana.`;
     }
     ps.push(panel({ titulo: tend ? `El dengue ${tend.dir} en las últimas 4 semanas completas` : "¿Cómo está el dengue?", clase: "destacado",
-      cifra: num(d.totales.semana), ud: `casos en la semana ${d.se}, ${g("preliminar", "preliminar")}`, vence: "d26",
+      cifra: !tend ? num(d.totales.semana) : tend.cambio == null ? `${num(tend.act)} casos`
+        : `${tend.cambio > 0 ? "+" : tend.cambio < 0 ? "−" : ""}${num(Math.abs(tend.cambio), 0)}\u00a0%`,
+      ud: !tend ? `casos en la semana ${d.se}, ${g("preliminar", "preliminar")}` : `${num(tend.act)} casos en las semanas ${tend.fin - 3} a ${tend.fin}${
+        tend.cambio == null ? "" : `, frente a ${num(tend.ant)} en las semanas ${tend.fin - 7} a ${tend.fin - 4}`}`, vence: "d26",
       mini: chispa(d.serie.map(x => x[1]), `Casos por semana en ${anioD()}; las ${PRELIMINAR} últimas, preliminares (punteadas)`,
         { ini: `SE ${s0[0]}: ${num(s0[1])}`, fin: `SE ${s1[0]} (preliminar)`, periodo: `Semanas ${s0[0]} a ${s1[0]} de ${anioD()}`,
           prelim: PRELIMINAR }),
-      frase: `${fraseTendencia(tend)} ${anio}`, ver: ["#dengue", "Ver dengue"], pie: `DIRESA Piura, semana ${d.se}, datos al ${fecha(d.fecha_corte)}` }));
+      frase: `${tend?.prelim.length ? `${tend.prelim.length > 1 ? "Las semanas" : "La semana"} ${lista(tend.prelim.map(String))}
+        ${tend.prelim.length > 1 ? "son" : "es"} ${g("preliminar", tend.prelim.length > 1 ? "preliminares" : "preliminar")}: van punteadas y no entran en la comparación. ` : ""}${anio}`,
+      ver: ["#dengue", "Ver dengue"], pie: `DIRESA Piura, semana ${d.se}, datos al ${fecha(d.fecha_corte)}` }));
   } else ps.push(sinDatos("¿Cómo está el dengue?", "dengue de la DIRESA Piura").replace('class="panel ', 'class="panel destacado '));
   if (gasto) {
     const { p, trans } = gasto, r = ritmo(p, trans), sm = semaforo(p, trans);
     ps.push(panel({ titulo: `El gasto va ${r === "menor" ? "más lento que el" : r === "mayor" ? "más rápido que el" : "al ritmo del"} calendario`,
-      clase: "compacto", cifra: pctTxt(p), ud: `del presupuesto del año, gastado en Piura. Esperado: ${num(trans, 0)} % (marca)`, vence: "gasto",
-      mini: medidor(p, trans, sm) + ritmoTxt(sm), ver: ["#gasto", "Ver gasto"], pie: `MEF, datos al ${fecha(D.gasto.fecha_corte)}` }));
+      clase: "compacto", cifra: pctTxt(p), ud: `del presupuesto del año, gastado en Piura`, vence: "gasto",
+      mini: medidor(p, trans, sm) + esperadoTxt(trans) + ritmoTxt(sm), ver: ["#gasto", "Ver gasto"], pie: `MEF, datos al ${fecha(D.gasto.fecha_corte)}` }));
   }
   if (D.obras) {
     const sh = pct(par.length, activas.length);
     ps.push(panel({ titulo: par.length ? `El ${pctTxt(sh)} de las obras activas está paralizado` : "Ninguna obra activa está paralizada",
-      clase: "compacto", cifra: num(par.length), ud: `obras paralizadas, de ${num(activas.length)} activas`, vence: "obras", mini: medidor(sh),
+      clase: `compacto${par.length ? " cifra-alerta" : ""}`, cifra: num(par.length), ud: `obras paralizadas, de ${num(activas.length)} activas`, vence: "obras", mini: medidor(sh),
       ver: ["#obras", "Ver obras"],
-      pie: `Infobras, datos al ${fecha(D.obras.fecha_corte)}` }));
+      pie: pieInfobras(D.obras) }));
   } else ps.push(sinDatos("¿Cómo van las obras?", "obras de Infobras").replace('class="panel ', 'class="panel compacto '));
   if (D.camas) {
     const rep = D.camas.establecimientos.filter(x => x.reporto), conPd = rep.every(x => x.pacientes_dia != null);
@@ -2028,9 +2053,9 @@ window.addEventListener("resize", () => {
 /* ---------- Arranque ---------- */
 (async () => {
   mostrar();
-  const [gasto, inv, fen, obras, dh, d26, camas, mapa, ipc, camasSerie, ipress, pobreza] = await Promise.all(["gasto_piura.json",
+  const [gasto, inv, fen, obras, dh, d26, camas, mapa, ipc, camasSerie, ipress, pobreza, cortos] = await Promise.all(["gasto_piura.json",
     "inversiones_piura.json", "fen_piura.json", "infobras_piura.json", "dengue_historico.json", "dengue_2026.json", "camas_piura.json",
-    "piura_distritos.json", "ipc_piura.json", "camas_serie.json", "ipress_piura.json", "lineas_pobreza.json"].map(cargar));
+    "piura_distritos.json", "ipc_piura.json", "camas_serie.json", "ipress_piura.json", "lineas_pobreza.json", "nombres_cortos_obras.json"].map(cargar));
   if (!gasto) {
     $("resumen-paneles").innerHTML = `<p>No se pudieron cargar los datos. Si abriste el archivo directamente, sírvelo con
       <code>python3 -m http.server -d docs</code> y entra a http://localhost:8000.</p>`;
@@ -2039,7 +2064,7 @@ window.addEventListener("resize", () => {
   D.gasto = { ...gasto, rows: filas(gasto) };
   if (inv) { D.invMeta = inv; D.inv = Object.fromEntries(filas(inv).map(r => [r.cui, r])); }
   if (fen) D.fen = { ...fen, rows: filas(fen) };
-  Object.assign(D, { obras, dh, d26, camas, mapa, ipc, camasSerie, ipress, pobreza });
+  Object.assign(D, { obras, dh, d26, camas, mapa, ipc, camasSerie, ipress, pobreza, cortos });
 
   document.querySelectorAll(".anio-d").forEach(e => e.textContent = anioD());
   const nombresTab = [...document.querySelectorAll(".pestanas a")].map(a => [a.getAttribute("href"), a.textContent]);
