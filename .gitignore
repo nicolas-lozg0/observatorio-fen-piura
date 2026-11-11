@@ -5,3 +5,5 @@ __pycache__/
 *.pdf
 # Archivos de origen descargados a mano (grandes o con datos por persona)
 data/raw/
+# Notas internas que no se publican (borradores de mensajes, etc.)
+privado/

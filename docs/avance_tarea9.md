@@ -194,3 +194,19 @@ Piura tiene dos distritos llamados Salitral: uno en Morropón (200406) y otro en
 ![Ventana de Salitral en celular](avance_tarea9/popup_salitral_375.webp)
 ![Ventana de Salitral en escritorio](avance_tarea9/popup_salitral_1280.webp)
 ![Leyenda de lo esperado en celular](avance_tarea9/leyenda_esperado_375.webp)
+
+## Camas: «posible error de registro» e historial de los establecimientos marcados
+
+- **Texto:** «Dato a revisar» pasó a **«Posible error de registro»** (en SUSALUD), en la ventana del mapa, la leyenda, la tabla y «Fuentes y método».
+- **Margen:** la regla acepta días-cama entre el 90 % y el **110 %** de camas × días del mes; antes era 105 %.
+  - Así dejan de marcarse el Hospital II Talara y el E.S. Consuelo de Velasco, que reportan unos 31 días-cama por cama en meses de 30 días: casi seguro cuentan 31 días todos los meses.
+  - Quedan **5 de 40**: C.S. Salitral, Hospital Militar, Clínica Auna, Clínica Virgen del Pilar y E.S. La Unión.
+- **Historial de los últimos 12 meses** (archivos mensuales de la Consulta D1 de SUSALUD, revisados uno por uno):
+  - **C.S. Salitral:** días-cama erráticos (200, 91, 120, 28, 140, 32, 95…) y ocupación sobre 100 % en junio, agosto y setiembre de 2026. Es un registro irregular mes a mes.
+  - **Hospital Militar:** siempre unos 1,1 días-cama por cama; las camas saltan de 11 a 69 entre julio y setiembre. Es un error sistemático.
+  - **Clínica Auna:** pasó de 63 a 142 camas en enero, pero sus días-cama siguen como los de unas 57 camas. Las camas probablemente están infladas; la ocupación se afecta poco.
+  - **Clínica Virgen del Pilar:** siempre entre 10 y 14 días-cama por cama, con camas erráticas. Es un error sistemático.
+  - **E.S. La Unión:** siempre unos 20 días-cama por cama. Es un error sistemático, o camas que no funcionan todo el mes.
+- **Qué se puede comprobar:** desde aquí solo se puede comprobar si los datos son coherentes, no cuál es el valor verdadero. Para confirmarlo hay que preguntar a SUSALUD. El borrador del mensaje está en la carpeta local `privado/mensaje_susalud.md`, que no se sube al repositorio, para que lo envíen ustedes.
+- **Total de camas (1.871):** no se tocó. «Fuentes y método» aclara que incluye establecimientos con posible error en el número de camas. Por la Clínica Auna y el Hospital Militar, podría estar inflado en unas 100 a 150 camas. La ocupación (58,7 %) se calcula con días-cama y se afecta menos.
+- **Idea futura:** que `camas_serie.py` guarde el historial por establecimiento, para que la ventana diga si el problema es de ese mes o de siempre («pasa en 9 de los últimos 12 meses»).

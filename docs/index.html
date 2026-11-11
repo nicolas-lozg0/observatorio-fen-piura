@@ -733,9 +733,11 @@
           <li><strong>Obras (Infobras).</strong> Solo se usa el estado y la causa de paralización, tal como los registra cada
             entidad. Se excluyen las filas cuyo mes de avance aún no termina a la fecha del archivo.</li>
           <li><strong>Camas (SUSALUD).</strong> Los establecimientos que no reportaron en el mes se muestran como tales. Se marcan
-            «a revisar» (en gris en el mapa) los que reportan días-cama que no cuadran con sus camas (fuera del 90 % al 105 % de
-            camas × días del mes) o una ocupación mayor a 100 %<span id="m-camas-raras"></span>. No se corrigen ni se excluyen: la
-            ocupación de Piura usa lo que reporta SUSALUD, y la serie de 24 meses viene ya sumada por mes, sin detalle por
+            con «posible error de registro» (en gris en el mapa) los que reportan días-cama que no cuadran con sus camas (fuera del
+            90 % al 110 % de camas × días del mes) o una ocupación mayor a 100 %<span id="m-camas-raras"></span>. No se corrigen ni
+            se excluyen: la ocupación de Piura usa lo que reporta SUSALUD, y la serie de 24 meses viene ya sumada por mes, sin
+            detalle por establecimiento. El total de camas incluye establecimientos con posible error de registro en el número de
+            camas; la ocupación se calcula con días-cama y se afecta menos. El dato correcto solo lo puede confirmar SUSALUD o el
             establecimiento.</li>
           <li><strong>IPC (INEI).</strong> En cada actualización se comprueba que la variación en 12 meses y la acumulada
             coincidan con las variaciones mensuales compuestas, y que febrero de 2026 coincida con el dato de control.</li>
@@ -1437,8 +1439,10 @@ function pintarMapa(r, anio) {
 
 /* ---------- Salud ---------- */
 const ocupacion = x => x.dias_cama ? 100 * x.pacientes_dia / x.dias_cama : null;
-// Calidad del dato de SUSALUD: los días-cama del mes deberían ser cerca de camas × días del mes (entre 90 % y 105 %), y la
-// ocupación no puede pasar de 100 %. Si no cuadra, se marca para revisar en la fuente; no se corrige ni se excluye del total.
+// Calidad del dato de SUSALUD: los días-cama del mes deberían ser cerca de camas × días del mes (entre 90 % y 110 %; el margen
+// cubre a quienes cuentan 31 días todos los meses), y la ocupación no puede pasar de 100 %. Si no cuadra, se marca como posible
+// error de registro; no se corrige ni se excluye del total.
+const DIAS_CAMA_OK = [.9, 1.1];
 function diasMes(periodo) {
   const m = String(periodo ?? "").match(/^(\p{L}+) de (\d{4})$/u), i = m ? MESES.indexOf(m[1].toLowerCase()) : -1;
   return i < 0 ? 30 : new Date(+m[2], i + 1, 0).getDate();
@@ -1447,16 +1451,17 @@ function diasMes(periodo) {
 function datoCamaCorto(x, periodo) {
   if (!datoCamaRaro(x, periodo)) return "";
   const esperado = x.camas * diasMes(periodo), r = x.dias_cama / esperado;
-  return r >= .9 && r <= 1.05 ? `Dato a revisar: más pacientes-día (${num(x.pacientes_dia)}) que días-cama (${num(x.dias_cama)}).`
-    : `Dato a revisar: ${num(x.dias_cama)} días-cama para ${num(x.camas)} camas (se esperan unos ${num(esperado)}).`;
+  return r >= DIAS_CAMA_OK[0] && r <= DIAS_CAMA_OK[1]
+    ? `Posible error de registro en SUSALUD: más pacientes-día (${num(x.pacientes_dia)}) que días-cama (${num(x.dias_cama)}).`
+    : `Posible error de registro en SUSALUD: ${num(x.dias_cama)} días-cama para ${num(x.camas)} camas (se esperan unos ${num(esperado)}).`;
 }
 const periodoCorto = t => String(t ?? "").replace(/^(\p{L}{3})\p{L}* de (\d{4})$/u, "$1. $2");
 function datoCamaRaro(x, periodo) {
   if (!x.reporto || !x.camas || !x.dias_cama) return "";
   const esperado = x.camas * diasMes(periodo), r = x.dias_cama / esperado, oc = ocupacion(x);
-  if (r >= .9 && r <= 1.05 && !(oc > 100)) return "";
+  if (r >= DIAS_CAMA_OK[0] && r <= DIAS_CAMA_OK[1] && !(oc > 100)) return "";
   return `SUSALUD reporta ${num(x.dias_cama)} días-cama para ${num(x.camas)} camas (lo esperable en el mes serían unos ${num(esperado)})${
-    oc > 100 ? ` y ${num(x.pacientes_dia)} pacientes-día, por eso la ocupación pasa de 100 %` : ""}. Dato a revisar en la fuente.`;
+    oc > 100 ? ` y ${num(x.pacientes_dia)} pacientes-día, por eso la ocupación pasa de 100 %` : ""}. Posible error de registro; solo SUSALUD o el establecimiento pueden confirmar el dato.`;
 }
 // Ocupación mensual (serie de SUSALUD) y regla del título: frente al mismo mes del año anterior (±1 punto = se mantiene)
 function ocupacionSerie() {
@@ -1534,8 +1539,8 @@ async function crearMapaSalud() {
   $("leyenda-salud").innerHTML = dg ? `<span style="--c:var(--neutro)">Sin casos o sin detalle</span>` + TONOS_Q.map((t, k) =>
     `<span style="--c:var(${t})">${k === 0 ? `hasta ${num(dg.cortes[0])}` : k === 4 ? `más de ${num(dg.cortes[3])}` : `${num(dg.cortes[k - 1] + 1)} a ${num(dg.cortes[k])}`}</span>`).join("") : "";
   $("nota-mapa-salud").innerHTML = `Distritos: casos de dengue en ${anioD()} (confirmados y probables), en cinco grupos con el mismo número de
-    distritos. Puntos: establecimientos con camas que reportaron en ${esc(c.periodo)}; el tamaño indica las camas; en gris, los que tienen un
-    dato de SUSALUD que no cuadra (a revisar en la fuente; siguen en el total), y los números agrupan establecimientos cercanos; toca uno
+    distritos. Puntos: establecimientos con camas que reportaron en ${esc(c.periodo)}; el tamaño indica las camas; en gris, posible error de
+    registro en SUSALUD (siguen en el total), y los números agrupan establecimientos cercanos; toca uno
     para ver su dato.${sinCoord.length
     ? ` Sin coordenadas en RENIPRESS, en el centro de su distrito (borde punteado): ${sinCoord.map(esc).join("; ")}.` : ""}
     ${D.ipress ? `Ubicación: ${enlace(D.ipress)}, datos al ${fecha(D.ipress.fecha_corte)}.` : ""} Camas: SUSALUD, ${esc(c.periodo)}.${D.d26
@@ -1592,7 +1597,7 @@ function pintarSalud() {
       const oc = conPd ? ocupacion(x) : null;
       return x.reporto
         ? `<tr><td>${esc(x.razon_soc)}</td><td>${esc(x.sector)}</td><td>${esc(lugar(x.distrito))}</td><td class="n">${num(x.camas)}</td>
-           <td class="n">${num(x.uci)}</td><td class="n">${pctTxt(oc)}${datoCamaRaro(x, c.periodo) ? `<br><span class="a-revisar" title="${esc(datoCamaRaro(x, c.periodo))}">dato a revisar</span>` : ""}</td>
+           <td class="n">${num(x.uci)}</td><td class="n">${pctTxt(oc)}${datoCamaRaro(x, c.periodo) ? `<br><span class="a-revisar" title="${esc(datoCamaRaro(x, c.periodo))}">posible error de registro</span>` : ""}</td>
            <td class="n">${num(x.ingresos)}</td><td class="n">${num(x.egresos)}</td></tr>`
         : `<tr><td>${esc(x.razon_soc)}</td><td>${esc(x.sector)}</td><td>${esc(lugar(x.distrito))}</td><td colspan="5" class="nota">No reportó en ${esc(c.periodo)}</td></tr>`;
     }, 8);
