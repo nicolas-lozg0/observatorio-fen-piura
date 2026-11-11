@@ -8,11 +8,13 @@ contra las fichas web). El avance físico se toma del MEF por código único de 
 Infobras publica cada día un Excel con todas las obras del país; el nombre del archivo lleva la
 fecha, así que el enlace se toma de la página de descargas. Se guarda solo Piura y no se guardan
 nombres de personas (supervisores, residentes). Resultado: docs/data/infobras_piura.json.
+Además, un resumen liviano por departamento de todo el país (obras activas y paralizadas, y su costo), para comparar
+a Piura: docs/data/infobras_departamentos.json. Las exclusiones de Piura (APARTE en docs/index.html) se aplican en la página.
 """
 import html
 import re
 import tempfile
-from collections import Counter
+from collections import Counter, defaultdict
 from pathlib import Path
 
 import openpyxl
@@ -94,6 +96,7 @@ def main():
         ix = {t: titulos.index(t) for t in [*CAMPOS, *AVANCE, "Departamento", "Estado de ejecución"]}
 
         estados, nacional, obras, futuras, ultimo, por_cui = Counter(), 0, [], 0, 0, Counter()
+        deps = defaultdict(lambda: [0, 0, 0.0, 0.0])  # activas, paralizadas, costo activas, costo paralizadas
         for f in filas:
             if avance_futuro(*(f[ix[c]] for c in AVANCE), fecha_consulta):
                 futuras += 1  # se excluye la fila completa
@@ -102,6 +105,11 @@ def main():
             cui = str(f[ix["Codigo unico de inversión"]] or "").strip()
             if cui not in ("", "0"):
                 por_cui[cui] += 1  # en todo el país y en cualquier estado: una inversión puede tener obras en varias regiones
+            if f[ix["Estado de ejecución"]] in ACTIVAS:
+                d, costo = deps[f[ix["Departamento"]] or "SIN DATO"], numero(f[ix["Costo de obra en soles según ET en soles"]]) or 0
+                d[0] += 1; d[2] += costo
+                if f[ix["Estado de ejecución"]] == "Paralizada":
+                    d[1] += 1; d[3] += costo
             if f[ix["Departamento"]] != "PIURA":
                 continue
             estado = f[ix["Estado de ejecución"]] or "Sin dato"
@@ -129,6 +137,15 @@ def main():
         "ultimo_avance": {"anio": (ultimo - 1) // 12, "mes": (ultimo - 1) % 12 + 1} if ultimo else None,
         "excluidas_fecha_futura": futuras,
         "obras": sorted(obras, key=lambda o: -(o["costo_et"] or 0)),
+    })
+    guardar("infobras_departamentos.json", {
+        "fuente": "Contraloría General de la República, Infobras (Dataset de obras públicas)",
+        "url": PAGINA,
+        "fecha_corte": fecha_consulta,
+        "nota": "Obras activas (en ejecución y paralizadas) por departamento, de todo el país. Costo según expediente técnico, "
+                "en soles. «SIN DATO» y «NO APLICA» no son departamentos: cuentan en el total del país, no en el ranking.",
+        "columnas": ["departamento", "activas", "paralizadas", "costo_activas", "costo_paralizadas"],
+        "filas": [[k, a, p, round(ca), round(cp)] for k, (a, p, ca, cp) in sorted(deps.items())],
     })
 
 

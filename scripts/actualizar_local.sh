@@ -8,7 +8,7 @@
 set -u
 
 cd "$(dirname "$0")/.." || exit 1
-ARCHIVOS="docs/data/infobras_piura.json docs/data/camas_piura.json docs/data/camas_serie.json docs/data/ipress_piura.json"
+ARCHIVOS="docs/data/infobras_piura.json docs/data/infobras_departamentos.json docs/data/camas_piura.json docs/data/camas_serie.json docs/data/ipress_piura.json"
 PUSH=1
 [ "${1:-}" = "--sin-push" ] && PUSH=0
 

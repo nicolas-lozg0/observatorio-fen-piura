@@ -159,6 +159,21 @@
   .d-desactualizado { color: var(--alerta); background: var(--alerta-suave); }
   .d-tramite { color: var(--titulo); background: var(--acento-suave); }
   .panel.cifra-alerta .cifra { color: var(--alerta); }  /* cifra que pide atención: el rojo de alerta, sin etiqueta */
+  /* Gráfico de puntos por departamento: una fila por departamento, Piura resaltado, línea del total del país */
+  .puntos { display: grid; gap: 2px; margin-top: var(--e3); font-size: var(--t-xs); color: var(--texto-2); }
+  .puntos .fila-p { display: grid; grid-template-columns: 7.5rem minmax(0, 1fr) 3rem; align-items: center; gap: var(--e2); min-height: 18px; }
+  .puntos .pista-p { position: relative; height: 18px; }
+  .puntos .pista-p::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; border-top: 1px solid var(--linea); }
+  .puntos .pista-p::after { content: ""; position: absolute; left: var(--n); top: 0; bottom: 0; border-left: 2px dashed var(--texto-3); }
+  .puntos .pista-p i { position: absolute; left: var(--x); top: 50%; width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; border-radius: 50%;
+    background: var(--texto-3); z-index: 1; }
+  .puntos .piura { color: var(--titulo); font-weight: 700; }
+  .puntos .piura .pista-p i { width: 13px; height: 13px; margin: -6.5px 0 0 -6.5px; background: var(--acento); box-shadow: 0 0 0 2px var(--superficie); }
+  .puntos .v { text-align: right; font-variant-numeric: tabular-nums; }
+  .puntos .cab-p { color: var(--texto-3); }
+  tr.fila-piura td { font-weight: 700; color: var(--titulo); }
+  tr.total td { font-weight: 700; border-top: 1px solid var(--linea); }
+  @media (max-width: 600px) { .puntos .fila-p { grid-template-columns: 6rem minmax(0, 1fr) 2.6rem; } }
 
   /* ===== Portada ===== */
   .hoy { margin-bottom: var(--e5); }
@@ -201,7 +216,7 @@
   .lista-visual .monto { font-weight: 700; color: var(--titulo); font-size: var(--t-sm); margin-top: 2px; }
   .lista-visual .nombre { font-size: var(--t-sm); overflow-wrap: anywhere; }
   /* Rótulo "esperado X %" junto a la marca vertical de un medidor */
-  .rot-esperado { display: block; width: max-content; font-size: var(--t-xs); color: var(--texto-3); margin-top: calc(-1 * var(--e1));
+  .rot-esperado { display: block; width: max-content; font-size: var(--t-xs); color: var(--texto-2); margin-top: calc(-1 * var(--e1));
     position: relative; left: var(--x); }
   .rot-esperado.a-la-izq { transform: translateX(calc(-100% + 1px)); padding-right: var(--e1); border-right: 1px solid var(--texto-3); }
   .rot-esperado.a-la-der { padding-left: var(--e1); border-left: 1px solid var(--texto-3); }
@@ -269,9 +284,12 @@
   .diferencia .cifra { font-size: clamp(1.5rem, 7vw, var(--t-xl)); }
   .diferencia .lista-visual { grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); }
 
-  .medidor { position: relative; height: 10px; background: var(--pista); border-radius: var(--r-pastilla); overflow: hidden; margin: var(--e2) 0; }
-  .medidor > div { height: 100%; background: var(--acento); border-radius: var(--r-pastilla); }
-  .medidor .marca { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--texto); }
+  .medidor { position: relative; height: 10px; background: var(--pista); border-radius: var(--r-pastilla); margin: var(--e2) 0; }
+  .medidor > div { height: 100%; max-width: 100%; background: var(--acento); border-radius: var(--r-pastilla); }
+  /* Marca de lo esperado: sobresale arriba y abajo, en el color del texto, con un borde del color de la tarjeta
+     para que se vea sobre cualquier color del semáforo (sobre el rojo, el borde blanco da 5,7:1) */
+  .medidor .marca { position: absolute; top: -4px; bottom: -4px; width: 3px; border-radius: 1px; background: var(--texto);
+    box-shadow: 0 0 0 1px var(--superficie); }
   .barras { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--e1) var(--e3); font-size: var(--t-sm); }
   .barras .medidor { grid-column: 1 / -1; height: 8px; margin: 0 0 var(--e2); }
 
@@ -512,6 +530,13 @@
           <tbody id="paralizadas"></tbody>
         </table></div>
         <button type="button" class="mas" id="paralizadas-mas" hidden></button>
+        <h3 id="obras-departamentos">Obras paralizadas por departamento</h3>
+        <div class="tabla"><table class="ancha">
+          <thead><tr><th class="n">Puesto</th><th>Departamento</th><th class="n">Activas</th><th class="n">Paralizadas</th>
+            <th class="n">% paralizadas</th><th class="n">Costo activas (S/ millones)</th><th class="n">Costo paralizadas (S/ millones)</th></tr></thead>
+          <tbody id="deps-tabla"></tbody>
+        </table></div>
+        <p class="nota">Piura sin la obra de Petroperú (ver «Fuera de los totales»). «Sin dato» y «No aplica» cuentan en el total del país, no en el puesto.</p>
         <h3>Causas de paralización</h3>
         <div class="tabla"><table>
           <thead><tr><th>Causa registrada en Infobras</th><th class="n">Obras</th><th class="n">Costo (S/ millones)</th></tr></thead>
@@ -660,6 +685,12 @@
             gasto público suele concentrarse en diciembre, así que en los últimos meses del año casi todo sale lento. La
             emergencia FEN (su marco no es un presupuesto anual), el avance físico de obras y la ocupación de camas no miden
             ritmo frente al calendario: van en azul, sin semáforo.</li>
+          <li><strong>Obras frente al país.</strong> Con el archivo nacional de Infobras se calcula, por departamento, el porcentaje
+            de las obras activas que está paralizado y el de su costo (docs/data/infobras_departamentos.json, solo totales). El
+            promedio nacional es el total del país (todas las paralizadas entre todas las activas), no el promedio de los
+            departamentos. Piura usa las mismas cifras que el resto de la página, sin la obra de Petroperú. Si Piura supera al país
+            por más de 1 punto porcentual, la cifra de obras paralizadas va en rojo y el título dice «más»; si está más de 1 punto
+            por debajo, «menos»; si no, «similar». «Sin dato» y «No aplica» cuentan en el total del país, no en el puesto.</li>
           <li><strong>Obras.</strong> Cuenta las obras paralizadas y su costo, y nombra la causa registrada con más obras. El
             tiempo paralizada se cuenta desde la «fecha de paralización» de Infobras hasta la fecha de los datos; no se usa el
             campo «días paralizado», que no cuadra con esa fecha (muchas obras paralizadas hace años dicen 30 o 31 días).
@@ -733,6 +764,7 @@ const DEFINICIONES = {
   vistas: ["Dos vistas del gasto", "«Gastado en Piura»: todo lo que se gasta en Piura, lo ejecute quien lo ejecute (también ministerios con sede en Lima). «Por entidades con sede en Piura»: lo que gastan el gobierno regional, las municipalidades y otras entidades con sede en Piura, se gaste donde se gaste."],
   semaforo: ["Colores del avance", "Lo esperado es el porcentaje del año transcurrido a la fecha de los datos (la línea vertical). A ritmo: hasta 5 puntos por debajo; algo lento: de 5 a 15 puntos por debajo; muy lento: más de 15."],
   tendencia: ["Tendencia del dengue", "Se suman los casos de las 4 últimas semanas completas y se comparan con las 4 anteriores; las últimas semanas son preliminares y no entran. Más de +10 %: sube; menos de −10 %: baja; si no, se mantiene."],
+  comparacion: ["Piura frente al país", "Porcentaje de las obras activas (en ejecución o paralizadas) que está paralizado, según Infobras. Promedio nacional: todas las obras paralizadas del país entre todas sus obras activas. Puesto entre los 25 departamentos (1 = el de mayor proporción). Si Piura supera al país por más de 1 punto, la cifra va en rojo y el título dice «más»; si está más de 1 punto por debajo, «menos»; si no, «similar». Piura no incluye la obra de Petroperú en Talara, como en el resto de la página."],
   tiempo: ["Tiempo paralizada", "Desde la fecha de paralización registrada en Infobras hasta la fecha del archivo, en años y meses completos. No se usa el campo «días paralizado», que no cuadra con esa fecha."],
   marco: ["Marco presupuestal", "Recursos autorizados por los decretos de emergencia por El Niño."],
   p0068: ["Programa 0068", "Programa presupuestal de reducción de vulnerabilidad y atención de emergencias por desastres."],
@@ -752,6 +784,29 @@ const DEFINICIONES = {
   mensual: ["Variación mensual", "Cuánto cambiaron los precios frente al mes anterior."],
 };
 
+// Causas de paralización (como las escribe Infobras): definición, fuente (norma y artículo, o "Redacción propia") y URL.
+// Citas verificadas en el texto oficial (ver docs/avance_tarea9.md). Una causa nueva sin definición se muestra sin subrayado.
+DEFINICIONES.causas = [
+    { causa: "Incumplimiento del pago de valorizaciones u otros", definicion: "La entidad no pagó a tiempo las valorizaciones (los pagos periódicos por el avance de la obra) u otros montos que debía al contratista. Según la Ley 32069 (art. 67), la entidad debe pagar oportunamente y, si se demora sin justificación, reconocer intereses legales.", fuente: "Ley 32069, art. 67", url: "https://leyes.congreso.gob.pe/Documentos/2021_2026/ADLP/Texto_Consolidado/32069-TXM.pdf" },
+    { causa: "Incumplimiento de contrato", definicion: "Una de las partes, por lo general el contratista, dejó de cumplir lo que el contrato le obliga (plazos, calidad, personal o equipos). Según la Ley 32069 (art. 68.1, literal b), ese incumplimiento permite resolver el contrato, es decir, darlo por terminado.", fuente: "Ley 32069, art. 68.1 b", url: "https://leyes.congreso.gob.pe/Documentos/2021_2026/ADLP/Texto_Consolidado/32069-TXM.pdf" },
+    { causa: "Proceso arbitral", definicion: "La entidad y el contratista llevaron su desacuerdo a un arbitraje, en el que uno o más árbitros deciden quién tiene razón. Según la Ley 32069 (art. 83.1), las controversias sobre el contrato se resuelven por arbitraje.", fuente: "Ley 32069, art. 83.1", url: "https://leyes.congreso.gob.pe/Documentos/2021_2026/ADLP/Texto_Consolidado/32069-TXM.pdf" },
+    { causa: "Discrepancias controversias y arbitraje", definicion: "La entidad y el contratista no se ponen de acuerdo (pagos, plazos, cambios) y lo discuten en una junta de disputas, una conciliación o un arbitraje. La Ley 32069 (art. 76.1) prevé esos tres mecanismos.", fuente: "Ley 32069, art. 76.1", url: "https://leyes.congreso.gob.pe/Documentos/2021_2026/ADLP/Texto_Consolidado/32069-TXM.pdf" },
+    { causa: "Abandono de obra", definicion: "El contratista dejó de trabajar en la obra y retiró su personal o sus equipos sin causa justificada. La Ley 31589 (art. 2.2) menciona el abandono entre las causas de paralización.", fuente: "Redacción propia; mención en Ley 31589, art. 2.2", url: "https://busquedas.elperuano.pe/normaslegales/ley-que-garantiza-la-reactivacion-de-obras-publicas-paraliza-ley-n-31589-2118030-3/" },
+    { causa: "Fenómenos climatológicos", definicion: "Lluvias intensas, huaicos, inundaciones u otros fenómenos del clima que impiden trabajar o dañan la obra. Si imposibilitan continuar, la Ley 32069 (art. 68.1, literal a) los trata como caso fortuito o fuerza mayor.", fuente: "Redacción propia; Ley 32069, art. 68.1 a", url: "https://leyes.congreso.gob.pe/Documentos/2021_2026/ADLP/Texto_Consolidado/32069-TXM.pdf" },
+    { causa: "Eventos climáticos", definicion: "Igual que «Fenómenos climatológicos»: el clima impide trabajar o daña la obra. Infobras usa los dos nombres.", fuente: "Redacción propia", url: "" },
+    { causa: "Falta de recursos financieros y liquidez", definicion: "Falta dinero para continuar: la entidad no tiene fondos disponibles o el contratista no tiene liquidez. Infobras no distingue de quién es la falta.", fuente: "Redacción propia", url: "" },
+    { causa: "Sin asignación presupuestal", definicion: "La obra no tiene presupuesto asignado en el año para seguir ejecutándose. La Ley 31589 (art. 2.4) deja fuera de su régimen de reactivación a las obras paralizadas por limitaciones presupuestales.", fuente: "Redacción propia; Ley 31589, art. 2.4", url: "https://busquedas.elperuano.pe/normaslegales/ley-que-garantiza-la-reactivacion-de-obras-publicas-paraliza-ley-n-31589-2118030-3/" },
+    { causa: "Vicios ocultos", definicion: "Defectos de la obra que no se ven en una revisión normal y aparecen después. Según la Ley 32069 (art. 69.2, literal b), el contratista de obra responde por ellos durante al menos siete años desde la recepción.", fuente: "Ley 32069, art. 69.2 b", url: "https://leyes.congreso.gob.pe/Documentos/2021_2026/ADLP/Texto_Consolidado/32069-TXM.pdf" },
+    { causa: "Deficiencias en el Expediente Técnico", definicion: "Errores u omisiones en el expediente técnico (los planos, cálculos y presupuesto de la obra) que obligan a corregirlo antes de seguir. La Ley 31589 (art. 2.2) la cuenta entre las causas de paralización.", fuente: "Ley 31589, art. 2.2", url: "https://busquedas.elperuano.pe/normaslegales/ley-que-garantiza-la-reactivacion-de-obras-publicas-paraliza-ley-n-31589-2118030-3/" },
+    { causa: "Modificaciones sustanciales al expediente técnico", definicion: "Cambios grandes al diseño de la obra durante su ejecución, que requieren aprobar obras adicionales o más plazo. La Ley 32069 (art. 63.3) incluye las prestaciones adicionales y las ampliaciones de plazo entre las modificaciones del contrato.", fuente: "Ley 32069, art. 63.3", url: "https://leyes.congreso.gob.pe/Documentos/2021_2026/ADLP/Texto_Consolidado/32069-TXM.pdf" },
+    { causa: "Paros no previsibles", definicion: "La obra se detuvo por hechos que no se podían prever y que no dependen de la entidad ni del contratista, como paros, huelgas o conflictos sociales.", fuente: "Redacción propia", url: "" },
+    { causa: "Demora en el cambio de profesionales núcleo ejecutor", definicion: "La obra la ejecuta un núcleo ejecutor (una organización de la comunidad que maneja fondos públicos para hacer la obra) y se detuvo porque tardó el reemplazo de sus profesionales, como el residente o el supervisor.", fuente: "Redacción propia", url: "" },
+    { causa: "Otras causales", definicion: "La entidad marcó «otras causales» en Infobras, sin elegir una causa de la lista.", fuente: "Redacción propia", url: "" },
+    { causa: "Otras", definicion: "Reúne «Otras causales» y las causas que tienen una sola obra en Piura, para que el gráfico se lea mejor. El desglose está en el detalle.", fuente: "Redacción propia", url: "" },
+];
+const DEF_CAUSA = Object.fromEntries(DEFINICIONES.causas.map(c => [c.causa.trim().toLowerCase(), c]));
+const defCausa = k => DEF_CAUSA[String(k ?? "").trim().toLowerCase()];
+const gc = k => defCausa(k) ? `<span data-g="causa" data-c="${esc(k)}">${esc(k)}</span>` : esc(k);  // causa con definición
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const num = (x, d = 0) => Number(x).toLocaleString("es-ES", { minimumFractionDigits: d, maximumFractionDigits: d, useGrouping: "always" });
 const millones = x => "S/\u00a0" + num(x / 1e6, 1) + "\u00a0millones";  // sin cortar la cifra al final de línea
@@ -763,10 +818,11 @@ const TOLERANCIA = 5;  // puntos frente al año transcurrido: título del gasto 
 const SEMAFORO = [[-TOLERANCIA, "ok", "A ritmo"], [-15, "lento", "Algo lento"], [-Infinity, "muy-lento", "Muy lento"]];
 const semaforo = (p, esperado) => p == null || esperado == null ? null : SEMAFORO.find(([d]) => p - esperado >= d);
 const ritmoTxt = sm => sm ? `<span class="ritmo" style="--c:var(--ritmo-${sm[1]})">${sm[2]}</span>` : "";
+const esperadoFmt = v => num(v, 0) + "\u00a0%";
 const esperadoTxt = marca => marca == null ? "" :
-  `<span class="rot-esperado ${marca > 50 ? "a-la-izq" : "a-la-der"}" style="--x:${Math.min(100, marca)}%">esperado ${num(marca, 0)}\u00a0%</span>`;
+  `<span class="rot-esperado ${marca > 50 ? "a-la-izq" : "a-la-der"}" style="--x:${Math.min(100, marca)}%">esperado ${esperadoFmt(marca)}</span>`;
 const medidor = (p, marca, sm) => `<div class="medidor" title="${pctTxt(p)}"><div ${sm ? `class="${sm[1]}" ` : ""}style="width:${Math.min(100, Math.max(0, p || 0))}%"></div>${
-  marca == null ? "" : `<span class="marca" style="left:calc(${Math.min(100, marca)}% - 1px)"></span>`}</div>`;
+  marca == null ? "" : `<span class="marca" style="left:calc(${Math.min(100, marca)}% - 1.5px)"></span>`}</div>`;
 function fecha(iso) {
   if (!iso) return "fecha no disponible";
   const m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})/);
@@ -876,23 +932,25 @@ function chispa(vals, etiqueta, rot) {
 /* ---------- Definiciones ---------- */
 // Cada término pasa a ser un botón subrayado (solo la primera vez en cada tarjeta o párrafo); su definición
 // va en una ventana pequeña (#definicion, role="tooltip") que se abre con el cursor, el foco o un toque.
+const textoDef = el => el.dataset.g === "causa" ? defCausa(el.dataset.c)?.definicion : DEFINICIONES[el.dataset.g]?.[1];
 function ayudas(raiz = document) {
   const vistos = new Map();
   raiz.querySelectorAll("span[data-g]").forEach(el => {
-    if (!DEFINICIONES[el.dataset.g]) return;
+    if (!textoDef(el)) return;
+    const clave = el.dataset.g + (el.dataset.c || "");
     const zona = el.closest(".panel, .intro, td, th, li, .cuerpo-detalle") || document.body, ya = vistos.get(zona) || new Set();
     vistos.set(zona, ya);
-    if (ya.has(el.dataset.g)) { el.replaceWith(...el.childNodes); return; }
-    ya.add(el.dataset.g);
+    if (ya.has(clave)) { el.replaceWith(...el.childNodes); return; }
+    ya.add(clave);
     const b = Object.assign(document.createElement("button"), { type: "button", className: "termino", innerHTML: el.innerHTML });
-    b.dataset.g = el.dataset.g; b.setAttribute("aria-describedby", "definicion");
+    b.dataset.g = el.dataset.g; if (el.dataset.c) b.dataset.c = el.dataset.c; b.setAttribute("aria-describedby", "definicion");
     el.replaceWith(b);
   });
 }
 let defFija = null;  // término abierto con clic o toque: no se cierra al salir el cursor
 function verDefinicion(b) {
   const caja = $("definicion"), r = b.getBoundingClientRect(), ancho = Math.min(280, document.documentElement.clientWidth - 32);
-  caja.textContent = DEFINICIONES[b.dataset.g][1]; caja.hidden = false; caja.style.maxWidth = ancho + "px";
+  caja.textContent = textoDef(b); caja.hidden = false; caja.style.maxWidth = ancho + "px";
   caja.style.left = Math.max(16, Math.min(r.left + scrollX - 8, scrollX + document.documentElement.clientWidth - ancho - 16)) + "px";
   caja.style.top = (r.bottom + scrollY + 6) + "px";
 }
@@ -924,6 +982,9 @@ const fenDe = (amb, cond = () => true) => {
   return { pim: suma(f, "marco"), dev: suma(f, "devengado") };
 };
 // Porcentaje del año transcurrido a la fecha de corte de los datos
+// Lo esperado del gasto: % del año transcurrido a la fecha de los datos del MEF (no a la fecha de hoy). Una sola función
+// y un solo redondeo (esperadoFmt) para la portada, la tabla, su nota y la tarjeta de entidades nacionales.
+const esperadoGasto = () => anioTranscurrido(D.gasto.fecha_corte, D.gasto.anio);
 function anioTranscurrido(iso, anio) {
   const c = new Date(String(iso).slice(0, 10) + "T12:00:00"), i = new Date(anio, 0, 1), f = new Date(anio + 1, 0, 1);
   return 100 * (c - i) / (f - i);
@@ -931,14 +992,14 @@ function anioTranscurrido(iso, anio) {
 const ritmo = (p, t) => p < t - TOLERANCIA ? "menor" : p > t + TOLERANCIA ? "mayor" : "similar";
 
 // Celda de una vista en la tabla comparativa: avance, barra, devengado y presupuesto (PIM o marco)
-function celdaVista(t, base, marca, sinSede) {
+function celdaVista(t, base, marca, sinSede, rotulo) {
   if (!t.pim) return `<td class="vacio">—${sinSede ? `<span class="nota"><br>Sede en Lima</span>` : ""}</td>`;
   const p = pct(t.dev, t.pim), sm = semaforo(p, marca);
-  return `<td><span class="av">${pctTxt(p)}</span> ${ritmoTxt(sm)}${medidor(p, marca, sm)}<span class="montos">Devengado ${millones(t.dev)}<br>${base} ${millones(t.pim)}</span></td>`;
+  return `<td><span class="av">${pctTxt(p)}</span> ${ritmoTxt(sm)}${medidor(p, marca, sm)}${rotulo ? esperadoTxt(marca) : ""}<span class="montos">Devengado ${millones(t.dev)}<br>${base} ${millones(t.pim)}</span></td>`;
 }
 
 function pintarGastoPaneles() {
-  const gs = D.gasto, f = `MEF, datos al ${fecha(gs.fecha_corte)}`, trans = anioTranscurrido(gs.fecha_corte, gs.anio);
+  const gs = D.gasto, f = `MEF, datos al ${fecha(gs.fecha_corte)}`, trans = esperadoGasto();
   $("anio-gasto").textContent = gs.anio;
   const de = cond => [gastoDe(cond, 1), gastoDe(cond, 2)];
   const filasC = [
@@ -953,10 +1014,10 @@ function pintarGastoPaneles() {
   $("gasto-comparativa").innerHTML = aviso(["gasto", "fen"]) + `<div class="tabla"><table>
     <caption class="visualmente-oculto">Avance del gasto en las dos vistas</caption>
     <thead><tr><th scope="col">Concepto</th><th scope="col">Gastado en Piura</th><th scope="col">Por entidades con sede en Piura</th></tr></thead><tbody>` +
-    filasC.map(([t, nota, [v1, v2], base, marca]) => `<tr><th scope="row">${t}${nota ? `<span class="nota">${nota}</span>` : ""}</th>
-      ${celdaVista(v1, base, marca)}${celdaVista(v2, base, marca, v1.pim > 0)}</tr>`).join("") + `</tbody></table></div>
-    <p class="nota">La línea vertical es lo esperado a la fecha: el ${num(trans, 0)} % del año transcurrido. La emergencia FEN no
-      lleva colores: su marco no es un presupuesto anual.</p>
+    filasC.map(([t, nota, [v1, v2], base, marca], i) => `<tr><th scope="row">${t}${nota ? `<span class="nota">${nota}</span>` : ""}</th>
+      ${celdaVista(v1, base, marca, false, i === 0)}${celdaVista(v2, base, marca, v1.pim > 0, i === 0)}</tr>`).join("") + `</tbody></table></div>
+    <p class="nota">La marca vertical es lo esperado al ${fecha(gs.fecha_corte)}: el ${esperadoFmt(trans)} del año transcurrido. La
+      emergencia FEN no lleva colores: su marco no es un presupuesto anual.</p>
     <p class="nota">${f}${D.fen ? `; emergencia FEN, datos al ${fecha(D.fen.fecha_corte)}` : ""} · ${cv[0]}</p>${cv[1]}`;
 
   // Lo único que cambia entre las vistas: el gobierno nacional que gasta en Piura con sede fuera de la región
@@ -1567,6 +1628,46 @@ function nombreCorto(t) {
   return r.charAt(0).toUpperCase() + r.slice(1);
 }
 const nombreObra = x => D.cortos?.obras?.[x.codigo_infobras]?.corto || nombreCorto(x.obra);
+// Piura frente a los demás departamentos (Infobras, todo el país). Piura usa las mismas cifras que la página (sin las obras
+// de APARTE); el total del país se ajusta igual. Más de 1 punto por encima del país: rojo y "más"; por debajo: "menos".
+const UMBRAL_PAIS = 1;  // puntos porcentuales
+const NO_DEP = ["SIN DATO", "NO APLICA"];
+const nombreDep = k => k === "P C DEL CALLAO" ? "Callao" : lugar(k);
+function obrasPais(activas, par) {
+  const dp = D.deps;
+  if (!dp?.filas?.length) return null;
+  const f = dp.filas.map(r => Object.fromEntries(dp.columnas.map((c, i) => [c, r[i]])));
+  const piura = { departamento: "PIURA", activas: activas.length, paralizadas: par.length,
+    costo_activas: suma(activas, "costo_et"), costo_paralizadas: suma(par, "costo_et") };
+  const filas = f.map(r => r.departamento === "PIURA" ? piura : r);
+  if (!f.some(r => r.departamento === "PIURA")) return null;
+  const tot = k => suma(filas, k), pN = pct(tot("paralizadas"), tot("activas")), cN = pct(tot("costo_paralizadas"), tot("costo_activas"));
+  const deps = filas.filter(r => !NO_DEP.includes(r.departamento) && r.activas).map(r => ({ ...r, p: pct(r.paralizadas, r.activas) }))
+    .sort((a, b) => b.p - a.p);
+  const pP = pct(piura.paralizadas, piura.activas), dif = pP - pN;
+  return { pP, pN, dif, cP: pct(piura.costo_paralizadas, piura.costo_activas), cN, deps,
+    puesto: deps.filter(r => r.p > pP).length + 1, M: deps.length,
+    comp: dif > UMBRAL_PAIS ? "mas" : dif < -UMBRAL_PAIS ? "menos" : "similar" };
+}
+const tituloPais = c => c.comp === "mas" ? "Piura tiene, en proporción, más obras paralizadas que el país"
+  : c.comp === "menos" ? "Piura tiene, en proporción, menos obras paralizadas que el país"
+  : "Piura tiene una proporción de obras paralizadas similar a la del país";
+const frasePais = c => `Piura: ${pctTxt(c.pP)} de sus obras activas está paralizado. Promedio nacional: ${pctTxt(c.pN)}. Puesto
+  ${num(c.puesto)} de ${num(c.M)} departamentos (1 = el de mayor proporción).`;
+const fraseCostoPais = c => `Representan el ${pctTxt(c.cP)} del costo de las obras activas de Piura (país: ${pctTxt(c.cN)}).`;
+const piePais = () => `Infobras: Piura, archivo del ${fecha(D.obras.fecha_corte)}; resto del país, archivo del ${fecha(D.deps.fecha_corte)}`;
+function graficoPais(c) {
+  const max = Math.ceil(Math.max(...c.deps.map(r => r.p), c.pN) / 2) * 2, x = v => `${100 * v / max}%`;
+  return `<div class="puntos" role="img" aria-label="Porcentaje de obras activas paralizadas por departamento, de mayor a menor. Piura: ${
+    pctTxt(c.pP)}, puesto ${c.puesto} de ${c.M}. Total del país: ${pctTxt(c.pN)}. La tabla está en el detalle.">
+    <div class="fila-p cab-p" aria-hidden="true"><span></span><span style="position:relative"><span style="position:absolute;left:${x(c.pN)};
+      transform:translateX(-50%);white-space:nowrap">País ${pctTxt(c.pN)}</span>&nbsp;</span><span class="v">%</span></div>
+    ${c.deps.map(r => `<div class="fila-p${r.departamento === "PIURA" ? " piura" : ""}" title="${esc(nombreDep(r.departamento))}: ${pctTxt(r.p)} (${
+      num(r.paralizadas)} de ${num(r.activas)} obras activas)" aria-hidden="true"><span>${esc(nombreDep(r.departamento))}</span>
+      <span class="pista-p" style="--n:${x(c.pN)}"><i style="--x:${x(r.p)}"></i></span><span class="v">${num(r.p, 1)}</span></div>`).join("")}
+  </div>`;
+}
+
 // Pie de Infobras: fecha del archivo y último mes con registros nuevos
 const pieInfobras = o => `Infobras, archivo del ${fecha(o.fecha_corte)}${o.ultimo_avance
   ? `; sin registros nuevos desde ${MESES[o.ultimo_avance.mes - 1]} de ${o.ultimo_avance.anio}` : ""}`;
@@ -1690,23 +1791,28 @@ function pintarObras() {
   const dias = par.map(diasParalizada).filter(d => d != null);
   const tramos = TRAMOS.map(([t, k], i) => [k, dias.filter(d => d < t && d >= (TRAMOS[i - 1]?.[0] ?? 0)).length]);
   const maxMonto = Math.max(...cm.map(c => c.monto));
-  const conMef = eje.filter(x => invObra(x)?.avance_fisico != null);
+  const conMef = eje.filter(x => invObra(x)?.avance_fisico != null), cp = obrasPais(activas, par);
   $("obras-paneles").innerHTML =
-    panel({ titulo: g("paralizada", "Obras paralizadas"), cifra: num(par.length), ud: `costo total ${millones(costoDe(par))}`, vence: "obras",
-      clase: `ancho${par.length ? " cifra-alerta" : ""}`, pie,
-      frase: cs.length ? `La causa registrada con más obras es «${esc(cs[0][0])}» (${num(cs[0][1])} de ${num(par.length)}).` : "",
+    panel({ titulo: cp ? tituloPais(cp) : g("paralizada", "Obras paralizadas"), cifra: num(par.length),
+      ud: `${g("paralizada", "obras paralizadas")}, de ${num(activas.length)} activas; costo total ${millones(costoDe(par))}`, vence: "obras",
+      clase: `ancho${cp?.comp === "mas" ? " cifra-alerta" : ""}`, pie: cp ? piePais() : pie, calc: cp ? ["comparacion"] : [],
+      frase: (cp ? `${frasePais(cp)} ${fraseCostoPais(cp)} ` : "") +
+        (cs.length ? `La causa registrada con más obras es «${esc(cs[0][0])}» (${num(cs[0][1])} de ${num(par.length)}).` : ""),
       extra: par.length ? `<h4 class="antes-lista">Las ${num(top5.length)} de mayor costo suman ${millones(costoDe(top5))}: el
         ${pctE(costoDe(top5), total)} del costo de las ${num(par.length)}</h4><ol class="lista-visual">${top5.map(x =>
         `<li><div class="nombre" title="${esc(x.obra)}">${esc(nombreObra(x))}</div><div class="monto">${x.costo_et == null ? "Costo no registrado"
           : `${millones(x.costo_et)} · ${pctE(x.costo_et, total)}`}</div>
         <div class="meta"><span>${distritoTxt(x)}</span><span>· paralizada hace ${duracion(diasParalizada(x))}</span>
-          <span class="etiqueta">${esc(x.causal || "Causa no registrada")}</span></div></li>`).join("")}</ol>` : "" }) +
+          <span class="etiqueta">${x.causal ? gc(x.causal) : "Causa no registrada"}</span></div></li>`).join("")}</ol>` : "" }) +
+    (cp ? panel({ titulo: `Obras paralizadas por departamento: Piura en el puesto ${num(cp.puesto)} de ${num(cp.M)}`, clase: "ancho",
+      ud: "porcentaje de las obras activas que está paralizado, de mayor a menor; la línea punteada es el total del país",
+      extra: graficoPais(cp), pie: piePais(), vence: "obras", calc: ["comparacion"] }) : "") +
     (par.length ? panel({ titulo: pr ? `Por monto, ${pr.k === "No registrada" ? "lo principal son obras sin causa registrada"
         : `la causa principal es ${articulo(pr.k)} ${esc(pr.k.charAt(0).toLowerCase() + pr.k.slice(1))}`}:
         ${millones(pr.monto)} en ${obrasTxt(pr.l.length)}${casi ? `, casi todo por la obra «${esc(nombreObra(mayor))}»` : ""}` : "Causas de paralización",
       ud: "costo de las obras paralizadas por causa registrada en Infobras; «Otras» reúne «Otras causales» y las causas con una sola obra",
       pie, vence: "obras", clase: "doble",
-      extra: `<ol class="barras-h">${cm.map(c => `<li><div class="k"${c.detalle ? ` title="${esc(c.detalle)}"` : ""}>${esc(c.k)}
+      extra: `<ol class="barras-h">${cm.map(c => `<li><div class="k"${c.detalle ? ` title="${esc(c.detalle)}"` : ""}>${gc(c.k)}
         <small>${obrasTxt(c.l.length)}</small></div><div class="b"><i aria-hidden="true" style="--p:${maxMonto ? c.monto / maxMonto : 0}"></i>
         <span>${millones(c.monto).replace("\u00a0millones", "\u00a0M")}</span></div></li>`).join("")}</ol>
         <p class="nota">El desglose de «Otras» está en el detalle.</p>` }) +
@@ -1735,6 +1841,11 @@ function pintarObras() {
     `<tr><td>${esc(x.obra)}</td><td>${esc(x.entidad)}</td><td>${distritoTxt(x)}</td>
       <td class="n">${x.costo_et == null ? "—" : num(x.costo_et)}</td><td class="n">${avanceObra(x)}</td>
       <td>${esc(x.fecha_paralizacion || "—")}</td><td class="n">${duracion(diasParalizada(x))}</td><td>${esc(x.causal || "—")}</td></tr>`, 8);
+  $("deps-tabla").innerHTML = cp ? cp.deps.map((r, i) => `<tr${r.departamento === "PIURA" ? ' class="fila-piura"' : ""}><td class="n">${
+    num(cp.deps.filter(x => x.p > r.p).length + 1)}</td><td>${esc(nombreDep(r.departamento))}</td><td class="n">${num(r.activas)}</td>
+    <td class="n">${num(r.paralizadas)}</td><td class="n">${pctTxt(r.p)}</td><td class="n">${num(r.costo_activas / 1e6, 1)}</td>
+    <td class="n">${num(r.costo_paralizadas / 1e6, 1)}</td></tr>`).join("") + `<tr class="total"><td></td><td>Total del país</td><td class="n" colspan="2"></td>
+    <td class="n">${pctTxt(cp.pN)}</td><td class="n" colspan="2">costo paralizado: ${pctTxt(cp.cN)}</td></tr>` : `<tr><td colspan="7">Sin datos por departamento.</td></tr>`;
   $("causas-tabla").innerHTML = cs.map(([k, n]) => `<tr><td>${esc(k)}</td><td class="n">${num(n)}</td>
     <td class="n">${num(costoDe(deCausa(k)) / 1e6, 1)}</td></tr>`).join("");
   pintarListaObras();
@@ -1947,7 +2058,7 @@ function pintarResumen() {
   const d = D.d26, tend = d?.totales && tendenciaDengue(d);
   const activas = D.obras ? D.obras.obras.filter(x => !APARTE[x.codigo_infobras]) : [], par = activas.filter(x => x.estado === "Paralizada");
   const t = D.gasto && gastoDe(() => true, 1);
-  const gasto = D.gasto && { p: pct(t.dev, t.pim), trans: anioTranscurrido(D.gasto.fecha_corte, D.gasto.anio) };
+  const gasto = D.gasto && { p: pct(t.dev, t.pim), trans: esperadoGasto() };
   $("hoy").innerHTML = `<h2 class="pregunta">¿Cómo está Piura frente a El&nbsp;Niño?</h2>`;
   // Cada panel: título con el hallazgo (reglas en "Fuentes y método"), cifra, mini-gráfica, una frase, enlace y fuente con su fecha
   if (d?.totales) {
@@ -1977,11 +2088,11 @@ function pintarResumen() {
       mini: medidor(p, trans, sm) + esperadoTxt(trans) + ritmoTxt(sm), ver: ["#gasto", "Ver gasto"], calc: ["avance", "semaforo"], pie: `MEF, datos al ${fecha(D.gasto.fecha_corte)}` }));
   }
   if (D.obras) {
-    const sh = pct(par.length, activas.length);
-    ps.push(panel({ titulo: par.length ? `El ${pctTxt(sh)} de las obras activas está paralizado` : "Ninguna obra activa está paralizada",
-      clase: `compacto${par.length ? " cifra-alerta" : ""}`, cifra: num(par.length), ud: `obras paralizadas, de ${num(activas.length)} activas`, vence: "obras", mini: medidor(sh),
-      ver: ["#obras", "Ver obras"],
-      pie: pieInfobras(D.obras) }));
+    const sh = pct(par.length, activas.length), cp = obrasPais(activas, par);
+    ps.push(panel({ titulo: cp ? tituloPais(cp) : par.length ? `El ${pctTxt(sh)} de las obras activas está paralizado` : "Ninguna obra activa está paralizada",
+      clase: `compacto${cp?.comp === "mas" ? " cifra-alerta" : ""}`, cifra: num(par.length), ud: `obras paralizadas, de ${num(activas.length)} activas`, vence: "obras",
+      frase: cp ? `${frasePais(cp)} ${fraseCostoPais(cp)}` : "", ver: ["#obras", "Ver obras"], calc: cp ? ["comparacion"] : [],
+      pie: cp ? piePais() : pieInfobras(D.obras) }));
   } else ps.push(sinDatos("¿Cómo van las obras?", "obras de Infobras").replace('class="panel ', 'class="panel compacto '));
   if (D.camas) {
     const rep = D.camas.establecimientos.filter(x => x.reporto), conPd = rep.every(x => x.pacientes_dia != null);
@@ -2013,6 +2124,7 @@ function pintarFuentes() {
     ["Gasto de emergencia FEN", D.fen, "Diaria", "fen"],
     ["Avance físico y financiero acumulado de proyectos", D.invMeta, "Diaria", "inv"],
     ["Obras en ejecución y paralizadas", D.obras, "Mensual, a mano (archivo sin avances desde marzo de 2026)", "obras"],
+    ["Obras activas por departamento (todo el país)", D.deps, "Mensual, a mano (con el de Piura)"],
     [`Dengue ${anioD()}: casos, graves, fallecidos, hospitalizados`, D.d26 && { ...D.d26, fecha_corte: `${fecha(D.d26.fecha_corte)} (semana ${D.d26.se})` }, "Semanal (viernes)", "d26"],
     ["Dengue 2000–2025 por distrito y semana", D.dh, "Archivo fijo; se actualiza a mano"],
     ["Capacidad hospitalaria", D.camas && { ...D.camas, fecha_corte: `${fecha(D.camas.fecha_corte)} (${D.camas.periodo})` }, "Mensual, a mano", "camas"],
@@ -2036,7 +2148,12 @@ function pintarFuentes() {
     `${esc(k.replace("_", " "))}, ${v === "ok" ? "cuadra" : `<span class="revisar">${esc(v)}</span>`}`).join("; ") + "." +
     (d.avisos?.length ? ` Avisos: ${d.avisos.map(esc).join("; ")}.` : "");
   document.querySelectorAll(".n-prelim").forEach(e => e.textContent = PRELIMINAR);
-  $("glosario").innerHTML = Object.values(DEFINICIONES).map(([t, def]) => `<dt><strong>${esc(t)}</strong></dt><dd>${esc(def)}</dd>`).join("");
+  $("glosario").innerHTML = Object.entries(DEFINICIONES).filter(([k]) => k !== "causas").map(([, [t, def]]) =>
+    `<dt><strong>${esc(t)}</strong></dt><dd>${esc(def)}</dd>`).join("") + `<dt><strong>Causas de paralización (Infobras)</strong></dt><dd><ul>${
+    DEFINICIONES.causas.map(c => `<li><strong>${esc(c.causa)}.</strong> ${esc(c.definicion)} <span class="nota">Fuente: ${c.url
+      ? `<a href="${esc(c.url)}" target="_blank" rel="noopener">${esc(c.fuente)}</a>` : esc(c.fuente)}.</span></li>`).join("")}</ul>
+    <p class="nota">Ley 32069 (Ley General de Contrataciones Públicas): rige desde 2025; muchas obras se contrataron con la ley anterior (Ley 30225).
+    Ley 31589: citada en su texto de 2022; fue modificada luego por los D. Leg. 1584 y 1636.</p></dd>`;
 }
 
 /* ---------- Compartir la pestaña actual ---------- */
@@ -2098,9 +2215,9 @@ window.addEventListener("resize", () => {
 /* ---------- Arranque ---------- */
 (async () => {
   mostrar();
-  const [gasto, inv, fen, obras, dh, d26, camas, mapa, ipc, camasSerie, ipress, pobreza, cortos, nombres] = await Promise.all(["gasto_piura.json",
+  const [gasto, inv, fen, obras, dh, d26, camas, mapa, ipc, camasSerie, ipress, pobreza, cortos, nombres, deps] = await Promise.all(["gasto_piura.json",
     "inversiones_piura.json", "fen_piura.json", "infobras_piura.json", "dengue_historico.json", "dengue_2026.json", "camas_piura.json",
-    "piura_distritos.json", "ipc_piura.json", "camas_serie.json", "ipress_piura.json", "lineas_pobreza.json", "nombres_cortos_obras.json", "nombres_entidades.json"].map(cargar));
+    "piura_distritos.json", "ipc_piura.json", "camas_serie.json", "ipress_piura.json", "lineas_pobreza.json", "nombres_cortos_obras.json", "nombres_entidades.json", "infobras_departamentos.json"].map(cargar));
   if (!gasto) {
     $("resumen-paneles").innerHTML = `<p>No se pudieron cargar los datos. Si abriste el archivo directamente, sírvelo con
       <code>python3 -m http.server -d docs</code> y entra a http://localhost:8000.</p>`;
@@ -2109,7 +2226,7 @@ window.addEventListener("resize", () => {
   D.gasto = { ...gasto, rows: filas(gasto) };
   if (inv) { D.invMeta = inv; D.inv = Object.fromEntries(filas(inv).map(r => [r.cui, r])); }
   if (fen) D.fen = { ...fen, rows: filas(fen) };
-  Object.assign(D, { obras, dh, d26, camas, mapa, ipc, camasSerie, ipress, pobreza, cortos, nombres });
+  Object.assign(D, { obras, dh, d26, camas, mapa, ipc, camasSerie, ipress, pobreza, cortos, nombres, deps });
   // Nombres legibles de entidades: diccionario o, si falta, la regla sobre el nombre original
   for (const k in gasto.nombres.entidad) gasto.nombres.entidad[k] = nombres?.mef?.[k] || legible(gasto.nombres.entidad[k]);
   obras?.obras.forEach(x => x.entidad = entidadObra(x.entidad));
