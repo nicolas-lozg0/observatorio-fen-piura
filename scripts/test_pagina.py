@@ -191,6 +191,14 @@ def main():
             revisar(r3["costoAlto"] and r3["titulos"][0] == "Pocas obras paralizadas, pero de alto costo" and r3["titulos"][1] in ("Obras paralizadas en la proporción del país", "Más obras paralizadas que el país",
                     "Menos obras paralizadas que el país"), f"regla de costo alto: {r3}")
             revisar(r3["ok"] and r3["titulo"] and r3["rojo"] and r3["mas"] == "mas" and not r3["sinDef"], f"obras frente al país y causas: {r3}")
+            # Barra del costo de las paralizadas: 5 tramos y el resto suman el total; el tramo abre su nombre y monto
+            pg.evaluate("location.hash = '#obras'")
+            pg.wait_for_selector("#obras-paneles .barra-costo")
+            pg.locator("#obras-paneles .tramo").first.click()
+            r6 = pg.evaluate("""() => { const ps = [...document.querySelectorAll('#obras-paneles .tramo')].map(b => +b.style.getPropertyValue('--p'));
+                return { n: ps.length, suma: ps.reduce((a, b) => a + b, 0), caja: !$('definicion').hidden && $('definicion').textContent }; }""")
+            revisar(r6["n"] == 6 and abs(r6["suma"] - 1) < 1e-3 and str(r6["caja"]).startswith("1. "), f"barra del costo: {r6}")
+            pg.keyboard.press("Escape")
             revisar(r2["entidades"] == ["Municipalidad Distrital de La Unión", "Municipalidad Distrital de San Miguel de El Faique",
                                         "Mancomunidad Municipal Simón Rodríguez (MMSR)"], f"nombres de entidades: {r2['entidades']}")
             # Mapas con Leaflet: dibujados, o con su mensaje si el CDN no respondió
