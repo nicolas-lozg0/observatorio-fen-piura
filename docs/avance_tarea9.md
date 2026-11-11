@@ -174,3 +174,23 @@ Piura tiene dos distritos llamados Salitral: uno en Morropón (200406) y otro en
   - Excluir solo los que pasan de 100 % habría dejado dentro a los otros 6, con datos igual de dudosos.
   - Además, habría roto la comparación con hace un año, porque la serie de 24 meses viene ya sumada por mes, sin detalle por establecimiento.
 - **Pruebas:** `test_pagina.py` comprueba que un dato que no cuadra se marque y uno normal no, y que febrero de un año bisiesto tenga 29 días.
+
+## Ventana del mapa y texto de lo esperado
+
+- **Ventana del mapa de Salud:**
+  - **El problema:** en celular la ventana medía 301 px en un mapa de 295 px, y la nota iba en una sola línea, así que se cortaba y no se leía.
+  - **El arreglo:** la ventana nunca es más ancha que el mapa, el texto salta de línea y el mapa se desplaza para mostrarla entera.
+  - **El texto:** es más corto y tiene el mismo formato para todos los establecimientos: nombre; distrito · camas; «Ocupación (set. 2026): 103,2 %»; y, si aplica, en gris pequeño, «Dato a revisar: 95 días-cama para 8 camas (se esperan unos 240)».
+  - La explicación completa sigue en la tabla del detalle, al pasar el cursor, y en «Fuentes y método».
+- **Lo esperado es el mismo para todos los conceptos de gasto.** Es el porcentaje del año transcurrido a la fecha de los datos del MEF (86 % al 10/11/2026): la vara del calendario, «si el gasto avanzara parejo».
+  - Como todos los conceptos salen del mismo archivo y la misma fecha, la vara es la misma.
+  - La leyenda ahora dice «Lo esperado si el gasto avanzara parejo en el año: 86 % al 10/11/2026».
+  - «Cómo se calcula» aclara que es la misma referencia para todos los conceptos, no el ritmo habitual de cada programa.
+- **Idea para una tarea futura (no se hizo):** comparar cada programa con su propio ritmo de años anteriores, por ejemplo cuánto llevaba gastado el 0068 a la misma fecha en 2023, 2024 y 2025.
+  - Sería más justo con los programas que gastan casi todo en diciembre.
+  - Pero cambia un cálculo validado y necesita los archivos mensuales del MEF de esos años, que pesan varios GB, cuando el disco tiene unos 600 MB libres.
+  - Conviene conversarlo con el profesor Vega.
+
+![Ventana de Salitral en celular](avance_tarea9/popup_salitral_375.webp)
+![Ventana de Salitral en escritorio](avance_tarea9/popup_salitral_1280.webp)
+![Leyenda de lo esperado en celular](avance_tarea9/leyenda_esperado_375.webp)
