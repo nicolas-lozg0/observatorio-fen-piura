@@ -93,3 +93,58 @@ Las otras pestañas:
 
 - Correr `scripts/actualizar_local.sh` el próximo mes para comprobar que el resumen por departamento se genere junto con el de Piura. Hoy el JSON se generó desde el mismo Excel con un script de prueba.
 - Las dos verificaciones legales de la sección C.
+
+---
+
+# Ronda 10: ajustes pequeños
+
+## Marca de lo esperado
+
+- **Fecha de lo esperado:** es la de los datos del MEF, el **10/11/2026**. Al mediodía de ese día el año va en el 85,9 %, que se muestra como **86 %**.
+- **Sin rótulo colgante:** las barras ya no llevan «esperado X %» ni su rayita. La marca vertical queda igual.
+- **Leyenda:** arriba va una leyenda con una muestra de la marca, «Lo esperado a la fecha: 86 % del año». Está en la tabla de gasto, en la tarjeta de gasto de la portada y en la tarjeta de ministerios y organismos nacionales.
+- **Pie de la tabla:** se quitó la frase sobre la línea vertical. Queda «La emergencia FEN no lleva colores: su marco no es un presupuesto anual».
+
+![Tabla de gasto en escritorio](avance_tarea9/r10_tabla_1280.webp)
+![Tabla de gasto en celular](avance_tarea9/r10_tabla_375.webp)
+
+## Obras: un solo archivo y título según los datos
+
+- **Mismo archivo para Piura y el país.** Corrí `scripts/infobras.py` y los dos JSON salen del archivo de Infobras del **10/11/2026**.
+  - Ninguna cifra de Piura cambió: 55 paralizadas de 953 activas (5,8 %), S/ 1.286,1 millones (14,0 % del costo).
+  - No cambió ninguna obra (estado, costo, causa ni fecha de paralización).
+  - El pie muestra una sola fecha.
+  - Hubo que liberar espacio: el disco tenía menos de 500 MB libres y el script se detuvo la primera vez. Borré solo archivos temporales de esta sesión.
+- **Efecto esperado del archivo nuevo:** el tiempo paralizada se cuenta hasta la fecha del archivo. Al pasar del 04/11 al 10/11, algunas obras suman un mes; por ejemplo, el camino vecinal de Las Lomas pasa de «3 años y 4 meses» a «3 años y 5 meses».
+- **Título según dos comparaciones con el país.**
+  - **Obras:** «similar» si Piura está a ±1 punto del país; si no, «más» o «menos».
+  - **Costo:** «alto costo» si el porcentaje del costo paralizado es al menos 1,5 veces el del país.
+  - Hoy da **«Pocas obras paralizadas, pero de alto costo»**: 5,8 % frente a 5,9 % en número de obras, y 14,0 % frente a 6,3 % en costo, 2,2 veces.
+  - El 55 sigue en azul marino: el rojo es solo para «más obras» que el país.
+- **Tarjeta de la portada:**
+  - «55 obras paralizadas de 953 activas: 5,8 % (país: 5,9 %)»;
+  - «14,0 % del costo de las obras activas (país: 6,3 %)».
+  - Sin el puesto. El encabezado de la pestaña Obras usa las mismas líneas.
+- **Pestaña Obras:** dos gráficos de puntos por región, uno por número de obras y otro por costo, cada uno con «Piura: puesto N de 25 (1 = el de mayor proporción)».
+  - Por obras, Piura está en el puesto 11; por costo, en el **puesto 2**, después de Cajamarca (21,2 %).
+  - La tabla del detalle suma el porcentaje del costo y el puesto por costo.
+  - Ahora se habla de «25 regiones (24 departamentos y el Callao)».
+
+![Tarjeta de obras en escritorio](avance_tarea9/r10_tarjeta_obras_1280.webp)
+![Tarjeta de obras en celular](avance_tarea9/r10_tarjeta_obras_375.webp)
+![Obras en escritorio](avance_tarea9/r10_obras_1280.webp)
+![Obras en celular](avance_tarea9/r10_obras_375.webp)
+
+## Verificación de la ronda 10
+
+- **`scripts/test_pagina.py` pasa.** Ahora también comprueba la regla del costo alto: el umbral de 1,5, el título de hoy y el título cuando el costo no es alto.
+- **Las demás pestañas no cambiaron.** Comparé con la versión anterior (`74598a4`) y Dengue, Salud y Precios no tienen ni un número distinto. Lo que se fue, a propósito:
+  - en Gasto, el «86 %» de los rótulos y la fecha de la nota;
+  - en la portada, el puesto «11 de 25»;
+  - en Obras y en «Fuentes y método», la fecha antigua de Infobras (04/11).
+  - Lo nuevo es la comparación por costo.
+- **`/ponytail-review`, 3 hallazgos corregidos:**
+  - se quitó de «Fuentes y método» un «Hoy: …» escrito a mano, que habría quedado viejo al cambiar los datos;
+  - prueba de la regla del costo;
+  - se borró un dato que no se usaba.
+- **Disco:** quedan unos 600 MB libres. La próxima actualización de Infobras necesita al menos 500 MB, así que conviene liberar espacio antes de correr `actualizar_local.sh`.

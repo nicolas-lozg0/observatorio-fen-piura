@@ -168,10 +168,14 @@ def main():
                 const act = D.obras.obras.filter(x => !APARTE[x.codigo_infobras]), par = act.filter(x => x.estado === "Paralizada");
                 const c = obrasPais(act, par), tarjeta = document.querySelectorAll('#resumen-paneles .panel')[2];
                 const sube = obrasPais(act, [...par, ...act.filter(x => x.estado !== "Paralizada").slice(0, Math.ceil(act.length * .02))]);
-                return { ok: !!c, titulo: tarjeta.querySelector('h3').textContent.trim() === tituloPais(c),
+                const titulos = [tituloPais({ comp: "similar", costoAlto: true }),
+                  tituloPais({ ...c, costoAlto: c.cP >= COSTO_ALTO * (c.cP + 1) })];
+                return { ok: !!c, titulos, costoAlto: c.costoAlto === (c.cP >= 1.5 * c.cN), titulo: tarjeta.querySelector('h3').textContent.trim() === tituloPais(c),
                   rojo: tarjeta.classList.contains('cifra-alerta') === (c.comp === "mas"), mas: sube.comp,
                   sinDef: [...new Set(par.map(x => x.causal).filter(Boolean))].filter(k => !defCausa(k)) };
             }""")
+            revisar(r3["costoAlto"] and r3["titulos"][0] == "Pocas obras paralizadas, pero de alto costo" and r3["titulos"][1] in ("Obras paralizadas en la proporción del país", "Más obras paralizadas que el país",
+                    "Menos obras paralizadas que el país"), f"regla de costo alto: {r3}")
             revisar(r3["ok"] and r3["titulo"] and r3["rojo"] and r3["mas"] == "mas" and not r3["sinDef"], f"obras frente al país y causas: {r3}")
             revisar(r2["entidades"] == ["Municipalidad Distrital de La Unión", "Municipalidad Distrital de San Miguel de El Faique",
                                         "Mancomunidad Municipal Simón Rodríguez (MMSR)"], f"nombres de entidades: {r2['entidades']}")

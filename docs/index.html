@@ -174,6 +174,10 @@
   tr.fila-piura td { font-weight: 700; color: var(--titulo); }
   tr.total td { font-weight: 700; border-top: 1px solid var(--linea); }
   @media (max-width: 600px) { .puntos .fila-p { grid-template-columns: 6rem minmax(0, 1fr) 2.6rem; } }
+  .dos-graficos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--e5); }
+  .dos-graficos h4 { margin: 0; font-size: var(--t-sm); color: var(--titulo); }
+  .dos-graficos .nota { margin: var(--e1) 0 0; }
+  @media (max-width: 800px) { .dos-graficos { grid-template-columns: minmax(0, 1fr); } }
 
   /* ===== Portada ===== */
   .hoy { margin-bottom: var(--e5); }
@@ -215,11 +219,10 @@
   .lista-visual .medidor { height: 6px; margin: var(--e1) 0; }
   .lista-visual .monto { font-weight: 700; color: var(--titulo); font-size: var(--t-sm); margin-top: 2px; }
   .lista-visual .nombre { font-size: var(--t-sm); overflow-wrap: anywhere; }
-  /* Rótulo "esperado X %" junto a la marca vertical de un medidor */
-  .rot-esperado { display: block; width: max-content; font-size: var(--t-xs); color: var(--texto-2); margin-top: calc(-1 * var(--e1));
-    position: relative; left: var(--x); }
-  .rot-esperado.a-la-izq { transform: translateX(calc(-100% + 1px)); padding-right: var(--e1); border-right: 1px solid var(--texto-3); }
-  .rot-esperado.a-la-der { padding-left: var(--e1); border-left: 1px solid var(--texto-3); }
+  /* Leyenda de la marca de lo esperado: una muestra de la marca y el valor, arriba de la tabla o de la barra */
+  .leyenda-esperado { display: flex; align-items: center; gap: var(--e2); margin: 0 0 var(--e2); font-size: var(--t-xs); color: var(--texto-2); }
+  .leyenda-esperado .muestra-marca { flex: none; width: 3px; height: 14px; border-radius: 1px; background: var(--texto);
+    box-shadow: 0 0 0 1px var(--superficie); }
   /* Barras horizontales de una medida: categoría y conteo arriba, barra con su monto al final */
   .barras-h { list-style: none; margin: var(--e2) 0 0; padding: 0; display: grid; gap: var(--e3); }
   .barras-h .k { font-size: var(--t-sm); }
@@ -530,10 +533,11 @@
           <tbody id="paralizadas"></tbody>
         </table></div>
         <button type="button" class="mas" id="paralizadas-mas" hidden></button>
-        <h3 id="obras-departamentos">Obras paralizadas por departamento</h3>
+        <h3 id="obras-departamentos">Obras paralizadas por región</h3>
         <div class="tabla"><table class="ancha">
           <thead><tr><th class="n">Puesto</th><th>Departamento</th><th class="n">Activas</th><th class="n">Paralizadas</th>
-            <th class="n">% paralizadas</th><th class="n">Costo activas (S/ millones)</th><th class="n">Costo paralizadas (S/ millones)</th></tr></thead>
+            <th class="n">% paralizadas</th><th class="n">Costo activas (S/ millones)</th><th class="n">Costo paralizadas (S/ millones)</th>
+            <th class="n">% del costo paralizado</th><th class="n">Puesto por costo</th></tr></thead>
           <tbody id="deps-tabla"></tbody>
         </table></div>
         <p class="nota">Piura sin la obra de Petroperú (ver «Fuera de los totales»). «Sin dato» y «No aplica» cuentan en el total del país, no en el puesto.</p>
@@ -688,9 +692,11 @@
           <li><strong>Obras frente al país.</strong> Con el archivo nacional de Infobras se calcula, por departamento, el porcentaje
             de las obras activas que está paralizado y el de su costo (docs/data/infobras_departamentos.json, solo totales). El
             promedio nacional es el total del país (todas las paralizadas entre todas las activas), no el promedio de los
-            departamentos. Piura usa las mismas cifras que el resto de la página, sin la obra de Petroperú. Si Piura supera al país
-            por más de 1 punto porcentual, la cifra de obras paralizadas va en rojo y el título dice «más»; si está más de 1 punto
-            por debajo, «menos»; si no, «similar». «Sin dato» y «No aplica» cuentan en el total del país, no en el puesto.</li>
+            departamentos. Piura y el resto del país salen del mismo archivo; Piura sin la obra de Petroperú. Títulos: por número
+            de obras, «más» si Piura supera al país por más de 1 punto porcentual (y la cifra va en rojo), «menos» si está más de
+            1 punto por debajo y, si no, la proporción es similar; por costo, «alto costo» si el porcentaje del costo paralizado
+            es al menos 1,5 veces el del país. El puesto se cuenta entre 25
+            regiones (24 departamentos y el Callao); «Sin dato» y «No aplica» cuentan en el total del país, no en el puesto.</li>
           <li><strong>Obras.</strong> Cuenta las obras paralizadas y su costo, y nombra la causa registrada con más obras. El
             tiempo paralizada se cuenta desde la «fecha de paralización» de Infobras hasta la fecha de los datos; no se usa el
             campo «días paralizado», que no cuadra con esa fecha (muchas obras paralizadas hace años dicen 30 o 31 días).
@@ -764,7 +770,7 @@ const DEFINICIONES = {
   vistas: ["Dos vistas del gasto", "«Gastado en Piura»: todo lo que se gasta en Piura, lo ejecute quien lo ejecute (también ministerios con sede en Lima). «Por entidades con sede en Piura»: lo que gastan el gobierno regional, las municipalidades y otras entidades con sede en Piura, se gaste donde se gaste."],
   semaforo: ["Colores del avance", "Lo esperado es el porcentaje del año transcurrido a la fecha de los datos (la línea vertical). A ritmo: hasta 5 puntos por debajo; algo lento: de 5 a 15 puntos por debajo; muy lento: más de 15."],
   tendencia: ["Tendencia del dengue", "Se suman los casos de las 4 últimas semanas completas y se comparan con las 4 anteriores; las últimas semanas son preliminares y no entran. Más de +10 %: sube; menos de −10 %: baja; si no, se mantiene."],
-  comparacion: ["Piura frente al país", "Porcentaje de las obras activas (en ejecución o paralizadas) que está paralizado, según Infobras. Promedio nacional: todas las obras paralizadas del país entre todas sus obras activas. Puesto entre los 25 departamentos (1 = el de mayor proporción). Si Piura supera al país por más de 1 punto, la cifra va en rojo y el título dice «más»; si está más de 1 punto por debajo, «menos»; si no, «similar». Piura no incluye la obra de Petroperú en Talara, como en el resto de la página."],
+  comparacion: ["Piura frente al país", "Dos comparaciones con el total del país, con el mismo archivo de Infobras: el porcentaje de las obras activas (en ejecución o paralizadas) que está paralizado y el porcentaje de su costo. Obras: si Piura supera al país por más de 1 punto, el título dice «más» y la cifra va en rojo; si está más de 1 punto por debajo, «menos»; si no, la proporción es similar («pocas obras»). Costo: «alto costo» si el porcentaje del costo paralizado de Piura es al menos 1,5 veces el del país. El total del país es la suma de todas las obras, no el promedio de las regiones. Piura no incluye la obra de Petroperú en Talara, como en el resto de la página."],
   tiempo: ["Tiempo paralizada", "Desde la fecha de paralización registrada en Infobras hasta la fecha del archivo, en años y meses completos. No se usa el campo «días paralizado», que no cuadra con esa fecha."],
   marco: ["Marco presupuestal", "Recursos autorizados por los decretos de emergencia por El Niño."],
   p0068: ["Programa 0068", "Programa presupuestal de reducción de vulnerabilidad y atención de emergencias por desastres."],
@@ -819,8 +825,8 @@ const SEMAFORO = [[-TOLERANCIA, "ok", "A ritmo"], [-15, "lento", "Algo lento"], 
 const semaforo = (p, esperado) => p == null || esperado == null ? null : SEMAFORO.find(([d]) => p - esperado >= d);
 const ritmoTxt = sm => sm ? `<span class="ritmo" style="--c:var(--ritmo-${sm[1]})">${sm[2]}</span>` : "";
 const esperadoFmt = v => num(v, 0) + "\u00a0%";
-const esperadoTxt = marca => marca == null ? "" :
-  `<span class="rot-esperado ${marca > 50 ? "a-la-izq" : "a-la-der"}" style="--x:${Math.min(100, marca)}%">esperado ${esperadoFmt(marca)}</span>`;
+const leyendaEsperado = v => v == null ? "" :
+  `<p class="leyenda-esperado"><span class="muestra-marca" aria-hidden="true"></span>Lo esperado a la fecha: ${esperadoFmt(v)} del año</p>`;
 const medidor = (p, marca, sm) => `<div class="medidor" title="${pctTxt(p)}"><div ${sm ? `class="${sm[1]}" ` : ""}style="width:${Math.min(100, Math.max(0, p || 0))}%"></div>${
   marca == null ? "" : `<span class="marca" style="left:calc(${Math.min(100, marca)}% - 1.5px)"></span>`}</div>`;
 function fecha(iso) {
@@ -992,10 +998,10 @@ function anioTranscurrido(iso, anio) {
 const ritmo = (p, t) => p < t - TOLERANCIA ? "menor" : p > t + TOLERANCIA ? "mayor" : "similar";
 
 // Celda de una vista en la tabla comparativa: avance, barra, devengado y presupuesto (PIM o marco)
-function celdaVista(t, base, marca, sinSede, rotulo) {
+function celdaVista(t, base, marca, sinSede) {
   if (!t.pim) return `<td class="vacio">—${sinSede ? `<span class="nota"><br>Sede en Lima</span>` : ""}</td>`;
   const p = pct(t.dev, t.pim), sm = semaforo(p, marca);
-  return `<td><span class="av">${pctTxt(p)}</span> ${ritmoTxt(sm)}${medidor(p, marca, sm)}${rotulo ? esperadoTxt(marca) : ""}<span class="montos">Devengado ${millones(t.dev)}<br>${base} ${millones(t.pim)}</span></td>`;
+  return `<td><span class="av">${pctTxt(p)}</span> ${ritmoTxt(sm)}${medidor(p, marca, sm)}<span class="montos">Devengado ${millones(t.dev)}<br>${base} ${millones(t.pim)}</span></td>`;
 }
 
 function pintarGastoPaneles() {
@@ -1011,13 +1017,12 @@ function pintarGastoPaneles() {
   ];
   const cv = comoSeCalcula(["avance", "vistas", "semaforo"]);
   $("gasto-comparativa").removeAttribute("aria-busy");
-  $("gasto-comparativa").innerHTML = aviso(["gasto", "fen"]) + `<div class="tabla"><table>
+  $("gasto-comparativa").innerHTML = aviso(["gasto", "fen"]) + leyendaEsperado(trans) + `<div class="tabla"><table>
     <caption class="visualmente-oculto">Avance del gasto en las dos vistas</caption>
     <thead><tr><th scope="col">Concepto</th><th scope="col">Gastado en Piura</th><th scope="col">Por entidades con sede en Piura</th></tr></thead><tbody>` +
-    filasC.map(([t, nota, [v1, v2], base, marca], i) => `<tr><th scope="row">${t}${nota ? `<span class="nota">${nota}</span>` : ""}</th>
-      ${celdaVista(v1, base, marca, false, i === 0)}${celdaVista(v2, base, marca, v1.pim > 0, i === 0)}</tr>`).join("") + `</tbody></table></div>
-    <p class="nota">La marca vertical es lo esperado al ${fecha(gs.fecha_corte)}: el ${esperadoFmt(trans)} del año transcurrido. La
-      emergencia FEN no lleva colores: su marco no es un presupuesto anual.</p>
+    filasC.map(([t, nota, [v1, v2], base, marca]) => `<tr><th scope="row">${t}${nota ? `<span class="nota">${nota}</span>` : ""}</th>
+      ${celdaVista(v1, base, marca)}${celdaVista(v2, base, marca, v1.pim > 0)}</tr>`).join("") + `</tbody></table></div>
+    <p class="nota">La emergencia FEN no lleva colores: su marco no es un presupuesto anual.</p>
     <p class="nota">${f}${D.fen ? `; emergencia FEN, datos al ${fecha(D.fen.fecha_corte)}` : ""} · ${cv[0]}</p>${cv[1]}`;
 
   // Lo único que cambia entre las vistas: el gobierno nacional que gasta en Piura con sede fuera de la región
@@ -1031,7 +1036,7 @@ function pintarGastoPaneles() {
   $("gasto-diferencia").innerHTML = panel({ titulo: "Ministerios y organismos nacionales que gastan en Piura",
     sub: "Tienen sede en Lima, así que no aparecen si solo se miran las entidades de Piura", clase: "ancho",
     cifra: millones(tf.pim), ud: `de presupuesto del año · ${pctTxt(pf)} ejecutado`,
-    mini: medidor(pf, trans, smf) + esperadoTxt(trans) + ritmoTxt(smf),
+    mini: leyendaEsperado(trans) + medidor(pf, trans, smf) + ritmoTxt(smf),
     extra: `<h4 class="antes-lista">Las ${num(top.length)} principales</h4><ol class="lista-visual">${top.map(([e, x]) =>
       `<li><div class="nombre">${esc(gs.nombres.entidad[e] || e)}</div><div class="monto">${millones(x.pim)} · ${pctTxt(pct(x.dev, x.pim))} ejecutado</div></li>`).join("")}</ol>`,
     pie: f, calc: ["vistas", "semaforo"] });
@@ -1629,8 +1634,10 @@ function nombreCorto(t) {
 }
 const nombreObra = x => D.cortos?.obras?.[x.codigo_infobras]?.corto || nombreCorto(x.obra);
 // Piura frente a los demás departamentos (Infobras, todo el país). Piura usa las mismas cifras que la página (sin las obras
-// de APARTE); el total del país se ajusta igual. Más de 1 punto por encima del país: rojo y "más"; por debajo: "menos".
+// de APARTE); el total del país se ajusta igual. Obras: más de 1 punto por encima del país, "más" (y la cifra en rojo); más de
+// 1 punto por debajo, "menos"; si no, "similar". Costo: "alto" si el % del costo paralizado es al menos 1,5 veces el del país.
 const UMBRAL_PAIS = 1;  // puntos porcentuales
+const COSTO_ALTO = 1.5;  // veces el % del costo paralizado del país
 const NO_DEP = ["SIN DATO", "NO APLICA"];
 const nombreDep = k => k === "P C DEL CALLAO" ? "Callao" : lugar(k);
 function obrasPais(activas, par) {
@@ -1642,29 +1649,35 @@ function obrasPais(activas, par) {
   const filas = f.map(r => r.departamento === "PIURA" ? piura : r);
   if (!f.some(r => r.departamento === "PIURA")) return null;
   const tot = k => suma(filas, k), pN = pct(tot("paralizadas"), tot("activas")), cN = pct(tot("costo_paralizadas"), tot("costo_activas"));
-  const deps = filas.filter(r => !NO_DEP.includes(r.departamento) && r.activas).map(r => ({ ...r, p: pct(r.paralizadas, r.activas) }))
-    .sort((a, b) => b.p - a.p);
-  const pP = pct(piura.paralizadas, piura.activas), dif = pP - pN;
-  return { pP, pN, dif, cP: pct(piura.costo_paralizadas, piura.costo_activas), cN, deps,
-    puesto: deps.filter(r => r.p > pP).length + 1, M: deps.length,
-    comp: dif > UMBRAL_PAIS ? "mas" : dif < -UMBRAL_PAIS ? "menos" : "similar" };
+  const deps = filas.filter(r => !NO_DEP.includes(r.departamento) && r.activas)
+    .map(r => ({ ...r, p: pct(r.paralizadas, r.activas), pc: pct(r.costo_paralizadas, r.costo_activas) ?? 0 }));
+  const pP = pct(piura.paralizadas, piura.activas), cP = pct(piura.costo_paralizadas, piura.costo_activas), dif = pP - pN;
+  const puesto = (k, v) => deps.filter(r => r[k] > v).length + 1;
+  return { pP, pN, dif, cP, cN, deps, piura, M: deps.length, puesto: puesto("p", pP), puestoC: puesto("pc", cP),
+    comp: dif > UMBRAL_PAIS ? "mas" : dif < -UMBRAL_PAIS ? "menos" : "similar", costoAlto: cP >= COSTO_ALTO * cN };
 }
-const tituloPais = c => c.comp === "mas" ? "Piura tiene, en proporción, más obras paralizadas que el país"
-  : c.comp === "menos" ? "Piura tiene, en proporción, menos obras paralizadas que el país"
-  : "Piura tiene una proporción de obras paralizadas similar a la del país";
-const frasePais = c => `Piura: ${pctTxt(c.pP)} de sus obras activas está paralizado. Promedio nacional: ${pctTxt(c.pN)}. Puesto
-  ${num(c.puesto)} de ${num(c.M)} departamentos (1 = el de mayor proporción).`;
-const fraseCostoPais = c => `Representan el ${pctTxt(c.cP)} del costo de las obras activas de Piura (país: ${pctTxt(c.cN)}).`;
-const piePais = () => `Infobras: Piura, archivo del ${fecha(D.obras.fecha_corte)}; resto del país, archivo del ${fecha(D.deps.fecha_corte)}`;
-function graficoPais(c) {
-  const max = Math.ceil(Math.max(...c.deps.map(r => r.p), c.pN) / 2) * 2, x = v => `${100 * v / max}%`;
-  return `<div class="puntos" role="img" aria-label="Porcentaje de obras activas paralizadas por departamento, de mayor a menor. Piura: ${
-    pctTxt(c.pP)}, puesto ${c.puesto} de ${c.M}. Total del país: ${pctTxt(c.pN)}. La tabla está en el detalle.">
-    <div class="fila-p cab-p" aria-hidden="true"><span></span><span style="position:relative"><span style="position:absolute;left:${x(c.pN)};
-      transform:translateX(-50%);white-space:nowrap">País ${pctTxt(c.pN)}</span>&nbsp;</span><span class="v">%</span></div>
-    ${c.deps.map(r => `<div class="fila-p${r.departamento === "PIURA" ? " piura" : ""}" title="${esc(nombreDep(r.departamento))}: ${pctTxt(r.p)} (${
-      num(r.paralizadas)} de ${num(r.activas)} obras activas)" aria-hidden="true"><span>${esc(nombreDep(r.departamento))}</span>
-      <span class="pista-p" style="--n:${x(c.pN)}"><i style="--x:${x(r.p)}"></i></span><span class="v">${num(r.p, 1)}</span></div>`).join("")}
+const tituloPais = c => ({
+  similar: c.costoAlto ? "Pocas obras paralizadas, pero de alto costo" : "Obras paralizadas en la proporción del país",
+  mas: c.costoAlto ? "Más obras paralizadas que el país, y de alto costo" : "Más obras paralizadas que el país",
+  menos: c.costoAlto ? "Menos obras paralizadas que el país, pero de alto costo" : "Menos obras paralizadas que el país" })[c.comp];
+const pctNb = v => pctTxt(v).replace(" ", "\u00a0");  // el % no se separa de su número al saltar de línea
+const lineasPais = c => `${num(c.piura.paralizadas)} obras paralizadas de ${num(c.piura.activas)} activas: ${pctNb(c.pP)} (país: ${
+  pctNb(c.pN)}).<br>${pctNb(c.cP)} del costo de las obras activas (país: ${pctNb(c.cN)}).`;
+const piePais = () => D.deps.fecha_corte === D.obras.fecha_corte ? `Infobras, archivo del ${fecha(D.obras.fecha_corte)}`
+  : `Infobras: Piura, archivo del ${fecha(D.obras.fecha_corte)}; resto del país, archivo del ${fecha(D.deps.fecha_corte)}`;
+// Gráfico de puntos por región, ordenado por k ("p": % de obras; "pc": % del costo), con Piura resaltado y la línea del país
+function graficoPais(c, k) {
+  const nac = k === "p" ? c.pN : c.cN, vP = k === "p" ? c.pP : c.cP, que = k === "p" ? "de las obras activas" : "del costo de las obras activas";
+  const filas = [...c.deps].sort((a, b) => b[k] - a[k]);
+  const max = Math.ceil(Math.max(...filas.map(r => r[k]), nac) / 2) * 2, x = v => `${100 * v / max}%`;
+  return `<div class="puntos" role="img" aria-label="Porcentaje ${que} que está paralizado, por región, de mayor a menor. Piura: ${
+    pctTxt(vP)}, puesto ${k === "p" ? c.puesto : c.puestoC} de ${c.M}. Total del país: ${pctTxt(nac)}. La tabla está en el detalle.">
+    <div class="fila-p cab-p" aria-hidden="true"><span></span><span style="position:relative"><span style="position:absolute;left:${x(nac)};
+      transform:translateX(-50%);white-space:nowrap">País ${pctTxt(nac)}</span>&nbsp;</span><span class="v">%</span></div>
+    ${filas.map(r => `<div class="fila-p${r.departamento === "PIURA" ? " piura" : ""}" title="${esc(nombreDep(r.departamento))}: ${pctTxt(r[k])} ${
+      k === "p" ? `(${num(r.paralizadas)} de ${num(r.activas)} obras activas)` : `(${millones(r.costo_paralizadas)} de ${millones(r.costo_activas)})`}"
+      aria-hidden="true"><span>${esc(nombreDep(r.departamento))}</span>
+      <span class="pista-p" style="--n:${x(nac)}"><i style="--x:${x(r[k])}"></i></span><span class="v">${num(r[k], 1)}</span></div>`).join("")}
   </div>`;
 }
 
@@ -1794,9 +1807,9 @@ function pintarObras() {
   const conMef = eje.filter(x => invObra(x)?.avance_fisico != null), cp = obrasPais(activas, par);
   $("obras-paneles").innerHTML =
     panel({ titulo: cp ? tituloPais(cp) : g("paralizada", "Obras paralizadas"), cifra: num(par.length),
-      ud: `${g("paralizada", "obras paralizadas")}, de ${num(activas.length)} activas; costo total ${millones(costoDe(par))}`, vence: "obras",
+      ud: `${g("paralizada", "obras paralizadas")}; costo total ${millones(costoDe(par))}`, vence: "obras",
       clase: `ancho${cp?.comp === "mas" ? " cifra-alerta" : ""}`, pie: cp ? piePais() : pie, calc: cp ? ["comparacion"] : [],
-      frase: (cp ? `${frasePais(cp)} ${fraseCostoPais(cp)} ` : "") +
+      frase: (cp ? `${lineasPais(cp)}<br>` : "") +
         (cs.length ? `La causa registrada con más obras es «${esc(cs[0][0])}» (${num(cs[0][1])} de ${num(par.length)}).` : ""),
       extra: par.length ? `<h4 class="antes-lista">Las ${num(top5.length)} de mayor costo suman ${millones(costoDe(top5))}: el
         ${pctE(costoDe(top5), total)} del costo de las ${num(par.length)}</h4><ol class="lista-visual">${top5.map(x =>
@@ -1804,9 +1817,13 @@ function pintarObras() {
           : `${millones(x.costo_et)} · ${pctE(x.costo_et, total)}`}</div>
         <div class="meta"><span>${distritoTxt(x)}</span><span>· paralizada hace ${duracion(diasParalizada(x))}</span>
           <span class="etiqueta">${x.causal ? gc(x.causal) : "Causa no registrada"}</span></div></li>`).join("")}</ol>` : "" }) +
-    (cp ? panel({ titulo: `Obras paralizadas por departamento: Piura en el puesto ${num(cp.puesto)} de ${num(cp.M)}`, clase: "ancho",
-      ud: "porcentaje de las obras activas que está paralizado, de mayor a menor; la línea punteada es el total del país",
-      extra: graficoPais(cp), pie: piePais(), vence: "obras", calc: ["comparacion"] }) : "") +
+    (cp ? panel({ titulo: "Obras paralizadas: Piura frente a las demás regiones", clase: "ancho",
+      ud: `${num(cp.M)} regiones (24 departamentos y el Callao), de mayor a menor; la línea punteada es el total del país`,
+      extra: `<div class="dos-graficos"><div><h4>% de las obras activas que está paralizado</h4><p class="nota">Piura: puesto
+        ${num(cp.puesto)} de ${num(cp.M)} (1 = el de mayor proporción)</p>${graficoPais(cp, "p")}</div>
+        <div><h4>% del costo de las obras activas que está paralizado</h4><p class="nota">Piura: puesto ${num(cp.puestoC)} de
+        ${num(cp.M)} (1 = el de mayor proporción)</p>${graficoPais(cp, "pc")}</div></div>`,
+      pie: piePais(), vence: "obras", calc: ["comparacion"] }) : "") +
     (par.length ? panel({ titulo: pr ? `Por monto, ${pr.k === "No registrada" ? "lo principal son obras sin causa registrada"
         : `la causa principal es ${articulo(pr.k)} ${esc(pr.k.charAt(0).toLowerCase() + pr.k.slice(1))}`}:
         ${millones(pr.monto)} en ${obrasTxt(pr.l.length)}${casi ? `, casi todo por la obra «${esc(nombreObra(mayor))}»` : ""}` : "Causas de paralización",
@@ -1841,11 +1858,12 @@ function pintarObras() {
     `<tr><td>${esc(x.obra)}</td><td>${esc(x.entidad)}</td><td>${distritoTxt(x)}</td>
       <td class="n">${x.costo_et == null ? "—" : num(x.costo_et)}</td><td class="n">${avanceObra(x)}</td>
       <td>${esc(x.fecha_paralizacion || "—")}</td><td class="n">${duracion(diasParalizada(x))}</td><td>${esc(x.causal || "—")}</td></tr>`, 8);
-  $("deps-tabla").innerHTML = cp ? cp.deps.map((r, i) => `<tr${r.departamento === "PIURA" ? ' class="fila-piura"' : ""}><td class="n">${
+  $("deps-tabla").innerHTML = cp ? [...cp.deps].sort((a, b) => b.p - a.p).map(r => `<tr${r.departamento === "PIURA" ? ' class="fila-piura"' : ""}><td class="n">${
     num(cp.deps.filter(x => x.p > r.p).length + 1)}</td><td>${esc(nombreDep(r.departamento))}</td><td class="n">${num(r.activas)}</td>
     <td class="n">${num(r.paralizadas)}</td><td class="n">${pctTxt(r.p)}</td><td class="n">${num(r.costo_activas / 1e6, 1)}</td>
-    <td class="n">${num(r.costo_paralizadas / 1e6, 1)}</td></tr>`).join("") + `<tr class="total"><td></td><td>Total del país</td><td class="n" colspan="2"></td>
-    <td class="n">${pctTxt(cp.pN)}</td><td class="n" colspan="2">costo paralizado: ${pctTxt(cp.cN)}</td></tr>` : `<tr><td colspan="7">Sin datos por departamento.</td></tr>`;
+    <td class="n">${num(r.costo_paralizadas / 1e6, 1)}</td><td class="n">${pctTxt(r.pc)}</td><td class="n">${num(cp.deps.filter(x => x.pc > r.pc).length + 1)}</td></tr>`).join("") +
+    `<tr class="total"><td></td><td>Total del país</td><td class="n" colspan="2"></td><td class="n">${pctTxt(cp.pN)}</td><td class="n" colspan="2"></td>
+    <td class="n">${pctTxt(cp.cN)}</td><td></td></tr>` : `<tr><td colspan="9">Sin datos por región.</td></tr>`;
   $("causas-tabla").innerHTML = cs.map(([k, n]) => `<tr><td>${esc(k)}</td><td class="n">${num(n)}</td>
     <td class="n">${num(costoDe(deCausa(k)) / 1e6, 1)}</td></tr>`).join("");
   pintarListaObras();
@@ -2085,13 +2103,13 @@ function pintarResumen() {
     const { p, trans } = gasto, r = ritmo(p, trans), sm = semaforo(p, trans);
     ps.push(panel({ titulo: `El gasto va ${r === "menor" ? "más lento que el" : r === "mayor" ? "más rápido que el" : "al ritmo del"} calendario`,
       clase: "compacto", cifra: pctTxt(p), ud: `del presupuesto del año, gastado en Piura`, vence: "gasto",
-      mini: medidor(p, trans, sm) + esperadoTxt(trans) + ritmoTxt(sm), ver: ["#gasto", "Ver gasto"], calc: ["avance", "semaforo"], pie: `MEF, datos al ${fecha(D.gasto.fecha_corte)}` }));
+      mini: leyendaEsperado(trans) + medidor(p, trans, sm) + ritmoTxt(sm), ver: ["#gasto", "Ver gasto"], calc: ["avance", "semaforo"], pie: `MEF, datos al ${fecha(D.gasto.fecha_corte)}` }));
   }
   if (D.obras) {
     const sh = pct(par.length, activas.length), cp = obrasPais(activas, par);
     ps.push(panel({ titulo: cp ? tituloPais(cp) : par.length ? `El ${pctTxt(sh)} de las obras activas está paralizado` : "Ninguna obra activa está paralizada",
-      clase: `compacto${cp?.comp === "mas" ? " cifra-alerta" : ""}`, cifra: num(par.length), ud: `obras paralizadas, de ${num(activas.length)} activas`, vence: "obras",
-      frase: cp ? `${frasePais(cp)} ${fraseCostoPais(cp)}` : "", ver: ["#obras", "Ver obras"], calc: cp ? ["comparacion"] : [],
+      clase: `compacto${cp?.comp === "mas" ? " cifra-alerta" : ""}`, cifra: num(par.length), ud: cp ? "" : "obras paralizadas", vence: "obras",
+      frase: cp ? lineasPais(cp) : "", ver: ["#obras", "Ver obras"], calc: cp ? ["comparacion"] : [],
       pie: cp ? piePais() : pieInfobras(D.obras) }));
   } else ps.push(sinDatos("¿Cómo van las obras?", "obras de Infobras").replace('class="panel ', 'class="panel compacto '));
   if (D.camas) {
