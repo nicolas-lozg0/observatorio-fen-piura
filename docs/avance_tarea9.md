@@ -148,3 +148,15 @@ Las otras pestañas:
   - prueba de la regla del costo;
   - se borró un dato que no se usaba.
 - **Disco:** quedan unos 600 MB libres. La próxima actualización de Infobras necesita al menos 500 MB, así que conviene liberar espacio antes de correr `actualizar_local.sh`.
+
+## Salitral y nombres con conectores colgantes
+
+Piura tiene dos distritos llamados Salitral: uno en Morropón (200406) y otro en Sullana (200608). Los datos ya estaban bien asignados; se corrigió solo cómo se muestran.
+
+- **Dengue:** la tabla por distrito decía «SALITRAL (MOR) (MORROPON)».
+  - Ahora quita la abreviatura de la DIRESA cuando la provincia ya va al lado y escribe los nombres con la regla de nombres legibles: «Salitral (Morropón)», «Tambo Grande (Piura)», «Veintiséis de Octubre (Piura)».
+  - Lo mismo en la lista de distritos con más casos.
+- **Nombres cortos de obras:** al cortar la ubicación quedaba un conector colgando. Por ejemplo, «…Salitral y Marcavelica de la» seguido de «Piura (Piura)».
+  - Ahora se borran los conectores finales («de», «de la», «del», «y»…).
+  - Ningún nombre de obra termina ya en un conector.
+- **Pruebas y cifras:** `test_pagina.py` suma los dos casos y pasa. Ninguna cifra cambió.

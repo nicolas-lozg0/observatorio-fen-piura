@@ -154,6 +154,8 @@ def main():
                   sube: tendenciaDengue(sube).dir, baja: tendenciaDengue(baja).dir,
                   semaforo: [semaforo(80, 85)[1], semaforo(79.9, 85)[1], semaforo(70, 85)[1], semaforo(69.9, 85)[1]],
                   nombres: [nombreCorto("  "), nombreCorto("A".repeat(90)).length, nombreCorto("MEJORAMIENTO DE LA I E SAN JOSE EN LA LOCALIDAD DE CASTILLA DISTRITO DE CASTILLA"),
+                    nombreCorto("AGUA POTABLE EN LAS LOCALIDADES DE SULLANA Y MARCAVELICA DE LA PROVINCIA DE SULLANA DEPARTAMENTO DE PIURA"),
+                    distritoDengue({ distrito: "SALITRAL (MOR)", provincia: "MORROPON" }),
                     duracion(0), duracion(250), duracion(365.25 * 4 + 3), duracion(640)],
                   entidades: [legible("MUNICIPALIDAD DISTRITAL DE LA UNION"), legible("MUNICIPALIDAD DISTRITAL DE SAN MIGUEL DE EL FAIQUE"),
                     legible("MANCOMUNIDAD MUNICIPAL SIMON RODRIGUEZ - MMSR")] };
@@ -161,7 +163,7 @@ def main():
             revisar(r2["titulo"] == r2["esperado"] and r2["igual"] and r2["sube"] == "sube" and r2["baja"] == "baja",
                     f"regla del dengue: {r2}")
             revisar(r2["semaforo"] == ["ok", "lento", "lento", "muy-lento"], f"semáforo: {r2['semaforo']}")
-            revisar(r2["nombres"] == ["Obra sin nombre", 90, "I.E. san jose", "menos de 1 mes", "8 meses", "4 años", "1 año y 9 meses"],
+            revisar(r2["nombres"] == ["Obra sin nombre", 90, "I.E. san jose", "Agua potable en las localidades de Sullana y Marcavelica", "Salitral (Morropón)", "menos de 1 mes", "8 meses", "4 años", "1 año y 9 meses"],
                     f"nombres cortos y duraciones: {r2['nombres']}")
             # Obras frente al país: título y color siguen la regla de 1 punto; cada causa de Piura tiene definición
             r3 = pg.evaluate("""() => {

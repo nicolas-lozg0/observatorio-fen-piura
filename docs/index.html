@@ -1332,6 +1332,8 @@ function graficoSemanas() {
      2023 y 2024. La franja gris marca los meses en que llegó el pico en los años de brote.`;
 }
 
+// Distrito de dengue para mostrar: sin la abreviatura de provincia de la DIRESA ("SALITRAL (MOR)") porque la provincia va al lado
+const distritoDengue = f => `${esc(lugar(String(f.distrito).replace(/\s*\([A-Z]{2,4}\)$/, "")))} (${esc(lugar(f.provincia))})`;
 // Une los nombres de distrito de la DIRESA con los ubigeos del histórico
 function ubigeoPorNombre() {
   const r = {};
@@ -1367,15 +1369,14 @@ function pintarDistritos() {
   const anio = $("f-anio").value, r = datosDistritos(anio);
   r.filas.sort((a, b) => b.casos - a.casos);
   $("dist-cabecera").innerHTML = `<tr><th>Distrito</th>${r.cols.map(([, t]) => `<th class="n">${t}</th>`).join("")}</tr>`;
-  $("dist-cuerpo").innerHTML = r.filas.map(f => `<tr><td>${esc(f.distrito)} <span class="nota">(${esc(f.provincia)})</span></td>
+  $("dist-cuerpo").innerHTML = r.filas.map(f => `<tr><td>${distritoDengue(f).replace(" (", ' <span class="nota">(').replace(/\)$/, ")</span>")}</td>
     ${r.cols.map(([k]) => `<td class="n">${f[k] == null ? "—" : num(f[k], k === "tia" ? 1 : 0)}</td>`).join("")}</tr>`).join("")
     || `<tr><td colspan="${r.cols.length + 1}">Sin casos registrados.</td></tr>`;
   $("nota-distritos").innerHTML = `${r.nota} ${r.fuente}`;
   $("pie-mapa").innerHTML = r.fuente;
   // los 5 distritos con más casos: primeras filas de la misma tabla (sin cálculo nuevo)
   $("dengue-top").innerHTML = `<h3>Distritos con más casos, ${esc(anio)}</h3>` + (r.filas.length
-    ? `<ol class="lista-corta">${r.filas.slice(0, 5).map(f => `<li><strong>${num(f.casos)}</strong> en ${esc(f.distrito)}
-      (${esc(f.provincia)})</li>`).join("")}</ol>` : `<p class="frase">Sin casos registrados.</p>`) + `<p class="pie">${r.fuente}</p>`;
+    ? `<ol class="lista-corta">${r.filas.slice(0, 5).map(f => `<li><strong>${num(f.casos)}</strong> en ${distritoDengue(f)}</li>`).join("")}</ol>` : `<p class="frase">Sin casos registrados.</p>`) + `<p class="pie">${r.fuente}</p>`;
   pintarMapa(r, anio);
 }
 
@@ -1617,13 +1618,14 @@ function duracion(d) {
 // No se corta: si no cabe, salta de línea. Los que la regla deja mal se corrigen en data/nombres_cortos_obras.json.
 const PREFIJO = /^((mejoramiento|ejecuci[oó]n|instalaci[oó]n|rehabilitaci[oó]n|creaci[oó]n|construcci[oó]n|ampliaci[oó]n)(\s*(,|y)\s*|\s+))+(del|de la|de los|de las|de|el|la|los|las)\s+/u;
 const SUFIJO = /\s*,?\s*(\ben (la localidad|el centro poblado|el caser[ií]o|los caser[ií]os) de\b|\bdistrito de\b|\bprovincia (y departamento )?de\b|\bdepartamento de piura\b).*$/u;
+const COLGANTE = /(\s+(de|del|de la|de los|de las|la|las|los|el|y|e|en|a))+$/u;  // conectores que quedan al final tras cortar la ubicación
 const SIGLAS = [[/\bi\.?\s?e\.?(?=\s|$)/gu, "I.E."], [/\bse or\b/gu, "señor"], [/\b(pe|pi)(?=[\s-]\d)/gu, m => m.toUpperCase()]];
 let lugares;
 function nombreCorto(t) {
   lugares ||= [...new Set([...D.obras.obras.flatMap(x => [x.provincia, x.distrito]), "Piura", "Perú"]
     .filter(Boolean).map(x => x.toLowerCase().trim()))].sort((a, b) => b.length - a.length);
   let r = String(t ?? "").trim().toLowerCase().replace(/\s+/g, " ");
-  const sinPre = r.replace(PREFIJO, ""), sinSuf = sinPre.replace(SUFIJO, "");
+  const sinPre = r.replace(PREFIJO, ""), sinSuf = sinPre.replace(SUFIJO, "").replace(COLGANTE, "");
   r = sinSuf.length >= 6 ? sinSuf : sinPre.length >= 6 ? sinPre : r;  // si la regla lo deja casi vacío, se queda con el resto
   for (const [re, x] of SIGLAS) r = r.replace(re, x);
   for (const l of lugares) r = r.replace(new RegExp(`(?<!\\p{L})${l.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?!\\p{L})`, "gu"),
