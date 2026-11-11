@@ -160,3 +160,17 @@ Piura tiene dos distritos llamados Salitral: uno en Morropón (200406) y otro en
   - Ahora se borran los conectores finales («de», «de la», «del», «y»…).
   - Ningún nombre de obra termina ya en un conector.
 - **Pruebas y cifras:** `test_pagina.py` suma los dos casos y pasa. Ninguna cifra cambió.
+
+## Camas: datos de SUSALUD que no cuadran (opción 3)
+
+- **El caso:** el C.S. Salitral salía con borde rojo porque SUSALUD reporta 98 pacientes-día sobre 95 días-cama (103,2 %). Además reporta 95 días-cama para 8 camas, cuando lo esperable en setiembre serían unos 240.
+- **Lo que cambió:** el rojo indicaba «alerta» para algo que es un problema de calidad del dato. Ahora:
+  - se marcan «a revisar» los establecimientos cuyos días-cama no están entre el 90 % y el 105 % de camas × días del mes, o cuya ocupación pasa de 100 %;
+  - en setiembre son 7 de 40: Clínica Auna, E.S. Consuelo de Velasco, Hospital Militar, Hospital II Talara, Clínica Virgen del Pilar, E.S. La Unión y C.S. Salitral;
+  - en el mapa van como **punto gris**, no rojo, y al tocarlos dicen qué no cuadra, por ejemplo: «SUSALUD reporta 95 días-cama para 8 camas (lo esperable en el mes serían unos 240)…»;
+  - en la tabla del detalle llevan «dato a revisar»;
+  - «Fuentes y método» explica la regla y nombra los 7.
+- **Lo que no cambió:** no se corrige ni se excluye ningún dato, y la ocupación de Piura sigue en **58,7 %**.
+  - Excluir solo los que pasan de 100 % habría dejado dentro a los otros 6, con datos igual de dudosos.
+  - Además, habría roto la comparación con hace un año, porque la serie de 24 meses viene ya sumada por mes, sin detalle por establecimiento.
+- **Pruebas:** `test_pagina.py` comprueba que un dato que no cuadra se marque y uno normal no, y que febrero de un año bisiesto tenga 29 días.

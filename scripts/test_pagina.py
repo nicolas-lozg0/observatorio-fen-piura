@@ -16,6 +16,7 @@ Revisa, en escritorio (1280 px) y celular (375 px):
   - que los mapas de Obras y Salud (Leaflet) se dibujen, o digan claramente que no cargaron;
   - los nombres cortos de obras, las duraciones en años y meses y los nombres legibles de entidades;
   - que el título y el color de las obras paralizadas sigan la regla frente al país, y que cada causa tenga definición;
+  - que un dato de camas de SUSALUD que no cuadra se marque para revisar, y uno normal no;
   - que aparezca "Dato no actualizado" si se simula una fecha 60 días después.
 
 Requiere Playwright (pip3 install playwright) y un navegador Chromium: usa Brave o Chrome si están
@@ -165,6 +166,11 @@ def main():
             revisar(r2["semaforo"] == ["ok", "lento", "lento", "muy-lento"], f"semáforo: {r2['semaforo']}")
             revisar(r2["nombres"] == ["Obra sin nombre", 90, "I.E. san jose", "Agua potable en las localidades de Sullana y Marcavelica", "Salitral (Morropón)", "menos de 1 mes", "8 meses", "4 años", "1 año y 9 meses"],
                     f"nombres cortos y duraciones: {r2['nombres']}")
+            # Camas: dato de SUSALUD que no cuadra se marca (no se corrige); un dato normal no
+            r4 = pg.evaluate("""() => [!!datoCamaRaro({ reporto: true, camas: 8, dias_cama: 95, pacientes_dia: 98 }, "setiembre de 2026"),
+                !!datoCamaRaro({ reporto: true, camas: 10, dias_cama: 300, pacientes_dia: 200 }, "setiembre de 2026"),
+                diasMes("febrero de 2028")]""")
+            revisar(r4 == [True, False, 29], f"datos de camas a revisar: {r4}")
             # Obras frente al país: título y color siguen la regla de 1 punto; cada causa de Piura tiene definición
             r3 = pg.evaluate("""() => {
                 const act = D.obras.obras.filter(x => !APARTE[x.codigo_infobras]), par = act.filter(x => x.estado === "Paralizada");
