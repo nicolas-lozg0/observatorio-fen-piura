@@ -47,8 +47,8 @@ Escala 1,25 sobre 16 px:
 
 | Token | Tamaño | Uso |
 | --- | --- | --- |
-| `--t-xs` | 12 px | Pies de fuente, rótulos de mini-gráficas, ejes |
-| `--t-sm` | 14 px | Notas, tablas, frases de panel |
+| `--t-xs` | 13 px | Pies de fuente, rótulos de mini-gráficas, ejes |
+| `--t-sm` | 15 px | Notas, tablas, frases de panel |
 | `--t-base` | 16 px | Texto |
 | `--t-md` | 20 px | Títulos de panel en la portada, avance en la tabla de gasto |
 | `--t-lg` | 25 px | Títulos de pestaña |

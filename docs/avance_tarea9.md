@@ -210,3 +210,16 @@ Piura tiene dos distritos llamados Salitral: uno en Morropón (200406) y otro en
 - **Qué se puede comprobar:** desde aquí solo se puede comprobar si los datos son coherentes, no cuál es el valor verdadero. Para confirmarlo hay que preguntar a SUSALUD. El borrador del mensaje está en la carpeta local `privado/mensaje_susalud.md`, que no se sube al repositorio, para que lo envíen ustedes.
 - **Total de camas (1.871):** no se tocó. «Fuentes y método» aclara que incluye establecimientos con posible error en el número de camas. Por la Clínica Auna y el Hospital Militar, podría estar inflado en unas 100 a 150 camas. La ocupación (58,7 %) se calcula con días-cama y se afecta menos.
 - **Idea futura:** que `camas_serie.py` guarde el historial por establecimiento, para que la ventana diga si el problema es de ese mes o de siempre («pasa en 9 de los últimos 12 meses»).
+
+## Texto pequeño más legible
+
+- **Lo que se veía más chico en GitHub** que en local era el zoom del navegador, que se guarda por sitio. Al 100 % las dos versiones se ven iguales: lo comprobé con el mismo navegador y el mismo ancho.
+- **No se aplicó un 110 % general.** Habría agrandado también títulos y cifras, y quitado espacio en celular. Además, la página se incrustará en udep.edu.pe/fen, donde conviene un texto base estándar de 16 px.
+- **Se subieron solo los tamaños pequeños:** `--t-xs` de 12 a 13 px y `--t-sm` de 14 a 15 px. Así se leen mejor los pies con fuente y fecha, las notas, las leyendas y los rótulos de los gráficos. El texto normal, los títulos y las cifras no cambian.
+- **Pendiente de decidir:** subir el texto normal a 17 px solo en escritorio.
+- `test_pagina.py` pasa: nada se sale de la pantalla a 375 ni a 1280 px.
+
+Antes (izquierda) y después (derecha), en celular:
+
+![Portada, antes y después](avance_tarea9/texto_resumen_375.webp)
+![Gasto, antes y después](avance_tarea9/texto_gasto_375.webp)
