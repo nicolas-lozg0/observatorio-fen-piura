@@ -232,6 +232,9 @@
     border-radius: 0 4px 4px 0; }
   .barras-h .b span { font-size: var(--t-xs); font-weight: 700; color: var(--texto-2); white-space: nowrap; font-variant-numeric: tabular-nums; }
   .lista-visual .meta { display: flex; flex-wrap: wrap; gap: var(--e1) var(--e2); align-items: center; font-size: var(--t-xs); color: var(--texto-3); }
+  .etiqueta.reactivada { background: var(--acento-suave); color: var(--titulo); font-weight: 700; }
+  .nota-revision { margin: var(--e3) 0 0; padding: var(--e2) var(--e3); border-left: 3px solid var(--acento); background: var(--acento-suave);
+    border-radius: 0 var(--r-control) var(--r-control) 0; font-size: var(--t-sm); }
   .etiqueta { display: inline-block; padding: 2px var(--e2); border-radius: var(--r-pastilla); background: var(--fondo); color: var(--texto-2);
     font-size: var(--t-xs); line-height: 1.4; }
   .barras-doble { display: grid; grid-template-columns: minmax(0, 1.3fr) repeat(2, minmax(0, 1fr)); gap: var(--e2) var(--e4);
@@ -693,6 +696,12 @@
             gasto público suele concentrarse en diciembre, así que en los últimos meses del año casi todo sale lento. La
             emergencia FEN (su marco no es un presupuesto anual), el avance físico de obras y la ocupación de camas no miden
             ritmo frente al calendario: van en azul, sin semáforo.</li>
+          <li><strong>Obras revisadas a mano.</strong> El archivo de datos abiertos de Infobras no registra cambios desde marzo
+            de 2026. Un archivo entregado por la Contraloría (último avance de 2026 de 439 obras de Piura) muestra obras que
+            cambiaron de estado, pero su columna de estado copia la cabecera de la ficha, que puede contradecir la línea de tiempo
+            (la banda ancha regional dice «en ejecución» en la cabecera y «paralizada» en cada periodo). Por eso se revisan a mano
+            las fichas de las obras que cambian (docs/data/obras_revisadas.json). Esas revisiones se informan en la lista de las 5
+            de mayor costo, pero no cambian las cifras: Piura y el resto del país siguen con el mismo archivo abierto.</li>
           <li><strong>Obras frente al país.</strong> Con el archivo nacional de Infobras se calcula, por departamento, el porcentaje
             de las obras activas que está paralizado y el de su costo (docs/data/infobras_departamentos.json, solo totales). El
             promedio nacional es el total del país (todas las paralizadas entre todas las activas), no el promedio de los
@@ -1717,6 +1726,10 @@ function graficoPais(c, k) {
   </div>`;
 }
 
+// Revisión a mano de fichas de Infobras (data/obras_revisadas.json): no cambia cifras; avisa qué paralizadas ya no lo están
+const revisada = x => D.revisadas?.obras?.[x.codigo_infobras];
+const reactivada = x => x.estado === "Paralizada" && revisada(x) && revisada(x).estado_ficha !== "Paralizada";
+const mesRev = r => mesTxt(r.mes_ultimo_avance).replace(/^(\p{L}{3})\p{L}* de /u, "$1. ");  // "oct. 2026"
 // Pie de Infobras: fecha del archivo y último mes con registros nuevos
 const pieInfobras = o => `Infobras, archivo del ${fecha(o.fecha_corte)}${o.ultimo_avance
   ? `; sin registros nuevos desde ${MESES[o.ultimo_avance.mes - 1]} de ${o.ultimo_avance.anio}` : ""}`;
@@ -1854,7 +1867,12 @@ function pintarObras() {
         `<li><div class="nombre" title="${esc(x.obra)}">${esc(nombreObra(x))}</div><div class="monto">${x.costo_et == null ? "Costo no registrado"
           : `${millones(x.costo_et)} · ${pctE(x.costo_et, total)}`}</div>
         <div class="meta"><span>${distritoTxt(x)}</span><span>· paralizada hace ${duracion(diasParalizada(x))}</span>
-          <span class="etiqueta">${x.causal ? gc(x.causal) : "Causa no registrada"}</span></div></li>`).join("")}</ol>` : "" }) +
+          <span class="etiqueta">${x.causal ? gc(x.causal) : "Causa no registrada"}</span>${reactivada(x)
+            ? `<span class="etiqueta reactivada">En ejecución según su ficha (${mesRev(revisada(x))})</span>` : ""}</div></li>`).join("")}</ol>
+        ${top5.some(reactivada) ? `<p class="nota-revision">Según su ficha en Infobras, revisada a mano el ${fecha(D.revisadas.fecha_corte)},
+          ${num(top5.filter(reactivada).length)} de estas ${num(top5.length)} figuran hoy en ejecución: ${lista(top5.filter(reactivada).map(x =>
+          `${esc(nombreObra(x))} (${num(revisada(x).avance_fisico, 1)} % de avance físico en ${mesTxt(revisada(x).mes_ultimo_avance)})`))}.
+          El archivo de datos abiertos aún no lo refleja; las cifras siguen ese archivo, igual para todo el país.</p>` : ""}` : "" }) +
     (cp ? panel({ titulo: "Obras paralizadas: Piura frente a las demás regiones", clase: "ancho",
       ud: `${num(cp.M)} regiones (24 departamentos y el Callao), de mayor a menor; la línea punteada es el total del país`,
       extra: `<div class="dos-graficos"><div><h4>% de las obras activas que está paralizado</h4><p class="nota">Piura: puesto
@@ -2274,9 +2292,9 @@ window.addEventListener("resize", () => {
 /* ---------- Arranque ---------- */
 (async () => {
   mostrar();
-  const [gasto, inv, fen, obras, dh, d26, camas, mapa, ipc, camasSerie, ipress, pobreza, cortos, nombres, deps] = await Promise.all(["gasto_piura.json",
+  const [gasto, inv, fen, obras, dh, d26, camas, mapa, ipc, camasSerie, ipress, pobreza, cortos, nombres, deps, revisadas] = await Promise.all(["gasto_piura.json",
     "inversiones_piura.json", "fen_piura.json", "infobras_piura.json", "dengue_historico.json", "dengue_2026.json", "camas_piura.json",
-    "piura_distritos.json", "ipc_piura.json", "camas_serie.json", "ipress_piura.json", "lineas_pobreza.json", "nombres_cortos_obras.json", "nombres_entidades.json", "infobras_departamentos.json"].map(cargar));
+    "piura_distritos.json", "ipc_piura.json", "camas_serie.json", "ipress_piura.json", "lineas_pobreza.json", "nombres_cortos_obras.json", "nombres_entidades.json", "infobras_departamentos.json", "obras_revisadas.json"].map(cargar));
   if (!gasto) {
     $("resumen-paneles").innerHTML = `<p>No se pudieron cargar los datos. Si abriste el archivo directamente, sírvelo con
       <code>python3 -m http.server -d docs</code> y entra a http://localhost:8000.</p>`;
@@ -2285,7 +2303,7 @@ window.addEventListener("resize", () => {
   D.gasto = { ...gasto, rows: filas(gasto) };
   if (inv) { D.invMeta = inv; D.inv = Object.fromEntries(filas(inv).map(r => [r.cui, r])); }
   if (fen) D.fen = { ...fen, rows: filas(fen) };
-  Object.assign(D, { obras, dh, d26, camas, mapa, ipc, camasSerie, ipress, pobreza, cortos, nombres, deps });
+  Object.assign(D, { obras, dh, d26, camas, mapa, ipc, camasSerie, ipress, pobreza, cortos, nombres, deps, revisadas });
   // Nombres legibles de entidades: diccionario o, si falta, la regla sobre el nombre original
   for (const k in gasto.nombres.entidad) gasto.nombres.entidad[k] = nombres?.mef?.[k] || legible(gasto.nombres.entidad[k]);
   obras?.obras.forEach(x => x.entidad = entidadObra(x.entidad));

@@ -1,0 +1,16 @@
+{
+  "fuente": "Fichas de obra en Infobras (Contraloría), revisadas a mano por el equipo del observatorio",
+  "url": "https://infobras.contraloria.gob.pe/InfobrasWeb/",
+  "fecha_corte": "2026-11-10",
+  "nota": "Obras cuyo estado difiere entre el archivo de datos abiertos de Infobras y un archivo entregado por la Contraloría (último avance registrado en 2026). El estado que vale es el de cada periodo en la línea de tiempo de la ficha, no el de la cabecera. Estas revisiones no cambian las cifras de la página (que usan el archivo abierto, igual para todo el país): solo se informan.",
+  "obras": {
+    "88999": { "estado_ficha": "En Ejecución", "mes_ultimo_avance": "2026-10", "avance_fisico": 69.82, "fecha_revision": "2026-11-10",
+      "nota": "Paralizada por abandono de obra desde el 01/02/2025; en ejecución en el periodo de octubre de 2026, sin registro formal de reinicio." },
+    "154126": { "estado_ficha": "Paralizada", "mes_ultimo_avance": "2026-09", "avance_fisico": 0.01, "fecha_revision": "2026-11-10",
+      "nota": "La cabecera dice «en ejecución», pero cada periodo de la línea de tiempo dice «paralizada» por proceso arbitral desde el 23/04/2019." },
+    "114837": { "estado_ficha": "En Ejecución", "mes_ultimo_avance": "2026-08", "avance_fisico": 36.25, "fecha_revision": "2026-11-10",
+      "nota": "Paralizada por abandono de obra en 2025; en ejecución en agosto de 2026, sin registro formal de reinicio." },
+    "44422": { "estado_ficha": "Paralizada", "mes_ultimo_avance": "2022-11", "avance_fisico": 18.59, "fecha_revision": "2026-11-10",
+      "nota": "Sin reinicio registrado; arbitraje institucional finalizado en noviembre de 2023." }
+  }
+}

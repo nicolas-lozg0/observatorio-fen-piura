@@ -171,6 +171,12 @@ def main():
                 !!datoCamaRaro({ reporto: true, camas: 10, dias_cama: 300, pacientes_dia: 200 }, "setiembre de 2026"),
                 diasMes("febrero de 2028")]""")
             revisar(r4 == [True, False, 29], f"datos de camas a revisar: {r4}")
+            # Obras revisadas a mano: las reactivadas se señalan en la lista, sin cambiar la cifra de paralizadas
+            r5 = pg.evaluate("""() => { const t = document.querySelectorAll('#resumen-paneles .panel')[2].querySelector('.cifra').textContent;
+                const act = D.obras.obras.filter(x => !APARTE[x.codigo_infobras]);
+                return { cifra: t.trim() === String(act.filter(x => x.estado === "Paralizada").length),
+                  reactivadas: act.filter(reactivada).map(x => x.codigo_infobras).sort() }; }""")
+            revisar(r5["cifra"] and r5["reactivadas"] == ["114837", "88999"], f"obras revisadas a mano: {r5}")
             # Obras frente al país: título y color siguen la regla de 1 punto; cada causa de Piura tiene definición
             r3 = pg.evaluate("""() => {
                 const act = D.obras.obras.filter(x => !APARTE[x.codigo_infobras]), par = act.filter(x => x.estado === "Paralizada");

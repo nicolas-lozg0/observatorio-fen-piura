@@ -223,3 +223,24 @@ Antes (izquierda) y después (derecha), en celular:
 
 ![Portada, antes y después](avance_tarea9/texto_resumen_375.webp)
 ![Gasto, antes y después](avance_tarea9/texto_gasto_375.webp)
+
+## Archivo de la Contraloría y obras revisadas a mano
+
+- **Qué llegó:** un Excel con el último avance registrado en 2026 de 439 obras de Piura (enero a octubre de 2026): avance físico real y programado, y estado. No trae datos personales. Se guarda solo en `data/raw/contraloria/`, que no se sube.
+- **Qué mostró:** en 91 obras, el estado difiere del archivo de datos abiertos, que no registra cambios desde marzo. Se revisaron a mano las fichas de las 4 obras más grandes:
+  - **Sullana (88999) y Ayabaca (114837):** la página las daba por paralizadas, pero **están en ejecución** según su ficha (69,8 % en octubre y 36,3 % en agosto de 2026). El archivo abierto está desactualizado.
+  - **Banda ancha (154126):** la cabecera de la ficha, y el archivo de la Contraloría, dicen «en ejecución», pero **cada periodo de la línea de tiempo dice «paralizada»** por proceso arbitral desde 2019, con 0,01 % de avance. La página tenía razón.
+  - **Presa Tronera Sur (44422):** sigue paralizada. Su último avance es de noviembre de 2022.
+- **Conclusión:** ninguna fuente sirve sola. El archivo de la Contraloría solo señala qué obras revisar; el estado lo decide la revisión a mano de la ficha.
+- **En la página:**
+  - las revisiones se guardan en `docs/data/obras_revisadas.json`, con código, estado según la ficha, mes, avance y fecha de revisión;
+  - en la lista de las 5 de mayor costo, Sullana y Ayabaca llevan la etiqueta «En ejecución según su ficha (oct. 2026 / ago. 2026)»;
+  - debajo de la lista, una nota explica la revisión y aclara que el archivo abierto aún no lo refleja;
+  - **las cifras no cambian** (55 obras, S/ 1.286,1 millones): Piura y el resto del país siguen con el mismo archivo abierto, para que la comparación sea justa;
+  - «Fuentes y método» explica la regla.
+- **Pendiente:**
+  - revisar a mano las otras 13 paralizadas que el archivo de la Contraloría da como cambiadas, todas de menos de S/ 15 millones, con la lista en `privado/obras_estado_distinto.csv`;
+  - enviar la nueva solicitud a la Contraloría (borrador en `privado/solicitud_contraloria.md`), que pide la serie mensual y el estado de cada periodo.
+- **Pruebas:** `test_pagina.py` comprueba que las reactivadas se señalen sin cambiar la cifra de paralizadas.
+
+![Lista de las 5 de mayor costo con las obras revisadas](avance_tarea9/obras_revisadas_375.webp)
