@@ -34,7 +34,7 @@ from pathlib import Path
 from playwright.sync_api import sync_playwright
 
 DOCS = Path(__file__).resolve().parent.parent / "docs"
-PESTANAS = ["resumen", "dengue", "gasto", "obras", "vulnerabilidad", "salud", "precios", "fuentes"]
+PESTANAS = ["resumen", "clima", "dengue", "gasto", "obras", "vulnerabilidad", "salud", "precios", "fuentes"]
 NAVEGADORES = [os.environ.get("NAVEGADOR"), "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser",
                "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"]
 fallos = []
@@ -207,6 +207,25 @@ def main():
                 pg.wait_for_function(f"document.querySelector('#{mapa} .leaflet-interactive, #{mapa} .sin-datos')", timeout=20000)
                 n = pg.evaluate(f"document.querySelectorAll('#{mapa} path.leaflet-interactive').length")
                 revisar(n >= 60 or pg.evaluate(f"!!document.querySelector('#{mapa} .sin-datos')"), f"mapa {mapa}: {n} distritos")
+            # Clima: 4 tarjetas con «Más detalle» (salvo el radar, que tiene su botón), gráficos dibujados, regla del título del mar,
+            # día sin dato fuera de las barras, y una fuente que falta no rompe la pestaña
+            pg.evaluate("location.hash = '#clima'")
+            pg.wait_for_selector("#g-tsm svg")
+            rc = pg.evaluate("""() => {
+                const ps = [...document.querySelectorAll('#clima-paneles > .panel')];
+                const dia = D.lluvia.fecha_corte, sin = D.lluvia.estaciones.filter(x => lluviaDia(x, dia) == null).length;
+                const barras = document.querySelectorAll('#clima-paneles .barras-h li').length;
+                const r = { paneles: ps.length, detalle: document.querySelectorAll('#clima-paneles .ver-mas').length,
+                  radar: !!document.querySelector('#clima-paneles a.boton[href*="ecrmm.udep.edu.pe"]'),
+                  lluvia: document.querySelectorAll('#g-lluvia svg').length, barras: barras === D.lluvia.estaciones.length - sin,
+                  titulos: [tsmTitulo(0.4), tsmTitulo(8.03), tsmTitulo(-1.2)] };
+                const guardado = D.tsm; D.tsm = null; pintarClima();
+                r.sinTsm = document.querySelectorAll('#clima-paneles .pendiente').length === 1;
+                D.tsm = guardado; pintarClima(); graficosClima();
+                return r; }""")
+            revisar(rc == {"paneles": 4, "detalle": 3, "radar": True, "lluvia": 3, "barras": True, "sinTsm": True,
+                           "titulos": ["El mar frente a Paita está cerca de lo normal", "El mar frente a Paita está 8,0 °C más caliente que lo normal",
+                                       "El mar frente a Paita está 1,2 °C más frío que lo normal"]}, f"pestaña Clima: {rc}")
             # Vulnerabilidad: el censo se carga al abrir la pestaña; mapa en canvas, leyenda de 5 rangos + «Pocos casos»,
             # y el total de la tabla suma numeradores y denominadores (no promedia porcentajes)
             pg.evaluate("location.hash = '#vulnerabilidad'")

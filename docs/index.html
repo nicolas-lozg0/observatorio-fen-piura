@@ -312,6 +312,12 @@
   .grupo-mapa { text-align: center; border-radius: 50%; background: var(--marino); color: #fff; font-weight: 700;
     font-size: var(--t-xs); box-shadow: 0 0 0 3px rgb(255 255 255 / .8); }
 
+  /* Clima: tres gráficos pequeños de lluvia con la misma escala; radar incrustado (cuando haya permiso) */
+  .tres-graficos { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: var(--e4); }
+  .tres-graficos h4 { margin: 0 0 var(--e1); font-size: var(--t-sm); color: var(--texto-2); }
+  .radar { width: 100%; height: 420px; border: 0; border-radius: var(--r-control); background: var(--neutro); }
+  .fuera { margin-top: var(--e2); }
+
   /* Vulnerabilidad: mapa de manzanas más alto (es el contenido principal de la pestaña) y selector de indicador */
   #mapa-vul { height: 520px; }
   @media (max-width: 600px) { #mapa-vul { height: 420px; } }
@@ -464,6 +470,7 @@
 <nav class="pestanas" aria-label="Temas">
   <ul>
     <li><a href="#resumen">Resumen</a></li>
+    <li><a href="#clima">Clima</a></li>
     <li><a href="#dengue">Dengue</a></li>
     <li><a href="#gasto">Gasto</a></li>
     <li><a href="#obras">Obras</a></li>
@@ -481,6 +488,14 @@
     <h2 id="t-resumen" class="visualmente-oculto">Resumen</h2>
     <div class="hoy" id="hoy"></div>
     <div class="paneles" id="resumen-paneles" aria-busy="true"><div class="panel esqueleto" aria-hidden="true"></div><div class="panel esqueleto" aria-hidden="true"></div><div class="panel esqueleto" aria-hidden="true"></div><div class="panel esqueleto" aria-hidden="true"></div><div class="panel esqueleto" aria-hidden="true"></div></div>
+  </section>
+
+  <!-- ===================== CLIMA ===================== -->
+  <section class="pestana" id="clima" aria-labelledby="t-clima" hidden>
+    <h2 id="t-clima">¿Cómo están el mar y la lluvia?</h2>
+    <p class="intro">El estado de alerta del ENFEN, la temperatura del mar frente a Paita, la lluvia del último día en las
+      estaciones del Senamhi y el radar de lluvias de la UDEP. Cada tarjeta enlaza a su fuente original.</p>
+    <div class="paneles" id="clima-paneles"></div>
   </section>
 
   <!-- ===================== DENGUE ===================== -->
@@ -744,6 +759,13 @@
         <tbody id="fuentes-cuerpo"></tbody>
       </table></div>
     </div>
+    <div class="panel">
+      <h3>Clima</h3>
+      <div class="tabla"><table class="ancha min-640">
+        <thead><tr><th>Indicador</th><th class="nombre">Fuente</th><th>Frecuencia</th><th>Datos al</th></tr></thead>
+        <tbody id="fuentes-clima"></tbody>
+      </table></div>
+    </div>
     <details class="detalle">
       <summary><span class="ver">Ver detalle</span><span class="ocultar">Ocultar detalle</span></summary>
       <div class="cuerpo-detalle">
@@ -833,6 +855,9 @@
             mismo mes del año anterior; si falta ese mes, el título es la pregunta.</li>
           <li><strong>Actualizado al (barra superior).</strong> La fecha más reciente entre las fuentes; cada cifra conserva la
             suya y su aviso si quedó desactualizada.</li>
+          <li><strong>Clima.</strong> Temperatura del mar: «más caliente» o «más frío» que lo normal si la anomalía frente al
+            promedio 1991-2020 pasa de 0,5 °C; si no, «cerca de lo normal». Lluvia: nombra la estación con más lluvia en el último
+            día con datos; si ninguna registró lluvia, lo dice. El estado de alerta se copia del comunicado del ENFEN.</li>
           <li><strong>Precios.</strong> «Subieron» o «bajaron» según el signo de la variación mensual (0,00 % = «no variaron»).
             La variación en 12 meses se compara con la nacional: «mayor» o «menor» si la diferencia es de 0,1 puntos o más;
             si no, «similar».</li>
@@ -882,9 +907,9 @@ const APARTE = { "42412": "proyecto de Petroperú, sin relación con El Niño" }
 const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "setiembre", "octubre", "noviembre", "diciembre"];
 const PRELIMINAR = 2;  // últimas semanas del año en curso: preliminares (punteadas y fuera de la tendencia)
 const NIVELES = [["E", "Gobierno nacional"], ["R", "Gobierno regional"], ["M", "Gobiernos locales"]];
-const PESTANAS = ["resumen", "dengue", "gasto", "obras", "vulnerabilidad", "salud", "precios", "fuentes"];
+const PESTANAS = ["resumen", "clima", "dengue", "gasto", "obras", "vulnerabilidad", "salud", "precios", "fuentes"];
 // Días que puede pasar una fuente sin actualizarse antes de avisar "Dato no actualizado desde…"
-const PLAZOS = { obras: 35, camas: 45, gasto: 3, inv: 3, fen: 3, d26: 14, ipc: 45 };
+const PLAZOS = { obras: 35, camas: 45, gasto: 3, inv: 3, fen: 3, d26: 14, ipc: 45, lluvia: 2, tsm: 4, enfen: 20 };
 
 // Todas las definiciones de la página en un solo objeto: términos (subrayados en el texto) y cálculos ("Cómo se calcula")
 const DEFINICIONES = {
@@ -912,6 +937,10 @@ const DEFINICIONES = {
   ipc: ["IPC", "Índice de precios al consumidor: mide cómo cambia el precio de la canasta que compran los hogares."],
   doce: ["Variación en 12 meses", "Cuánto cambiaron los precios frente al mismo mes del año anterior."],
   mensual: ["Variación mensual", "Cuánto cambiaron los precios frente al mes anterior."],
+  enfen: ["ENFEN", "Comisión Multisectorial encargada del Estudio Nacional del Fenómeno El Niño. Declara el estado del sistema de alerta ante El Niño y La Niña costeros (no activo, vigilancia o alerta) en sus comunicados oficiales, por lo general cada quince días. Se muestra el estado del último comunicado, tal como aparece en su encabezado."],
+  tsm: ["Temperatura del mar", "Temperatura de la superficie del mar estimada por satélite (NOAA OISST v2.1, diaria) en una celda de unos 25 km frente a Paita (5,125° S y 81,375° O); la celda pegada a la costa es tierra. La anomalía es la diferencia con el promedio 1991-2020 del mismo día y la misma celda (el periodo que usa el ENFEN). El satélite suele marcar algo menos que la estación costera de IMARPE. Título: «más caliente» o «más frío» si la anomalía pasa de 0,5 °C; si no, «cerca de lo normal»."],
+  anomalia: ["Anomalía", "Diferencia entre la temperatura del día y el promedio 1991-2020 para esa misma fecha."],
+  lluvia: ["Lluvia del día", "Precipitación diaria de cada estación convencional del Senamhi (mm), tal como la publica su mapa de estaciones, para el último día con datos. El Senamhi no indica en esa página la hora de corte del día (suele medirse de 7:00 a 7:00; está por confirmar). Un día sin dato no se cuenta como 0, y algunas estaciones no publican todos los días. Un registro de 0,01 mm, menos de lo que mide un pluviómetro (0,1 mm), se muestra como «inapreciable» y no cuenta como lluvia (supuesto por confirmar con el Senamhi). Las automáticas no se usan: solo publican las últimas 24 horas corridas."],
   manzana: ["Manzana", "Bloque de viviendas rodeado de calles: la unidad más pequeña con que el INEI entrega los resultados del censo."],
   dispersas: ["Manzanas dispersas", "Según el INEI, población en manzanas dispersas, con menos de 30 habitantes. Vienen agrupadas por zona (código terminado en 9999) y no tienen polígono en el mapa."],
   pocos: ["Pocos casos", "Manzanas con menos de 10 viviendas (indicadores de vivienda) o menos de 30 personas (indicadores de población) en la base del indicador elegido. Con tan pocos casos, una sola vivienda mueve mucho el porcentaje: van en gris y sin porcentaje."],
@@ -968,7 +997,8 @@ function aFecha(s) {
   const iso = String(s ?? "").match(/^(\d{4})-(\d{2})-(\d{2})/), dmy = String(s ?? "").match(/^(\d{2})\/(\d{2})\/(\d{4})/);
   return iso ? new Date(+iso[1], iso[2] - 1, +iso[3]) : dmy ? new Date(+dmy[3], dmy[2] - 1, +dmy[1]) : null;
 }
-const DATOS = () => ({ obras: D.obras, camas: D.camas, gasto: D.gasto, inv: D.invMeta, fen: D.fen, d26: D.d26, ipc: D.ipc });
+const DATOS = () => ({ obras: D.obras, camas: D.camas, gasto: D.gasto, inv: D.invMeta, fen: D.fen, d26: D.d26, ipc: D.ipc,
+  lluvia: D.lluvia, tsm: D.tsm, enfen: D.enfen });
 // Distintivo de estado: desactualizado (reloj) o en trámite (reloj de arena); lo pendiente se dice en la frase del panel
 const ICONO_ESTADO = {
   desactualizado: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
@@ -2232,24 +2262,32 @@ function frasePrecios(u) {
 }
 
 const MES_CORTO = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Set", "Oct", "Nov", "Dic"];
-// Gráfico por mes: líneas (varias series) o barras (una serie). Eje y en %, con el cero marcado.
-// Gráfico de líneas o barras por mes; con op.anual, por año ("2016"…), y con op.soles, valores en soles en vez de porcentajes
+// Gráfico de líneas (varias series) o barras (una serie) por mes, con el cero marcado; con op.anual, por año ("2016"…), y
+// con op.soles, valores en soles en vez de porcentajes. Con op.dias, por día (fechas "aaaa-mm-dd"); op.sinCero: el eje no
+// parte de 0 (temperaturas); op.hi: tope común a varios gráficos; op.alto: alto fijo. Un null es un día sin dato: sin
+// barra, y "sin dato" en el globo.
 function graficoMeses(el, meses, series, tipo = "lineas", op = {}) {
-  const fmt = op.fmt || (op.soles ? v => `S/\u00a0${num(v)}` : pct2);
-  const W = Math.max(300, Math.min(1040, el.clientWidth || 720)), H = W < 500 ? 220 : 260;
+  const fmt0 = op.fmt || (op.soles ? v => `S/\u00a0${num(v)}` : pct2);
+  const fmt = v => v == null ? "sin dato" : fmt0(v);
+  const W = Math.max(op.dias ? 240 : 300, Math.min(1040, el.clientWidth || 720)), H = op.alto || (W < 500 ? 220 : 260);
   const m = { l: 48, r: tipo === "lineas" ? 104 : 12, t: 12, b: 34 }, n = meses.length;
   const vals = series.flatMap(s => s.v).filter(v => v != null);
-  const paso = [0.25, 0.5, 1, 2, 5, 10, 20, 50, 100, 200].find(p => (Math.max(0, ...vals) - Math.min(0, ...vals)) / p <= 6) || 500;
-  const lo = Math.floor(Math.min(0, ...vals) / paso) * paso, hi = Math.ceil(Math.max(0, ...vals) / paso) * paso;
+  const base = op.sinCero ? Math.min(...vals) : Math.min(0, ...vals), tope = op.hi ?? Math.max(0, ...vals);
+  const paso = [0.25, 0.5, 1, 2, 5, 10, 20, 50, 100, 200].find(p => (tope - base) / p <= (H < 200 ? 4 : 6)) || 500;
+  const lo = Math.floor(base / paso) * paso, hi = Math.max(lo + paso, Math.ceil(tope / paso) * paso);  // todo en 0: un paso de alto
   const ancho = (W - m.l - m.r) / n;
   const x = i => tipo === "lineas" ? m.l + i * (W - m.l - m.r) / (n - 1) : m.l + (i + .5) * ancho;
   const y = v => m.t + (hi - v) * (H - m.t - m.b) / (hi - lo);
-  let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(series.map(s => s.nombre).join(" y "))}, por mes">`;
+  let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(series.map(s => s.nombre).join(" y "))}, por ${op.dias ? "día" : "mes"}">`;
   for (let v = lo; v <= hi + 1e-9; v += paso)
     svg += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}" stroke="${Math.abs(v) < 1e-9 ? "var(--texto-3)" : "var(--linea)"}"/>
       <text x="${m.l - 6}" y="${y(v) + 4}" text-anchor="end">${op.eje ? op.eje(v) : op.soles ? num(v) : `${num(v, paso % 1 === 0 ? 0 : paso === 0.5 ? 1 : 2)} %`}</text>`;
   if (op.anual) meses.forEach((a, i) => { if (W >= 500 || i % 2 === 0 || i === n - 1) svg += `<text x="${x(i)}" y="${H - m.b + 15}" text-anchor="middle">${a}</text>`; });
-  else meses.forEach((am, i) => {
+  else if (op.dias) {  // dd/mm cada k días, contando desde el último (el más reciente siempre rotulado)
+    const k = Math.ceil(n / (W < 500 ? 3 : 6));
+    meses.forEach((f, i) => { if ((n - 1 - i) % k === 0) svg += `<line x1="${x(i)}" x2="${x(i)}" y1="${H - m.b}" y2="${H - m.b + 4}" stroke="var(--texto-3)"/>
+      <text x="${x(i)}" y="${H - m.b + 15}" text-anchor="${i === n - 1 && tipo === "barras" ? "end" : "middle"}">${f.slice(8, 10)}/${f.slice(5, 7)}</text>`; });
+  } else meses.forEach((am, i) => {
     const [a, mm] = am.split("-").map(Number);
     // año bajo cada enero; en el primer punto solo si el siguiente enero queda lejos (si no, se enciman)
     if (mm === 1 || (i === 0 && mm <= 9)) svg += `<text x="${x(i)}" y="${H - 4}" text-anchor="middle">${a}</text>`;
@@ -2275,6 +2313,7 @@ function graficoMeses(el, meses, series, tipo = "lineas", op = {}) {
   } else {
     const s = series[0], bw = Math.max(2, ancho - 3);
     s.v.forEach((v, i) => {
+      if (v == null) return;  // día sin dato: hueco (no es 0)
       const y0 = y(Math.max(0, v)), alto = Math.max(1, Math.abs(y(v) - y(0)));
       svg += `<rect x="${(x(i) - bw / 2).toFixed(1)}" y="${y0.toFixed(1)}" width="${bw.toFixed(1)}" height="${alto.toFixed(1)}" rx="1.5" fill="${s.color}"/>`;
     });
@@ -2287,7 +2326,7 @@ function graficoMeses(el, meses, series, tipo = "lineas", op = {}) {
     const caja = svgEl.getBoundingClientRect(), k = W / caja.width, px = (ev.clientX - caja.left) * k;
     const i = Math.max(0, Math.min(n - 1, tipo === "lineas" ? Math.round((px - m.l) * (n - 1) / (W - m.l - m.r)) : Math.floor((px - m.l) / ancho)));
     guia.setAttribute("x1", x(i)); guia.setAttribute("x2", x(i)); guia.setAttribute("visibility", "visible");
-    globo.innerHTML = `<strong>${esc(op.anual ? meses[i] : mesTxt(meses[i]))}</strong><br>` + series.map(s =>
+    globo.innerHTML = `<strong>${esc(op.anual ? meses[i] : op.dias ? fecha(meses[i]) : mesTxt(meses[i]))}</strong><br>` + series.map(s =>
       `<span style="color:${s.color}">■</span> ${esc(s.nombre)}: ${fmt(s.v[i])}`).join("<br>");
     globo.style.display = "block";
     const pxp = x(i) / k;
@@ -2435,6 +2474,74 @@ function pintarResumen() {
   el.removeAttribute("aria-busy");
 }
 
+/* ---------- Clima: ENFEN, temperatura del mar, lluvia y radar ---------- */
+// Radar de lluvias de la UDEP. Mientras no haya permiso del equipo del radar, solo un botón a su página;
+// con true, la tarjeta lo muestra dentro de la página (iframe) y deja el botón debajo.
+const RADAR_IFRAME = false;
+const RADAR = "https://ecrmm.udep.edu.pe/Radar/lluvia.html";
+const TSM_UMBRAL = 0.5;  // °C de anomalía: más de esto, «más caliente» o «más frío» que lo normal
+// 0,01 mm está bajo lo que mide un pluviómetro (0,1 mm): se toma como lluvia inapreciable (traza), sin confirmar con el Senamhi
+const INAPRECIABLE = 0.1;
+const mm = v => v == null ? "sin dato" : v > 0 && v < INAPRECIABLE ? "inapreciable" : `${num(v, 1)} mm`;
+const grados = v => `${num(v, 1)} °C`;
+const conSigno = v => `${v > 0 ? "+" : v < 0 ? "−" : ""}${num(Math.abs(v), 1)}`;
+const masDetalle = (url, texto) => `<a class="ver-mas" href="${esc(url)}" target="_blank" rel="noopener">Más detalle: ${texto} →</a>`;
+const lluviaDia = (x, f) => x.serie.find(s => s[0] === f)?.[1] ?? null;
+function tsmTitulo(a) {
+  return Math.abs(a) <= TSM_UMBRAL ? "El mar frente a Paita está cerca de lo normal"
+    : `El mar frente a Paita está ${num(Math.abs(a), 1)} °C ${a > 0 ? "más caliente" : "más frío"} que lo normal`;
+}
+function pintarClima() {
+  const e = D.enfen, t = D.tsm, l = D.lluvia;
+  let h = e ? panel({ titulo: esc(e.estado), sub: `Último comunicado oficial del ${g("enfen", "ENFEN")}: N.° ${esc(e.numero)}, del ${fecha(e.fecha_corte)}`,
+    extra: masDetalle(e.url, "comunicado (PDF)"), pie: fuente(e), vence: "enfen", calc: ["enfen"] })
+    : sinDatos("Estado de alerta del ENFEN", "el ENFEN");
+  if (t) {
+    const [f, v, a] = t.filas.at(-1);
+    h += panel({ titulo: tsmTitulo(a), cifra: grados(v), ud: `el ${fecha(f)}; lo normal para esa fecha (1991-2020) es ${grados(v - a)}:
+      ${g("anomalia", "anomalía")} de ${conSigno(a)} °C`, extra: `<div class="grafico" id="g-tsm"></div>${masDetalle(t.url, "NOAA")}`,
+      pie: fuente(t), vence: "tsm", calc: ["tsm"] });
+  } else h += sinDatos("Temperatura del mar frente a Paita", "la NOAA");
+  h += panel({ titulo: "Radar de lluvias de la UDEP", frase: "Imagen actual y animación de las últimas 3 horas.",
+    extra: (RADAR_IFRAME ? `<iframe class="radar" src="${RADAR}" title="Radar de lluvias de la UDEP en vivo" loading="lazy"></iframe>` : "") +
+      `<p><a class="boton" href="${RADAR}" target="_blank" rel="noopener">Ver radar en vivo</a></p>`,
+    pie: `Fuente: <a href="${RADAR}" target="_blank" rel="noopener">Universidad de Piura, radar de lluvias</a>. En vivo.` });
+  if (l) {
+    const dia = l.fecha_corte, con = l.estaciones.filter(x => lluviaDia(x, dia) != null).sort((a, b) => lluviaDia(b, dia) - lluviaDia(a, dia));
+    const sin = l.estaciones.filter(x => lluviaDia(x, dia) == null), max = lluviaDia(con[0], dia) || 1, llovio = con.filter(x => lluviaDia(x, dia) >= INAPRECIABLE);
+    const nombre = x => esc(lugar(x.nombre));
+    h += panel({ clase: "ancho", titulo: llovio.length ? `El ${fecha(dia)} la mayor lluvia fue en ${nombre(con[0])} (${esc(lugar(con[0].provincia))}): ${mm(lluviaDia(con[0], dia))}`
+        : `El ${fecha(dia)} no llovió en las estaciones del Senamhi en Piura`,
+      sub: `${g("lluvia", "Lluvia del día")} en las estaciones convencionales del Senamhi: ${num(llovio.length)} de ${num(con.length)} con dato registraron lluvia`,
+      extra: `<ol class="barras-h">${con.map(x => `<li><div class="k">${nombre(x)} <small>${esc(lugar(x.provincia))}</small></div>
+        <div class="b"><i aria-hidden="true" style="--p:${lluviaDia(x, dia) / max}"></i><span>${mm(lluviaDia(x, dia))}</span></div></li>`).join("")}</ol>
+        ${sin.length ? `<p class="nota fuera">Sin dato el ${fecha(dia)}: ${sin.map(nombre).join(", ")}.</p>` : ""}
+        <h3>Últimos 30 días</h3><p class="nota antes-grafico">Lluvia diaria en tres estaciones, con la misma escala; un día sin dato queda vacío.</p>
+        <div class="tres-graficos" id="g-lluvia"></div>${masDetalle(l.url, "mapa de estaciones del Senamhi")}`,
+      pie: fuente(l), vence: "lluvia", calc: ["lluvia"] });
+  } else h += sinDatos("Lluvia del último día", "el Senamhi");
+  $("clima-paneles").innerHTML = h;
+  ayudas($("clima"));
+}
+// Gráficos de Clima: se dibujan con la pestaña visible (necesitan su ancho)
+function graficosClima() {
+  const t = D.tsm, l = D.lluvia;
+  if (t && $("g-tsm")) graficoMeses($("g-tsm"), t.filas.map(f => f[0]), [
+    { nombre: "Normal", color: "var(--texto-3)", v: t.filas.map(f => +(f[1] - f[2]).toFixed(2)) },
+    { nombre: "Mar", color: "var(--acento)", principal: true, v: t.filas.map(f => f[1]) }],
+    "lineas", { dias: true, sinCero: true, fmt: grados, eje: v => `${num(v)}°` });
+  if (!l || !$("g-lluvia")) return;
+  // los mismos 30 días de calendario para las tres (hasta el último día con datos): algunas estaciones no publican a diario
+  const dias = Array.from({ length: 30 }, (_, i) => new Date(Date.parse(l.fecha_corte) - (29 - i) * 864e5).toISOString().slice(0, 10));
+  const est = l.series.map(c => l.estaciones.find(x => x.cod === c)).filter(Boolean).map(x => ({ ...x, v: dias.map(d => lluviaDia(x, d)) }));
+  const hi = Math.max(1, ...est.flatMap(x => x.v.map(v => v ?? 0)));
+  $("g-lluvia").innerHTML = est.map(x => `<div><h4>${esc(lugar(x.nombre))} (${esc(lugar(x.provincia))})</h4><div class="grafico" data-cod="${x.cod}"></div>
+    <p class="nota">${num(x.v.filter(v => v != null).length)} de 30 días con dato</p></div>`).join("");
+  for (const x of est) graficoMeses($("g-lluvia").querySelector(`[data-cod="${x.cod}"]`), dias,
+    [{ nombre: "Lluvia", color: "var(--acento)", v: x.v }], "barras",
+    { dias: true, hi, alto: 170, fmt: mm, eje: v => `${num(v)}` });
+}
+
 /* ---------- Fuentes y método ---------- */
 function pintarFuentes() {
   const filasF = [
@@ -2453,10 +2560,17 @@ function pintarFuentes() {
     ["Límites distritales del mapa", D.mapa && { ...D.mapa, fecha_corte: "límites de 2007" }, "Fijo"],
     ["Vulnerabilidad por manzana (Censo 2025, Piura metropolitana)", CENSO, "Fijo: se procesa a mano una sola vez"],
   ];
-  $("fuentes-cuerpo").innerHTML = filasF.map(([ind, d, frec, clave]) =>
+  const filaF = ([ind, d, frec, clave]) =>
     `<tr><td>${ind}</td><td>${d ? enlace(d) : `<span class="revisar">no se pudo cargar</span>`}</td><td>${frec}${clave ?
       `<br><span class="nota">Aviso si pasan más de ${PLAZOS[clave]} días</span>` : ""}</td>
-      <td>${d ? fecha(d.fecha_corte) : "—"}${clave ? aviso(clave) : ""}</td></tr>`).join("") +
+      <td>${d ? fecha(d.fecha_corte) : "—"}${clave ? aviso(clave) : ""}</td></tr>`;
+  $("fuentes-clima").innerHTML = [
+    ["Estado de alerta ante El Niño costero", D.enfen && { ...D.enfen, fuente: `ENFEN, comunicado oficial N.° ${D.enfen.numero}` }, "Cada 15 días, aproximadamente", "enfen"],
+    ["Temperatura del mar frente a Paita (satélite)", D.tsm, "Diaria, con 1 o 2 días de retraso", "tsm"],
+    ["Lluvia diaria por estación (último día con datos)", D.lluvia, "Diaria", "lluvia"],
+    ["Radar de lluvias", { fuente: "Universidad de Piura", url: RADAR, fecha_corte: "en vivo" }, "En vivo (enlace, sin datos guardados)"],
+  ].map(filaF).join("");
+  $("fuentes-cuerpo").innerHTML = filasF.map(filaF).join("") +
     `<tr><td>Pendientes: vacunación contra el dengue y precios de productos</td><td>Vacunación: pedido en trámite a la DIRESA Piura (no hay
        archivo abierto del Minsa). Precios: <a href="http://sistemas.midagri.gob.pe/sisap/portal2/ciudades/" target="_blank" rel="noopener">SISAP,
        MIDAGRI</a>, en preparación</td><td>—</td><td>—</td></tr>`;
@@ -2500,6 +2614,7 @@ document.addEventListener("click", async ev => {
 
 /* ---------- Pestañas: cada una con su dirección (#dengue, #gasto…) ---------- */
 function redibujar(tab) {
+  if (tab === "clima") graficosClima();
   if (tab === "dengue" && D.d26) graficoSemanas();
   if (tab === "precios") { graficosIPC(); graficoCanasta(); }
   if (tab === "salud") { graficoOcupacion(); pintarMapaSalud(); }
@@ -2541,9 +2656,10 @@ let listo;
 const arranque = new Promise(r => listo = r);  // se cumple cuando D tiene los datos de la carga inicial
 (async () => {
   mostrar();
-  const [gasto, inv, fen, obras, dh, d26, camas, mapa, ipc, camasSerie, ipress, pobreza, cortos, nombres, deps, revisadas] = await Promise.all(["gasto_piura.json",
+  const [gasto, inv, fen, obras, dh, d26, camas, mapa, ipc, camasSerie, ipress, pobreza, cortos, nombres, deps, revisadas, lluvia, tsm, enfen] = await Promise.all(["gasto_piura.json",
     "inversiones_piura.json", "fen_piura.json", "infobras_piura.json", "dengue_historico.json", "dengue_2026.json", "camas_piura.json",
-    "piura_distritos.json", "ipc_piura.json", "camas_serie.json", "ipress_piura.json", "lineas_pobreza.json", "nombres_cortos_obras.json", "nombres_entidades.json", "infobras_departamentos.json", "obras_revisadas.json"].map(cargar));
+    "piura_distritos.json", "ipc_piura.json", "camas_serie.json", "ipress_piura.json", "lineas_pobreza.json", "nombres_cortos_obras.json", "nombres_entidades.json", "infobras_departamentos.json", "obras_revisadas.json",
+    "lluvia_piura.json", "tsm_paita.json", "enfen.json"].map(cargar));
   if (!gasto) {
     listo();  // la pestaña Vulnerabilidad no depende del gasto: que no se quede esperando
     $("resumen-paneles").innerHTML = `<p>No se pudieron cargar los datos. Si abriste el archivo directamente, sírvelo con
@@ -2553,7 +2669,7 @@ const arranque = new Promise(r => listo = r);  // se cumple cuando D tiene los d
   D.gasto = { ...gasto, rows: filas(gasto) };
   if (inv) { D.invMeta = inv; D.inv = Object.fromEntries(filas(inv).map(r => [r.cui, r])); }
   if (fen) D.fen = { ...fen, rows: filas(fen) };
-  Object.assign(D, { obras, dh, d26, camas, mapa, ipc, camasSerie, ipress, pobreza, cortos, nombres, deps, revisadas });
+  Object.assign(D, { obras, dh, d26, camas, mapa, ipc, camasSerie, ipress, pobreza, cortos, nombres, deps, revisadas, lluvia, tsm, enfen });
   listo();
   // Nombres legibles de entidades: diccionario o, si falta, la regla sobre el nombre original
   for (const k in gasto.nombres.entidad) gasto.nombres.entidad[k] = nombres?.mef?.[k] || legible(gasto.nombres.entidad[k]);
@@ -2570,6 +2686,7 @@ const arranque = new Promise(r => listo = r);  // se cumple cuando D tiene los d
   if (fechas.length) $("actualizado").textContent = "Actualizado al " +
     new Date(Math.max(...fechas)).toLocaleDateString("es-PE", { day: "numeric", month: "long", year: "numeric" });
   pintarResumen();
+  pintarClima();
   pintarDenguePaneles();
   if (D.d26 || D.dh) graficoSemanas();
   const anios = [...new Set((dh?.filas || []).map(f => f[0]))].sort((a, b) => b - a);

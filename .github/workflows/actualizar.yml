@@ -24,6 +24,7 @@ jobs:
       - run: python scripts/test_gasto_mef.py
       # Censo 2025 por manzana: archivo fijo (censo_inei.py se corre a mano); se revisa que siga sano
       - run: python scripts/test_censo_inei.py
+      - run: python scripts/test_clima.py
       - run: python scripts/gasto_mef.py
       # Infobras y SUSALUD no responden a los servidores de GitHub (tiempo agotado en todas las ejecuciones desde el
       # 30/10/2026): se actualizan desde una computadora con scripts/actualizar_local.sh (ver docs/actualizacion_local.md).
@@ -36,6 +37,17 @@ jobs:
         continue-on-error: true
       - id: ipc
         run: python scripts/ipc_inei.py  # dato mensual: solo descarga el informe del INEI si hay uno nuevo
+        continue-on-error: true
+      # Clima: lluvia (Senamhi), temperatura del mar (NOAA) y estado del ENFEN. Senamhi y ENFEN son servidores del
+      # Estado peruano: si no responden a GitHub, como Infobras y SUSALUD, se verá aquí.
+      - id: lluvia
+        run: python scripts/lluvia_senamhi.py
+        continue-on-error: true
+      - id: tsm
+        run: python scripts/tsm_paita.py
+        continue-on-error: true
+      - id: enfen
+        run: python scripts/enfen.py
         continue-on-error: true
       - name: Guardar datos nuevos
         run: |
@@ -54,6 +66,9 @@ jobs:
         env:
           FEN: ${{ steps.fen.outcome }}
           IPC: ${{ steps.ipc.outcome }}
+          LLUVIA: ${{ steps.lluvia.outcome }}
+          TSM: ${{ steps.tsm.outcome }}
+          ENFEN: ${{ steps.enfen.outcome }}
         run: |
           fallidos=0
           {
@@ -61,7 +76,8 @@ jobs:
             echo ""
             echo "| Fuente | Script | Resultado |"
             echo "| --- | --- | --- |"
-            for f in "Emergencia FEN (MEF)|fen_mef.py|$FEN" "IPC (INEI)|ipc_inei.py|$IPC"; do
+            for f in "Emergencia FEN (MEF)|fen_mef.py|$FEN" "IPC (INEI)|ipc_inei.py|$IPC" "Lluvia (Senamhi)|lluvia_senamhi.py|$LLUVIA" \
+                     "Temperatura del mar (NOAA)|tsm_paita.py|$TSM" "Estado de alerta (ENFEN)|enfen.py|$ENFEN"; do
               IFS="|" read -r nombre script resultado <<< "$f"
               case "$resultado" in
                 success) txt="correcto" ;;
