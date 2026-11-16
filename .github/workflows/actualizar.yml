@@ -22,6 +22,8 @@ jobs:
           python-version: "3.12"
       - run: pip install -r requirements.txt
       - run: python scripts/test_gasto_mef.py
+      # Censo 2025 por manzana: archivo fijo (censo_inei.py se corre a mano); se revisa que siga sano
+      - run: python scripts/test_censo_inei.py
       - run: python scripts/gasto_mef.py
       # Infobras y SUSALUD no responden a los servidores de GitHub (tiempo agotado en todas las ejecuciones desde el
       # 30/10/2026): se actualizan desde una computadora con scripts/actualizar_local.sh (ver docs/actualizacion_local.md).

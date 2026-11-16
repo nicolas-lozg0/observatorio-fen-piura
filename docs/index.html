@@ -29,7 +29,11 @@
     /* Datos (validados con la skill dataviz): comparación de años y nacional; escala secuencial del mapa */
     --comp1: #b48b40; --comp2: #aa5e7d; --comp3: #2f7442;
     --q1: #cde2fb; --q2: #9ec5f4; --q3: #6da7ec; --q4: #2a78d6; --q5: #184f95;
-    --neutro: #e4e9f0;  /* datos: cero casos y fondo de zonas sin dato */
+    --neutro: #e4e9f0;  /* datos: cero casos y fondo de zonas sin dato; en Vulnerabilidad, «Pocos casos» */
+    /* Vulnerabilidad (manzanas, rangos fijos de 20 puntos): azul 250 a 700 de dataviz. Validado con --ordinal: un solo tono,
+       claridad monótona, saltos ≥ 0,06 y el paso más claro a 2,06:1 sobre blanco (las manzanas son pequeñas: no puede perderse);
+       --neutro frente a cada paso: ΔE ≥ 18,9 con visión normal y ≥ 16,7 con daltonismo */
+    --v1: #86b6ef; --v2: #5598e7; --v3: #2a78d6; --v4: #1c5cab; --v5: #0d366b;
     /* Obras paralizadas: tramos 1 a 5 (de mayor a menor costo) y el resto (gris; también el país en los pares de barras).
        Validado con dataviz: ΔE ≥ 15 entre vecinos (visión normal) y ≥ 14 con daltonismo; rótulos con contraste ≥ 4,5:1 */
     --o1: #001d40; --o2: #18488c; --o3: #3576cd; --o4: #86b5ef; --o5: #cfe2fb; --o-resto: #7d8792;
@@ -308,6 +312,14 @@
   .grupo-mapa { text-align: center; border-radius: 50%; background: var(--marino); color: #fff; font-weight: 700;
     font-size: var(--t-xs); box-shadow: 0 0 0 3px rgb(255 255 255 / .8); }
 
+  /* Vulnerabilidad: mapa de manzanas más alto (es el contenido principal de la pestaña) y selector de indicador */
+  #mapa-vul { height: 520px; }
+  @media (max-width: 600px) { #mapa-vul { height: 420px; } }
+  .control-medio { max-width: 360px; }
+  .vul-cifra { font: 800 var(--t-md)/1.2 var(--f-titulo); color: var(--titulo); margin: 0; }
+  #vul-distritos .casos { display: block; font-size: var(--t-xs); font-weight: 400; color: var(--texto-3); }
+  @media (max-width: 600px) { #vul-distritos th { white-space: normal; } }  /* la tabla cabe sin desplazarse */
+
   .lista-corta { margin: 0; padding-left: var(--e5); font-size: var(--t-sm); }
   .lista-corta li { margin-bottom: var(--e2); }
   /* nombres de obra largos: dos líneas en la vista simple (el nombre completo va en la tabla del detalle) */
@@ -455,6 +467,7 @@
     <li><a href="#dengue">Dengue</a></li>
     <li><a href="#gasto">Gasto</a></li>
     <li><a href="#obras">Obras</a></li>
+    <li><a href="#vulnerabilidad">Vulnerabilidad</a></li>
     <li><a href="#salud">Salud</a></li>
     <li><a href="#precios">Precios</a></li>
     <li><a href="#fuentes">Fuentes y método</a></li>
@@ -623,6 +636,47 @@
     </details>
   </section>
 
+  <!-- ===================== VULNERABILIDAD ===================== -->
+  <section class="pestana" id="vulnerabilidad" aria-labelledby="t-vulnerabilidad" hidden>
+    <h2 id="t-vulnerabilidad">¿Dónde están las viviendas más expuestas?</h2>
+    <p class="intro">Primera exploración del Censo 2025 por <span data-g="manzana">manzana</span> en Piura, Castilla y Veintiséis de
+      Octubre: servicios de agua y desagüe, materiales de la vivienda, edades y seguro de salud. Cada indicador se muestra por
+      separado, sin índices ni ponderaciones.</p>
+    <div class="paneles">
+      <div class="panel ancho" id="vul-panel">
+        <label class="control control-medio">Indicador<select id="f-vul" disabled><option>Cargando…</option></select></label>
+        <h3 id="vul-titulo"></h3>
+        <p class="vul-cifra" id="vul-cifra"></p>
+        <p class="nota" id="vul-def"></p>
+        <div class="leyenda cajas" id="vul-leyenda"></div>
+        <div id="mapa-vul" class="mapa-l" role="region" aria-label="Mapa de manzanas de Piura metropolitana coloreadas según el indicador elegido"
+          aria-busy="true"></div>
+        <p class="pie" id="vul-pie"></p>
+        <div id="vul-calculo"></div>
+      </div>
+      <div class="panel ancho" id="vul-distritos">
+        <h3>Por distrito</h3>
+        <div class="tabla"><table class="tabla-640">
+          <thead><tr><th>Distrito (manzanas en el mapa)</th><th class="n">% (casos de total)</th></tr></thead>
+          <tbody id="vul-tabla"></tbody>
+        </table></div>
+        <p class="nota" id="vul-nota-tabla"></p>
+      </div>
+    </div>
+    <details class="detalle">
+      <summary><span class="ver">Ver detalle</span><span class="ocultar">Ocultar detalle</span></summary>
+      <div class="cuerpo-detalle">
+        <h3>Los nueve indicadores</h3>
+        <div class="tabla"><table class="ancha min-640">
+          <thead><tr><th>Indicador</th><th class="nombre">Numerador</th><th class="nombre">Denominador</th><th class="n">Piura metropolitana</th></tr></thead>
+          <tbody id="vul-indicadores"></tbody>
+        </table></div>
+        <h3>Notas de método</h3>
+        <ul class="metodo nota" id="vul-notas"></ul>
+      </div>
+    </details>
+  </section>
+
   <!-- ===================== SALUD ===================== -->
   <section class="pestana" id="salud" aria-labelledby="t-salud" hidden>
     <h2 id="t-salud">¿Está preparada la salud?</h2>
@@ -719,6 +773,16 @@
             proyectos), 3 días; dengue, 14; Infobras, 35; camas, 45; IPC, 45. Se cuenta desde la fecha de los datos.</li>
           <li><strong>IPC de Piura.</strong> Variaciones del Cuadro 2 del informe técnico mensual del INEI. Se validó con
             febrero de 2026 (0,48 % mensual y 2,28 % en 12 meses).</li>
+          <li><strong>Vulnerabilidad (Censo 2025 por manzana).</strong> Tabulados y cartografía de manzanas que el INEI entregó el
+            13/11/2026, para Piura, Castilla y Veintiséis de Octubre. Cada indicador es un porcentaje por manzana: numerador entre
+            denominador, ambos conteos del censo (el detalle de cada uno está en «Cómo se calcula» y en el detalle de la pestaña).
+            Los de agua y desagüe se expresan como carencia, para que en todo el mapa un color más oscuro signifique más
+            vulnerabilidad. El mapa usa cinco rangos fijos de 20 puntos; las manzanas con menos de 10 viviendas (o 30 personas en
+            los indicadores de población) en la base del indicador van en gris, como «Pocos casos». El total de cada distrito suma
+            numeradores y denominadores, con las manzanas dispersas (menos de 30 habitantes, sin polígono); no promedia
+            porcentajes. «Sin EsSalud ni seguro privado» es el mínimo posible, porque una persona puede tener dos seguros; es una
+            aproximación y no mide informalidad laboral. Las columnas se ubican por el texto de su encabezado, se comprueba que
+            cada bloque sume su total y que cada manzana con datos tenga su polígono (scripts/censo_inei.py).</li>
         </ul>
         <h3>Cómo se generan las frases</h3>
         <p class="nota">Cada frase se arma con reglas fijas a partir de los datos del momento; no hay conclusiones escritas a mano.</p>
@@ -818,7 +882,7 @@ const APARTE = { "42412": "proyecto de Petroperú, sin relación con El Niño" }
 const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "setiembre", "octubre", "noviembre", "diciembre"];
 const PRELIMINAR = 2;  // últimas semanas del año en curso: preliminares (punteadas y fuera de la tendencia)
 const NIVELES = [["E", "Gobierno nacional"], ["R", "Gobierno regional"], ["M", "Gobiernos locales"]];
-const PESTANAS = ["resumen", "dengue", "gasto", "obras", "salud", "precios", "fuentes"];
+const PESTANAS = ["resumen", "dengue", "gasto", "obras", "vulnerabilidad", "salud", "precios", "fuentes"];
 // Días que puede pasar una fuente sin actualizarse antes de avisar "Dato no actualizado desde…"
 const PLAZOS = { obras: 35, camas: 45, gasto: 3, inv: 3, fen: 3, d26: 14, ipc: 45 };
 
@@ -848,6 +912,10 @@ const DEFINICIONES = {
   ipc: ["IPC", "Índice de precios al consumidor: mide cómo cambia el precio de la canasta que compran los hogares."],
   doce: ["Variación en 12 meses", "Cuánto cambiaron los precios frente al mismo mes del año anterior."],
   mensual: ["Variación mensual", "Cuánto cambiaron los precios frente al mes anterior."],
+  manzana: ["Manzana", "Bloque de viviendas rodeado de calles: la unidad más pequeña con que el INEI entrega los resultados del censo."],
+  dispersas: ["Manzanas dispersas", "Según el INEI, población en manzanas dispersas, con menos de 30 habitantes. Vienen agrupadas por zona (código terminado en 9999) y no tienen polígono en el mapa."],
+  pocos: ["Pocos casos", "Manzanas con menos de 10 viviendas (indicadores de vivienda) o menos de 30 personas (indicadores de población) en la base del indicador elegido. Con tan pocos casos, una sola vivienda mueve mucho el porcentaje: van en gris y sin porcentaje."],
+  rangos: ["Rangos del mapa", "Cinco rangos fijos de 20 puntos: 0 a 20 %, 20 a 40 %, 40 a 60 %, 60 a 80 % y 80 a 100 %. Cada rango incluye su límite inferior: una manzana con 20 % va en el segundo."],
 };
 
 // Causas de paralización (como las escribe Infobras): definición, fuente (norma y artículo, o "Redacción propia") y URL.
@@ -1839,9 +1907,10 @@ function centroDistrito(u) {
 const ubigeoMapa = () => { const r = {};
   for (const [u, d] of Object.entries(D.mapa?.distritos || {})) r[sinTilde(d.provincia + "|" + d.nombre)] = u;
   return (prov, dist) => sinTilde(dist) === "VEINTISEIS DE OCTUBRE" ? "200115" : r[sinTilde(prov + "|" + dist)]; };
-// Mapa base: distritos de Piura sobre el mapa claro de CARTO; sin rueda del ratón y, en celular, con dos dedos
+// Mapa base: distritos de Piura sobre el mapa claro de CARTO; sin rueda del ratón y, en celular, con dos dedos.
+// Sin `estilo`, no dibuja los distritos (Vulnerabilidad trae sus propios límites y encuadre).
 async function mapaBase(el, estilo, alClic) {
-  if (!D.mapa) { el.innerHTML = `<p class="sin-datos">No se pudieron cargar los límites distritales.</p>`; return null; }
+  if (estilo && !D.mapa) { el.innerHTML = `<p class="sin-datos">No se pudieron cargar los límites distritales.</p>`; return null; }
   try { await cargarLeaflet(); } catch (e) {
     el.innerHTML = `<p class="sin-datos">No se pudo cargar el mapa (Leaflet, desde cdnjs). Los datos están en la tabla del detalle.</p>`;
     return null;
@@ -1860,10 +1929,12 @@ async function mapaBase(el, estilo, alClic) {
     .on("tileerror", () => { if (!avisado) { avisado = true;
       el.insertAdjacentHTML("afterend", `<p class="nota">No cargó el mapa de fondo; los distritos y los puntos se ven igual.</p>`); } })
     .addTo(m);
-  const capa = L.featureGroup(Object.entries(D.mapa.distritos).map(([u, d]) =>
-    Object.assign(L.polygon(anillosDistrito(d.d), { weight: 1, color: token("--superficie"), fillOpacity: .55, ...estilo(u, d) }), { _u: u })
-      .on("click", ev => alClic && L.popup().setLatLng(ev.latlng).setContent(alClic(u, d)).openOn(m)))).addTo(m);
-  m.fitBounds(capa.getBounds(), { padding: [8, 8] });
+  if (estilo) {
+    const capa = L.featureGroup(Object.entries(D.mapa.distritos).map(([u, d]) =>
+      Object.assign(L.polygon(anillosDistrito(d.d), { weight: 1, color: token("--superficie"), fillOpacity: .55, ...estilo(u, d) }), { _u: u })
+        .on("click", ev => alClic && L.popup().setLatLng(ev.latlng).setContent(alClic(u, d)).openOn(m)))).addTo(m);
+    m.fitBounds(capa.getBounds(), { padding: [8, 8] });
+  }
   if (L.Browser.mobile) el.insertAdjacentHTML("afterend", `<p class="nota">Usa dos dedos para acercar o mover el mapa.</p>`);
   return m;
 }
@@ -1900,6 +1971,117 @@ async function crearMapaObras() {
     los números agrupan obras cercanas. Distritos en azul: con al menos una obra paralizada.${sin.length ? ` Sin polígono en el mapa:
     ${sin.map(x => esc(lugar(x.distrito))).join(", ")}.` : ""} Límites: INEI 2007. ${pieInfobras(D.obras)}.`;
   return m;
+}
+
+/* ---------- Vulnerabilidad: Censo 2025 por manzana (Piura metropolitana) ---------- */
+// El archivo (unos 1,8 MB) se carga solo al abrir la pestaña. Cada indicador trae, por manzana, [numerador, denominador]
+// (el de seguro, además, el máximo posible); los totales por distrito incluyen las manzanas dispersas, que no tienen polígono.
+const CENSO = { fuente: "INEI, Censos Nacionales 2025, tabulados por manzana entregados el 13/11/2026", url: "https://www.inei.gob.pe/",
+  fecha_corte: "2026-11-13" };  // para la tabla de fuentes, sin cargar el archivo
+const RANGOS = [20, 40, 60, 80];  // cortes fijos en %; cada rango incluye su límite inferior
+const TONOS_V = ["--v1", "--v2", "--v3", "--v4", "--v5"];
+const UNIDAD = { viv: ["vivienda", "viviendas"], pob: ["persona", "personas"] };
+let vulP, vulCapa, vulColores;
+const vulInd = () => D.censo.indicadores.find(i => i.k === $("f-vul").value);
+const vulPocos = (i, den) => den < D.censo.minimo[i.tipo];
+const vulTotal = k => Object.values(D.censo.distritos).reduce((s, x) => s.map((v, j) => v + (x[k][j] ?? 0)), [0, 0, 0]);
+const vulPct = (i, [n, d, max]) => (i.k === "g" ? "al menos " : "") + pctTxt(pct(n, d));
+const minuscula = s => s.charAt(0).toLowerCase() + s.slice(1);
+async function pintarVul() {
+  if (vulP) return (await vulP)?.invalidateSize();
+  vulP = crearVul();
+}
+async function crearVul() {
+  // espera al arranque (nombres con tildes) si la página se abrió directamente en #vulnerabilidad
+  [D.censo] = await Promise.all([cargar("censo_piura.json"), arranque]);
+  $("mapa-vul").removeAttribute("aria-busy");
+  if (!D.censo) { $("vul-panel").outerHTML = sinDatos("Vulnerabilidad por manzana", "el censo del INEI"); return null; }
+  for (const i of D.censo.indicadores) DEFINICIONES["vul_" + i.k] = [i.rotulo, `Numerador: ${i.numerador}. Denominador: ${i.denominador}.`];
+  const s = $("f-vul");
+  s.innerHTML = D.censo.indicadores.map(i => `<option value="${i.k}">${esc(i.rotulo)}</option>`).join("");
+  s.disabled = false;
+  s.onchange = cambiarVul;
+  pintarVulTextos();
+  pintarVulDetalle();
+  const m = await mapaBase($("mapa-vul"), null);
+  if (!m) return null;
+  // Manzanas en canvas (más de 5000 polígonos: en SVG el celular se traba); los límites distritales encima, sin interacción
+  vulCapa = L.geoJSON(D.censo, { renderer: L.canvas({ padding: .5 }), style: vulEstilo }).addTo(m);
+  if (L.Browser.mobile) vulCapa.bindPopup(l => vulGlobo(l.feature));
+  else vulCapa.bindTooltip(l => vulGlobo(l.feature), { sticky: true });
+  m.createPane("limites").style.cssText = "z-index: 450; pointer-events: none";
+  L.geoJSON({ type: "FeatureCollection", features: D.censo.limites }, { pane: "limites", interactive: false,
+    style: { fill: false, weight: 2, color: token("--marino"), opacity: .8 } }).addTo(m);
+  // Encuadre en la ciudad: el 96 % central de las manzanas (las rurales de Castilla y Veintiséis de Octubre alejan mucho el mapa)
+  const pts = D.censo.features.map(f => L.geoJSON(f).getBounds().getCenter()), q = (xs, p) => xs.sort((a, b) => a - b)[Math.floor(p * (xs.length - 1))];
+  const la = pts.map(p => p.lat), lo = pts.map(p => p.lng);
+  m.fitBounds([[q(la, .02), q(lo, .02)], [q(la, .98), q(lo, .98)]], { padding: [8, 8] });
+  return m;
+}
+function vulEstilo(f) {
+  const i = vulInd(), [n, d] = f.properties[i.k];
+  vulColores ||= [...TONOS_V, "--neutro"].map(token);  // una sola lectura de los tokens por repintado
+  // sin borde: en manzanas pequeñas un borde blanco tapa el relleno (las calles ya las separan)
+  return { stroke: false, fillOpacity: .9,
+    fillColor: vulColores[vulPocos(i, d) ? 5 : RANGOS.filter(c => 100 * n / d >= c).length] };
+}
+function vulGlobo(f) {
+  const i = vulInd(), v = f.properties[i.k], u = UNIDAD[i.tipo];
+  const cab = `<strong>${esc(lugar(D.censo.distritos[f.properties.u].nombre))}</strong><br>Manzana <span class="cod">${esc(f.id)}</span><br>${esc(i.rotulo)}: `;
+  if (vulPocos(i, v[1])) return cab + `pocos casos (${num(v[1])} ${v[1] === 1 ? u[0] : u[1]} en este indicador)`;
+  return cab + vulPct(i, v) + (i.k === "g" ? ` (entre ${pctTxt(pct(v[0], v[1]))} y ${pctTxt(pct(v[2], v[1]))})` : "") +
+    `<br>${num(v[0])} de ${num(v[1])} ${u[1]}`;
+}
+function cambiarVul() {
+  vulColores = null;
+  vulCapa?.setStyle(vulEstilo);
+  vulP?.then(m => m?.closePopup());
+  pintarVulTextos();
+}
+function pintarVulTextos() {
+  const c = D.censo, i = vulInd(), t = vulTotal(i.k), u = UNIDAD[i.tipo];
+  $("vul-titulo").textContent = `${i.rotulo}, por manzana`;
+  $("vul-cifra").innerHTML = `Piura metropolitana: ${vulPct(i, t)} <span class="nota">(${num(t[0])} de ${num(t[1])} ${u[1]})</span>`;
+  $("vul-def").textContent = `Porcentaje sobre: ${minuscula(i.denominador)}.`;
+  $("vul-leyenda").innerHTML = TONOS_V.map((v, j) => `<span style="--c:var(${v})">${j * 20} a ${j * 20 + 20} %</span>`).join("") +
+    `<span style="--c:var(--neutro)">${g("pocos", "Pocos casos")} (menos de ${c.minimo[i.tipo]} ${u[1]})</span>`;
+  const [boton, nota] = comoSeCalcula(["vul_" + i.k, "rangos", "pocos"]);
+  $("vul-pie").innerHTML = `Fuente: ${esc(c.fuente)} · ${boton}`;
+  $("vul-calculo").innerHTML = nota;
+  const fila = (nombre, x, fuerte) => `<tr${fuerte ? ' class="total"' : ""}><td>${fuerte ? `<strong>${nombre}</strong>` : nombre}<span
+    class="casos">${num(x.manzanas)} manzanas</span></td><td class="n">${vulPct(i, x[i.k])}<span class="casos">${num(x[i.k][0])} de ${num(x[i.k][1])}</span></td></tr>`;
+  const ds = Object.values(c.distritos);
+  $("vul-tabla").innerHTML = ds.map(x => fila(esc(lugar(x.nombre)), x)).join("") +
+    fila("Piura metropolitana", { [i.k]: t, manzanas: ds.reduce((s, x) => s + x.manzanas, 0) }, true);
+  const disp = ds.reduce((s, x) => [s[0] + x.dispersas.grupos, s[1] + x.dispersas.p, s[2] + x.dispersas.v], [0, 0, 0]);
+  $("vul-nota-tabla").innerHTML = `El porcentaje de cada distrito suma los numeradores y los denominadores de sus manzanas (no promedia
+    porcentajes). Incluye ${num(disp[0])} grupos de ${g("dispersas", "manzanas dispersas")} (${num(disp[1])} personas y ${num(disp[2])}
+    viviendas), que no aparecen en el mapa.${i.k === "g" ? ` En este indicador, el valor real de Piura metropolitana está entre
+    ${pctTxt(pct(t[0], t[1]))} y ${pctTxt(pct(t[2], t[1]))}.` : ""}`;
+  ayudas($("vulnerabilidad"));
+}
+function pintarVulDetalle() {
+  const c = D.censo, k = c.coincidencia, val = c.validaciones, malas = val.filter(v => v.filas_con_diferencia);
+  $("vul-indicadores").innerHTML = c.indicadores.map(i => { const t = vulTotal(i.k);
+    return `<tr><td>${esc(i.rotulo)}</td><td>${esc(i.numerador)}</td><td>${esc(i.denominador)}</td><td class="n">${vulPct(i, t)}</td></tr>`; }).join("");
+  $("vul-notas").innerHTML = [
+    `Ámbito: ${esc(c.ambito)}. Es una primera exploración: cada indicador se mira por separado, sin índices ni ponderaciones.`,
+    `Las ${num(k.tabuladas)} manzanas con datos se unieron a la cartografía de manzanas del INEI por su código (ubigeo, zona y
+      manzana): ${num(k.con_poligono)} tienen polígono (${num(100 * k.tasa, 1)} %).${k.sin_poligono.length ? ` Sin polígono: ${k.sin_poligono.map(esc).join(", ")}.` : ""}
+      Otros ${num(k.poligonos_sin_tabulado)} polígonos no tienen datos: probablemente manzanas sin viviendas ocupadas o con menos de 30
+      habitantes, que el INEI suma en las manzanas dispersas.`,
+    `Manzanas dispersas: según el INEI, los códigos que terminan en 9999 «corresponden a la población en manzanas dispersas (menor a 30
+      habitantes)». No tienen polígono: no están en el mapa, pero sí en el total de cada distrito.`,
+    `Validación: en las ${num(val.length)} comprobaciones (cada bloque suma su total, y los totales que deben coincidir entre bloques)
+      ${malas.length ? `hay diferencias: ${malas.map(v => `${esc(v.bloque)} (${num(v.filas_con_diferencia)} manzanas)`).join("; ")}` : "no hay diferencias"}.`,
+    `Seguro de salud: una persona puede estar afiliada a más de un seguro y el censo no dice cuántas tienen EsSalud y un seguro privado
+      a la vez. Por eso «Sin EsSalud ni seguro privado» da el mínimo (población menos EsSalud menos privado) y el rango posible. Es una
+      aproximación: no mide informalidad laboral, porque el censo no pregunta por el empleo.`,
+    `Agua: el INEI pregunta si hay agua todos los días solo a las viviendas con red pública o pilón, y las horas solo a las que la tienen
+      todos los días; por eso los tres indicadores de agua tienen bases distintas.`,
+    `Mapa: polígonos de manzana simplificados (alrededor de 1 m) y límites distritales del INEI (Censo 2025). Fondo de OpenStreetMap.`,
+  ].map(x => `<li>${x}</li>`).join("");
+  ayudas($("vulnerabilidad"));
 }
 
 function pintarObras() {
@@ -2269,13 +2451,15 @@ function pintarFuentes() {
     ["Líneas de pobreza (canasta básica)", D.pobreza && { ...D.pobreza, fecha_corte: `${fecha(D.pobreza.fecha_corte)} (año ${D.pobreza.lineas.total.anios.at(-1)})` }, "Anual (mayo), a mano"],
     ["IPC de Piura", D.ipc && { ...D.ipc, fecha_corte: `${fecha(D.ipc.fecha_corte)} (${mesTxt(D.ipc.ultimo_mes)})` }, "Mensual (día 1)", "ipc"],
     ["Límites distritales del mapa", D.mapa && { ...D.mapa, fecha_corte: "límites de 2007" }, "Fijo"],
+    ["Vulnerabilidad por manzana (Censo 2025, Piura metropolitana)", CENSO, "Fijo: se procesa a mano una sola vez"],
   ];
   $("fuentes-cuerpo").innerHTML = filasF.map(([ind, d, frec, clave]) =>
     `<tr><td>${ind}</td><td>${d ? enlace(d) : `<span class="revisar">no se pudo cargar</span>`}</td><td>${frec}${clave ?
       `<br><span class="nota">Aviso si pasan más de ${PLAZOS[clave]} días</span>` : ""}</td>
       <td>${d ? fecha(d.fecha_corte) : "—"}${clave ? aviso(clave) : ""}</td></tr>`).join("") +
-    `<tr><td>Vacunación contra el dengue</td><td>Pedido en trámite a la DIRESA Piura (no hay archivo abierto del Minsa)</td><td>—</td><td>—</td></tr>
-     <tr><td>Evolución de precios de productos</td><td><a href="http://sistemas.midagri.gob.pe/sisap/portal2/ciudades/" target="_blank" rel="noopener">SISAP, MIDAGRI</a>: en preparación</td><td>—</td><td>—</td></tr>`;
+    `<tr><td>Pendientes: vacunación contra el dengue y precios de productos</td><td>Vacunación: pedido en trámite a la DIRESA Piura (no hay
+       archivo abierto del Minsa). Precios: <a href="http://sistemas.midagri.gob.pe/sisap/portal2/ciudades/" target="_blank" rel="noopener">SISAP,
+       MIDAGRI</a>, en preparación</td><td>—</td><td>—</td></tr>`;
   const raras = (D.camas?.establecimientos || []).filter(x => datoCamaRaro(x, D.camas.periodo));
   $("m-camas-raras").textContent = D.camas ? `: en ${D.camas.periodo}, ${num(raras.length)} de ${
     num(D.camas.establecimientos.filter(x => x.reporto).length)} (${raras.map(x => x.razon_soc).join("; ")})` : "";
@@ -2320,6 +2504,7 @@ function redibujar(tab) {
   if (tab === "precios") { graficosIPC(); graficoCanasta(); }
   if (tab === "salud") { graficoOcupacion(); pintarMapaSalud(); }
   if (tab === "obras") pintarMapaObras();
+  if (tab === "vulnerabilidad") pintarVul();
 }
 function mostrar() {
   const h = decodeURIComponent(location.hash.slice(1)) || "resumen";
@@ -2352,12 +2537,15 @@ window.addEventListener("resize", () => {
 });
 
 /* ---------- Arranque ---------- */
+let listo;
+const arranque = new Promise(r => listo = r);  // se cumple cuando D tiene los datos de la carga inicial
 (async () => {
   mostrar();
   const [gasto, inv, fen, obras, dh, d26, camas, mapa, ipc, camasSerie, ipress, pobreza, cortos, nombres, deps, revisadas] = await Promise.all(["gasto_piura.json",
     "inversiones_piura.json", "fen_piura.json", "infobras_piura.json", "dengue_historico.json", "dengue_2026.json", "camas_piura.json",
     "piura_distritos.json", "ipc_piura.json", "camas_serie.json", "ipress_piura.json", "lineas_pobreza.json", "nombres_cortos_obras.json", "nombres_entidades.json", "infobras_departamentos.json", "obras_revisadas.json"].map(cargar));
   if (!gasto) {
+    listo();  // la pestaña Vulnerabilidad no depende del gasto: que no se quede esperando
     $("resumen-paneles").innerHTML = `<p>No se pudieron cargar los datos. Si abriste el archivo directamente, sírvelo con
       <code>python3 -m http.server -d docs</code> y entra a http://localhost:8000.</p>`;
     return;
@@ -2366,6 +2554,7 @@ window.addEventListener("resize", () => {
   if (inv) { D.invMeta = inv; D.inv = Object.fromEntries(filas(inv).map(r => [r.cui, r])); }
   if (fen) D.fen = { ...fen, rows: filas(fen) };
   Object.assign(D, { obras, dh, d26, camas, mapa, ipc, camasSerie, ipress, pobreza, cortos, nombres, deps, revisadas });
+  listo();
   // Nombres legibles de entidades: diccionario o, si falta, la regla sobre el nombre original
   for (const k in gasto.nombres.entidad) gasto.nombres.entidad[k] = nombres?.mef?.[k] || legible(gasto.nombres.entidad[k]);
   obras?.obras.forEach(x => x.entidad = entidadObra(x.entidad));

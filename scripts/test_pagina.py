@@ -34,7 +34,7 @@ from pathlib import Path
 from playwright.sync_api import sync_playwright
 
 DOCS = Path(__file__).resolve().parent.parent / "docs"
-PESTANAS = ["resumen", "dengue", "gasto", "obras", "salud", "precios", "fuentes"]
+PESTANAS = ["resumen", "dengue", "gasto", "obras", "vulnerabilidad", "salud", "precios", "fuentes"]
 NAVEGADORES = [os.environ.get("NAVEGADOR"), "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser",
                "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"]
 fallos = []
@@ -207,6 +207,23 @@ def main():
                 pg.wait_for_function(f"document.querySelector('#{mapa} .leaflet-interactive, #{mapa} .sin-datos')", timeout=20000)
                 n = pg.evaluate(f"document.querySelectorAll('#{mapa} path.leaflet-interactive').length")
                 revisar(n >= 60 or pg.evaluate(f"!!document.querySelector('#{mapa} .sin-datos')"), f"mapa {mapa}: {n} distritos")
+            # Vulnerabilidad: el censo se carga al abrir la pestaña; mapa en canvas, leyenda de 5 rangos + «Pocos casos»,
+            # y el total de la tabla suma numeradores y denominadores (no promedia porcentajes)
+            pg.evaluate("location.hash = '#vulnerabilidad'")
+            pg.wait_for_function("document.querySelector('#mapa-vul canvas, #mapa-vul .sin-datos, #vulnerabilidad .pendiente')", timeout=30000)
+            rv = pg.evaluate("""() => {
+                const i = vulInd(), t = vulTotal(i.k), filas = [...document.querySelectorAll('#vul-tabla tr')];
+                const total = filas.at(-1).querySelector('td.n .casos').textContent.replace(/\\s/g, '');
+                const g = D.censo.features[0], gris = { properties: { ...g.properties, a: [1, 3] } };
+                return { canvas: !!document.querySelector('#mapa-vul canvas'), leyenda: document.querySelectorAll('#vul-leyenda span[style]').length,
+                  filas: filas.length, total: total === (num(t[0]) + 'de' + num(t[1])).replace(/\\s/g, ''),
+                  rango: [vulEstilo({ properties: { ...g.properties, a: [20, 100] } }).fillColor === token('--v2'),
+                          vulEstilo({ properties: { ...g.properties, a: [100, 100] } }).fillColor === token('--v5'),
+                          vulEstilo(gris).fillColor === token('--neutro')],
+                  globo: vulGlobo({ ...gris, id: 'X' }).includes('pocos casos') && !vulGlobo({ ...gris, id: 'X' }).includes('%') };
+            }""")
+            revisar(rv == {"canvas": True, "leyenda": 6, "filas": 4, "total": True, "rango": [True, True, True], "globo": True},
+                    f"pestaña Vulnerabilidad: {rv}")
             revisar(r["sal"] == r["esperado"] and r["regla"] and r["desfasada"],
                     f"título de salud «{r['sal']}», esperado «{r['esperado']}», regla {r['regla']}, serie desfasada {r['desfasada']}")
             pg.close()
