@@ -99,3 +99,22 @@ Pasan las 6 pruebas del proyecto.
 1. **Ventana de 19:00 a 19:00:** confirmarla con el Senamhi. Si fuera otra, solo cambian el texto de «Cómo se calcula» y la hora de la estimación satelital.
 2. **IMERG:** sigue sin probarse con el token real, ahora con la ventana nueva.
 3. **Densidad en manzanas muy chicas:** puede salir alta (pocas viviendas en poca área). Se mitiga con el gris de «pocos casos» (menos de 10 viviendas o 30 personas).
+
+## Ajuste: barra de distribución
+
+1. **Título:** «Cómo se reparten las viviendas de [localidad]» (o las personas). En la vista de número dice «Cómo se reparten las viviendas sin desagüe por red pública de [localidad]», porque la barra reparte solo las afectadas. Debajo va la frase generada. Se quitó la línea de unidad que había sobre la barra.
+2. **Barra apilada sin cifras.**
+3. **Grilla de 5 columnas,** alineada con la barra (hasta 900 px de ancho). Cada columna lleva:
+   - el cuadrado de color y la etiqueta, que nunca se parte: si no cabe, la columna crece;
+   - el rango, chico y gris;
+   - el %, en negrita.
+
+   Los demográficos y la vista de número usan «Muy baja · Baja · Media · Alta · Muy alta», con el rango con su unidad («menos de 5 por ha»).
+4. **Menos de 640 px:** una lista de 5 filas (color, etiqueta y rango; barrita proporcional; %). Las barritas empiezan todas en el mismo punto.
+5. **Cursor:** sobre un segmento o una columna, las otras cuatro se atenúan, en la barra y en la grilla. Solo con mouse; en el celular no hay resaltado.
+6. **Redondeo por mayor resto:** los % suman 100 y la frase usa las mismas cifras. Una clase con casos que redondea a 0 dice «menos de 1 %». La prueba revisa la suma y el redondeo.
+
+| Vista | 1280 px | 375 px |
+| --- | --- | --- |
+| % (en 1280, con el cursor sobre «Casi todas») | ![](avance_tarea17/reparto_pct_1280.webp) | ![](avance_tarea17/reparto_pct_375.webp) |
+| Número | ![](avance_tarea17/reparto_num_1280.webp) | ![](avance_tarea17/reparto_num_375.webp) |

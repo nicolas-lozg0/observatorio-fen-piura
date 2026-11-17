@@ -374,19 +374,39 @@
   .control-medio { max-width: 360px; }
   .leyenda.cajas .extensa::before { background: none; box-shadow: none; border: 1.5px dashed var(--texto-3); }
   .filtros-vul { grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); max-width: 900px; }
-  /* Leyenda de Vulnerabilidad: barra apilada con la parte de la base en cada clase */
-  .barra-clases { display: flex; height: 22px; border-radius: var(--r-control); overflow: hidden; margin: var(--e2) 0 var(--e1);
-    box-shadow: inset 0 0 0 1px var(--linea); max-width: 640px; }
-  .barra-clases span { flex: 0 0 calc(var(--p) * 1%); background: var(--c); color: var(--texto); font-size: var(--t-xs); font-weight: 700;
-    display: flex; align-items: center; justify-content: center; white-space: nowrap; overflow: hidden; }
-  .barra-clases span.osc { color: #fff; }
-  .leyenda-clases { display: flex; flex-wrap: wrap; gap: var(--e1) var(--e4); margin: 0; font-size: var(--t-sm); color: var(--texto-2); }
-  .leyenda-clases span::before { content: ""; display: inline-block; width: 12px; height: 12px; border-radius: 3px; background: var(--c);
-    box-shadow: inset 0 0 0 1px var(--linea); vertical-align: middle; margin-right: var(--e2); }
-  .leyenda-clases small { color: var(--texto-3); font-size: var(--t-xs); }
+  /* Leyenda de Vulnerabilidad: barra apilada sin cifras y una grilla de 5 columnas del mismo ancho debajo (etiqueta, rango, %);
+     en menos de 640 px, una lista de 5 filas con barrita */
+  .reparto { max-width: 900px; }
+  .reparto-titulo { margin-top: var(--e4); }
+  .barra-clases { display: flex; height: 18px; border-radius: var(--r-control); overflow: hidden; margin: var(--e3) 0 var(--e2);
+    box-shadow: inset 0 0 0 1px var(--linea); }
+  .barra-clases span { flex: 0 0 calc(var(--p) * 1%); background: var(--c); }
+  /* mismo ancho mientras quepa; la etiqueta nunca se parte (si no cabe, la columna crece) */
+  .grilla-clases { display: grid; grid-template-columns: repeat(5, minmax(max-content, 1fr)); gap: var(--e3); list-style: none; margin: 0; padding: 0; }
+  .grilla-clases li { display: flex; flex-direction: column; gap: 2px; }
+  .grilla-clases .et { white-space: nowrap; }
+  @media (max-width: 899px) { .grilla-clases .et { font-size: var(--t-xs); } }
+  .reparto .et { display: flex; align-items: flex-start; gap: var(--e2); font-size: var(--t-sm); color: var(--texto); line-height: 1.3; hyphens: none; }
+  .reparto .et i { flex: 0 0 12px; height: 12px; margin-top: .2em; border-radius: 3px; background: var(--c); box-shadow: inset 0 0 0 1px var(--linea); }
+  .reparto .rango { font-size: var(--t-xs); color: var(--texto-3); }
+  .grilla-clases .rango { padding-left: calc(12px + var(--e2)); }
+  .grilla-clases b { padding-left: calc(12px + var(--e2)); font-size: var(--t-base); color: var(--titulo); }
+  .reparto [data-clase] { transition: opacity var(--rapido); }
+  .reparto .atenuada { opacity: .35; }
+  .lista-clases { display: none; list-style: none; margin: var(--e2) 0 0; padding: 0; }
+  /* columnas compartidas por las 5 filas (las barritas empiezan en el mismo punto) */
+  .lista-clases li { display: contents; }
+  .lista-clases li > * { padding: var(--e1) 0; border-bottom: 1px solid var(--linea); align-self: stretch; display: flex; align-items: center; }
+  .lista-clases .mini { background: linear-gradient(var(--pista), var(--pista)) center / 100% 8px no-repeat; }
+  .lista-clases .mini span { height: 8px; width: calc(var(--p) * 1%); background: var(--c); border-radius: 4px; box-shadow: inset 0 0 0 1px var(--linea); }
+  .lista-clases b { justify-content: flex-end; color: var(--titulo); }
+  .lista-clases .rango { display: block; }
+  .lista-clases li > :first-child { padding-right: var(--e3); }  /* separación con padding: la línea entre filas no se corta */
+  .lista-clases .et { white-space: nowrap; }
+  @media (max-width: 639px) { .reparto .barra-clases, .grilla-clases { display: none; }
+    .lista-clases { display: grid; grid-template-columns: max-content minmax(2.5rem, 1fr) 4rem; } }
   .leyenda-nota { margin: var(--e1) 0 0; }
   .vul-frases p { margin: var(--e2) 0 0; max-width: 68ch; }
-  .leyenda-unidad { margin: var(--e2) 0 0; font-size: var(--t-sm); font-weight: 700; color: var(--texto-2); }
   .frase-barra { margin: var(--e2) 0 0; max-width: 68ch; }
   /* Comparación entre localidades: nombre, barra (con la línea del promedio) y las dos cifras con el mismo peso */
   .comp-loc { list-style: none; margin: var(--e2) 0; padding: 0; max-width: 900px; }
@@ -2317,13 +2337,26 @@ function fraseVul(i, lugar_, x) {
   const [prop, plural] = proporcion(pct(x[0], x[1])), [sujeto, sing, plu] = i.frase;
   return `${lugar_}, ${i.k === "g" ? "al menos " : ""}${prop} ${sujeto} ${plural ? plu : sing} (${vulPct(i, x)}).`;
 }
-// Rótulos de las 5 clases a partir de los cortes: «0 a 2 %» … «80 a 100 %» o «30 % o más»
-const rotulosPct = c => [0, ...c].map((a, j) => j === c.length ? (a >= 75 ? `${a} a 100 %` : `${a} % o más`) : `${a} a ${c[j]} %`);
-// Rótulos de la vista de número: afectados por hectárea
-const rotulosDens = c => [`menos de ${c[0]}`, ...c.slice(1).map((b, j) => `${c[j]} a ${b}`), `${c.at(-1)} o más`];
-// Servicios y vivienda: la clase en palabras con su cifra, «Casi todas (80–100 %)»
-const rotulosVul = i => vulNum() ? rotulosDens(i.densidad)
-  : i.palabras ? i.palabras.map((p, j) => `${p} (${[0, ...i.cortes][j]}–${[...i.cortes, 100][j]} %)`) : rotulosPct(i.cortes);
+// Leyenda de 5 clases: etiqueta en palabras (fila 1) y rango (fila 2). Servicios y vivienda traen sus palabras («Casi
+// ninguna» … «Casi todas»); los demográficos y la vista de número usan «Muy baja» … «Muy alta»
+const NIVELES_TXT = ["Muy baja", "Baja", "Media", "Alta", "Muy alta"];
+const etiquetasVul = i => !vulNum() && i.palabras ? i.palabras : NIVELES_TXT;
+function rangosVul(i) {
+  if (vulNum()) { const c = i.densidad; return [`menos de ${c[0]} por ha`, ...c.slice(1).map((b, j) => `${c[j]}–${b} por ha`), `${c.at(-1)} o más por ha`]; }
+  const c = i.cortes;
+  return [0, ...c].map((a, j) => j === c.length ? (a >= 75 ? `${a}–100 %` : `${a} % o más`) : i.palabras || a ? `${a}–${c[j]} %` : `menos de ${c[0]} %`);
+}
+// Enteros que suman 100 (mayor resto): se redondea hacia abajo y lo que falta va a las clases con mayor parte decimal
+function enteros100(xs) {
+  const tot = xs.reduce((a, b) => a + b, 0);
+  if (!tot) return xs.map(() => 0);
+  const exactos = xs.map(x => 100 * x / tot), r = exactos.map(Math.floor);
+  let falta = 100 - r.reduce((a, b) => a + b, 0);
+  exactos.map((e, j) => [e - r[j], j]).sort((a, b) => b[0] - a[0]).forEach(([, j]) => { if (falta-- > 0) r[j]++; });
+  return r;
+}
+// «67 %»; una clase con casos a la que el redondeo deja en 0 dice «menos de 1 %»
+const pctClase = (r, x) => r ? `${r} %` : x ? "menos de 1 %" : "0 %";
 // Reparto de toda la localidad en sus sectores de 350 m (no depende del zoom ni de lo que se ve): la base de cada clase
 // (vista de %) o los afectados (vista de número)
 function repartoVul(i) {
@@ -2332,37 +2365,49 @@ function repartoVul(i) {
   return base;
 }
 function fraseBarra(i, base) {
-  const tot = base.reduce((a, b) => a + b, 0), loc = esc(locActual().nombre);
+  const tot = base.reduce((a, b) => a + b, 0), loc = esc(locActual().nombre), ent = enteros100(base);  // las mismas cifras que la leyenda
   if (!tot) return "";
   if (!vulNum()) {
     const verbo = i.tipo === "viv" ? ["está", "están"] : ["vive", "viven"];
-    const parte = x => { const r = Math.round(100 * x / tot); return r ? `${r} ${verbo[r === 1 ? 0 : 1]}` : `${x ? "menos de 1" : "ninguna"} ${verbo[0]}`; };
+    const parte = j => { const r = ent[j]; return r ? `${r} ${verbo[r === 1 ? 0 : 1]}` : `${base[j] ? "menos de 1" : "ninguna"} ${verbo[0]}`; };
     const [baja, alta] = puntasVul(i);
-    return `De cada 100 ${esc(i.frase[0])} de ${loc}, ${parte(base[0])} en sectores ${esc(baja)} y ${parte(base[4])} en sectores ${esc(alta)}.`;
+    return `De cada 100 ${esc(i.frase[0])} de ${loc}, ${parte(0)} en sectores ${esc(baja)} y ${parte(4)} en sectores ${esc(alta)}.`;
   }
   const c = i.densidad.at(-1);
   if (!base[4]) {
     const max = Math.max(0, ...visibles("h9").features.map(f => densidad(i, f)));
     return `Ningún sector de ${loc} llega a ${c} ${esc(minuscula(tituloVul(i)))} por hectárea; el más denso tiene ${num(max, 0)}.`;
   }
-  return `De las ${num(tot)} ${esc(i.frase[0])} que ${esc(i.frase[2])} en los sectores de ${loc}, ${num(100 * base[4] / tot, 0)} % están en los
+  return `De las ${num(tot)} ${esc(i.frase[0])} que ${esc(i.frase[2])} en los sectores de ${loc}, ${pctClase(ent[4], base[4])} están en los
     sectores con ${c} o más por hectárea: ${i.nota ? "ahí se concentran" : "ahí se concentra el problema"}.`;
 }
-// Leyenda: una barra apilada con la parte de las viviendas (o personas) de la localidad en cada clase, sus rótulos y la frase
+// Leyenda: título, frase, barra apilada sin cifras y debajo una grilla de 5 columnas del mismo ancho (etiqueta, rango y %);
+// en menos de 640 px, una lista de 5 filas con una barrita cada una. El cursor sobre un segmento o una columna atenúa las demás
 function vulLeyenda(nivel = "h9") {
-  const c = D.censo, i = vulInd(), u = UNIDAD[i.tipo], rot = rotulosVul(i), base = repartoVul(i), loc = esc(locActual().nombre);
-  const tot = base.reduce((a, b) => a + b, 0) || 1, pcts = base.map(b => 100 * b / tot);
+  const c = D.censo, i = vulInd(), u = UNIDAD[i.tipo], base = repartoVul(i), loc = esc(locActual().nombre);
+  const et = etiquetasVul(i), rg = rangosVul(i), ent = enteros100(base), txt = j => pctClase(ent[j], base[j]);
+  const tot = base.reduce((a, b) => a + b, 0) || 1, color = j => `--c:var(${TONOS_V[j]})`;
   const min = nivel === "mz" ? null : (vulDatos[vulLoc]?.[nivel] || c.hexagonos).minimo;
-  $("vul-leyenda").innerHTML = `<p class="leyenda-unidad">${vulNum() ? `${esc(tituloVul(i))} por hectárea de manzana` : `% de las ${u[1]} de cada sector`}</p>
-    <div class="barra-clases" role="img" aria-label="${esc(rot.map((r, j) => `${r}: ${num(pcts[j], 0)} %`).join("; "))}">${
-      pcts.map((p, j) => `<span style="--c:var(${TONOS_V[j]});--p:${p}" class="${j >= 3 ? "osc" : ""}">${p >= 7 ? `${num(p, 0)} %` : ""}</span>`).join("")}</div>
-    <p class="leyenda-clases">${rot.map((r, j) => `<span style="--c:var(${TONOS_V[j]})">${esc(r)}: <small>${num(pcts[j], 0)} %</small></span>`).join("")}</p>
+  const titulo = vulNum() ? `Cómo se reparten las ${esc(minuscula(tituloVul(i)))} de ${loc}` : `Cómo se reparten las ${u[1]} de ${loc}`;
+  $("vul-leyenda").innerHTML = `<h4 class="vul-sub reparto-titulo">${titulo}</h4>
     <p class="frase-barra">${fraseBarra(i, base)}</p>
+    <div class="reparto">
+      <div class="barra-clases" role="img" aria-label="${esc(et.map((e, j) => `${e} (${rg[j]}): ${txt(j)}`).join("; "))}">${
+        base.map((b, j) => `<span data-clase="${j}" style="${color(j)};--p:${100 * b / tot}"></span>`).join("")}</div>
+      <ol class="grilla-clases" aria-hidden="true">${et.map((e, j) => `<li data-clase="${j}"><span class="et"><i style="${color(j)}"></i>${esc(e)}</span>
+        <span class="rango">${esc(rg[j])}</span><b>${txt(j)}</b></li>`).join("")}</ol>
+      <ol class="lista-clases" role="list">${et.map((e, j) => `<li role="listitem"><span class="et"><i style="${color(j)}"></i><span>${esc(e)} <span class="rango">${esc(rg[j])}</span></span></span>
+        <span class="mini"><span style="${color(j)};--p:${100 * base[j] / tot}"></span></span><b>${txt(j)}</b></li>`).join("")}</ol>
+    </div>
     <p class="nota leyenda-nota">${vulNum() ? `La barra reparte las ${u[1]} afectadas de los sectores de 350 m de ${loc} según la densidad de su sector.
       Hectárea de manzana: sin contar calles ni terreno vacío; 1 hectárea ≈ una cuadra de 100 × 100 m.`
       : `La barra reparte las ${u[1]} de los sectores de 350 m de ${loc} según la clase de su sector.`}${min ? ` Sin hexágono: menos de ${min} ${u[1]}.` : ""}
       ${nivel === "mz" ? `${g("pocos", "Pocos casos")} (menos de ${c.minimo[i.tipo]} ${u[1]}), en gris; ${g("extensa", "manzana muy extensa")}, solo contorno.` : ""}
       ${i.nota && !vulNum() ? esc(i.nota) : ""}</p>`;
+  const rep = $("vul-leyenda").querySelector(".reparto");
+  const marcar = j => rep.querySelectorAll("[data-clase]").forEach(e => e.classList.toggle("atenuada", j != null && e.dataset.clase !== j));
+  rep.onpointerover = ev => { if (ev.pointerType === "mouse") marcar(ev.target.closest("[data-clase]")?.dataset.clase ?? null); };
+  rep.onpointerleave = () => marcar(null);
   ayudas($("vul-leyenda"));
 }
 function pintarVulTextos() {

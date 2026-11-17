@@ -275,13 +275,16 @@ def main():
                 const i = vulInd(), t = vulTotal(i.k), filas = [...document.querySelectorAll('#vul-tabla tr')];
                 const total = filas.at(-1).querySelector('td.n .casos').textContent.replace(/\\s/g, '');
                 const h = D.censo.hexagonos.features[0], conA = a => ({ properties: { ...h.properties, a } });
-                return { canvas: !!document.querySelector('#mapa-vul canvas'), leyenda: document.querySelectorAll('#vul-leyenda .leyenda-clases span').length,
+                return { canvas: !!document.querySelector('#mapa-vul canvas'), leyenda: document.querySelectorAll('#vul-leyenda .grilla-clases li').length + document.querySelectorAll('#vul-leyenda .lista-clases li').length,
                   barra: Math.round([...document.querySelectorAll('#vul-leyenda .barra-clases span')].reduce((s, x) => s + +x.style.getPropertyValue('--p'), 0)),
                   sinManzanas: !vulDatos.metro.mz && !vulDatos.metro.h10,  // no se descargan hasta acercar el mapa
                   filas: filas.length, total: total === (num(t[0]) + 'de' + num(t[1])).replace(/\\s/g, ''),
                   // sin desagüe, escala fija 5, 20, 50, 80: 4,9 % en la 1.ª clase, 5 % en la 2.ª, 50 % en la 4.ª, 100 % en la 5.ª
                   clases: [[4.9, 100], [5, 100], [50, 100], [100, 100]].map(a => [...TONOS_V.map(token)].indexOf(hexEstilo(conA(a)).fillColor)),
-                  rotulos: [rotulosVul(i).at(-1), rotulosVul(i)[0], rotulosPct([4, 8, 12, 16]).at(-1)],
+                  rotulos: [etiquetasVul(i).at(-1), rangosVul(i).at(-1), rangosVul(i)[0], rangosVul({ cortes: [4, 8, 12, 16] }).at(-1), rangosVul({ cortes: [4, 8, 12, 16] })[0]],
+                  // los % de la leyenda suman 100 (mayor resto) y una clase con casos que redondea a 0 dice «menos de 1 %»
+                  enteros: [enteros100([1, 1, 1]), enteros100([0.2, 50, 49.8, 0, 0]), pctClase(0, 3), pctClase(0, 0)].map(String),
+                  suma100: [...document.querySelectorAll('#vul-leyenda .grilla-clases b')].reduce((s, b) => s + (parseInt(b.textContent) || 0), 0),
                   fraseBarra: document.querySelector('#vul-leyenda .frase-barra').textContent.startsWith('De cada 100 viviendas de Piura metropolitana, '),
                   comparacion: (() => { const fs = [...document.querySelectorAll('#vul-localidades .fila-loc')], ps = fs.map(f => +f.querySelector('.barra').style.getPropertyValue('--p'));
                     const ls = D.censo.localidades, prom = pct(ls.reduce((s, x) => s + x.a[0], 0), ls.reduce((s, x) => s + x.a[1], 0));
@@ -297,8 +300,9 @@ def main():
                     return ids.length <= 5 && hs.every(x => x[0] / x[1] > t[0] / t[1]) && hs.every((x, j) => !j || hs[j - 1][0] >= x[0]); })(),
                   proporcion: [proporcion(26.7), proporcion(62), proporcion(97)].map(x => x.join('|')) };
             }""")
-            revisar(rv == {"canvas": True, "leyenda": 5, "barra": 100, "sinManzanas": True, "filas": 4, "total": True, "clases": [0, 1, 3, 4],
-                           "rotulos": ["Casi todas (80–100 %)", "Casi ninguna (0–5 %)", "16 % o más"], "fraseBarra": True, "comparacion": True, "borde": True, "multiplicar": "multiply",
+            revisar(rv == {"canvas": True, "leyenda": 10, "barra": 100, "sinManzanas": True, "filas": 4, "total": True, "clases": [0, 1, 3, 4],
+                           "rotulos": ["Casi todas", "80–100 %", "0–5 %", "16 % o más", "menos de 4 %"],
+                           "enteros": ["34,33,33", "0,50,50,0,0", "menos de 1 %", "0 %"], "suma100": 100, "fraseBarra": True, "comparacion": True, "borde": True, "multiplicar": "multiply",
                            "hex30": True, "frases": 3, "criticos": True, "proporcion": ["1 de cada 4|false", "6 de cada 10|true", "casi todas las|true"]},
                     f"pestaña Vulnerabilidad: {rv}")
             # Zoom 15: hexágonos de 130 m (mínimo 20); zoom 16: manzanas (denominador 0 no se dibuja, extensas sin relleno, gris con
