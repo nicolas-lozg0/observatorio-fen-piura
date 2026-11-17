@@ -1,17 +1,28 @@
 """
-Prueba de docs/data/censo_piura.json (salida de censo_inei.py). No necesita los archivos del INEI: corre también en
-GitHub Actions. Revisa sumas, rango 0-100 %, tasa de coincidencia, validaciones, tamaño y coordenadas.
+Prueba de la salida de censo_inei.py: docs/data/censo_piura.json (base, con los hexágonos de 350 m), censo_hex10.json
+(hexágonos de 131 m) y censo_manzanas.json. No necesita los archivos del INEI: corre también en GitHub Actions.
+Revisa sumas, rango 0-100 %, tasa de coincidencia, validaciones, tamaño, coordenadas y cortes de las clases.
 Correr: python3 scripts/test_censo_inei.py
 """
 import json
 from pathlib import Path
 
-RUTA = Path(__file__).resolve().parent.parent / "docs" / "data" / "censo_piura.json"
+DATOS = Path(__file__).resolve().parent.parent / "docs" / "data"
+RUTA = DATOS / "censo_piura.json"
 d = json.loads(RUTA.read_text(encoding="utf-8"))
+d["features"] = json.loads((DATOS / "censo_manzanas.json").read_text(encoding="utf-8"))["features"]
+h10 = json.loads((DATOS / "censo_hex10.json").read_text(encoding="utf-8"))
 ks = [i["k"] for i in d["indicadores"]]
 
 assert ks == list("abcdefghi"), ks
-assert RUTA.stat().st_size < 3 * 2**20, "el archivo debe pesar menos de 3 MB"
+for nombre in ("censo_piura.json", "censo_hex10.json", "censo_manzanas.json"):
+    assert (DATOS / nombre).stat().st_size < 3 * 2**20, f"{nombre} debe pesar menos de 3 MB"
+assert RUTA.stat().st_size < 0.5 * 2**20, "la base (se carga al abrir la pestaña) debe ser liviana"
+# 7 clases: 6 cortes crecientes entre 0 y 100; las edades con cortes propios
+for i in d["indicadores"]:
+    assert len(i["cortes"]) == 6 and all(0 < a < b < 100 for a, b in zip(i["cortes"], i["cortes"][1:])), (i["k"], i["cortes"])
+assert {i["k"]: i["cortes"] for i in d["indicadores"]}["e"] == [15, 20, 25, 30, 35, 40]
+assert {i["k"]: i["cortes"] for i in d["indicadores"]}["a"] == [5, 10, 20, 40, 60, 80]
 assert set(d["distritos"]) == {"200101", "200104", "200115"}, d["distritos"].keys()
 assert all(v["filas_con_diferencia"] == 0 for v in d["validaciones"]), [v for v in d["validaciones"] if v["filas_con_diferencia"]]
 c = d["coincidencia"]
@@ -57,13 +68,15 @@ assert all(not (f["properties"][k][1] == 0 and f["properties"][k][0] > 0) for f 
 # Hexágonos: suman exactamente las manzanas que no son extensas (numeradores, denominadores y número de manzanas)
 hx = d["hexagonos"]["features"]
 assert d["hexagonos"]["resolucion"] == 9 and d["hexagonos"]["minimo"] == 30
-assert len({h["id"] for h in hx}) == len(hx)
+assert h10["resolucion"] == 10 and h10["minimo"] == 20
 normales = [f["properties"] for f in d["features"] if "km2" not in f["properties"]]
-assert sum(h["properties"]["m"] for h in hx) == len(normales)
-for k in ks:
-    for j in (0, 1):
-        assert sum(h["properties"][k][j] for h in hx) == sum(p[k][j] for p in normales), (k, j)
-    assert all(0 <= h["properties"][k][0] <= h["properties"][k][1] for h in hx), k
+for nivel in (hx, h10["features"]):  # los dos niveles suman lo mismo que las manzanas
+    assert len({h["id"] for h in nivel}) == len(nivel)
+    assert sum(h["properties"]["m"] for h in nivel) == len(normales)
+    for k in ks:
+        for j in (0, 1):
+            assert sum(h["properties"][k][j] for h in nivel) == sum(p[k][j] for p in normales), (k, j)
+        assert all(0 <= h["properties"][k][0] <= h["properties"][k][1] for h in nivel), k
 assert sum(1 for h in hx if h["properties"]["n"]) > 0.8 * len(hx), "la mayoría de los sectores debe tener nombre"
 assert all(set(i["frase"]) and len(i["frase"]) == 3 for i in d["indicadores"])
 

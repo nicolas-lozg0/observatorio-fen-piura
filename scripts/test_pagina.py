@@ -232,42 +232,51 @@ def main():
                            "imerg": True, "clases": [-1, 0, 3, 4], "sinTsm": True,
                            "titulos": ["El mar frente a Paita está cerca de lo normal", "El mar frente a Paita está 8,0 °C más caliente que lo normal",
                                        "El mar frente a Paita está 1,2 °C más frío que lo normal"]}, f"pestaña Clima: {rc}")
-            # Vulnerabilidad: el censo se carga al abrir la pestaña; mapa en canvas, leyenda de 5 rangos + «Pocos casos»,
-            # y el total de la tabla suma numeradores y denominadores (no promedia porcentajes)
+            # Vulnerabilidad: la base se carga al abrir la pestaña (hexágonos de 350 m); los de 130 m al zoom 15 y las manzanas al 16.
+            # 7 clases con los cortes de cada indicador; el total de la tabla suma numeradores y denominadores (no promedia)
             pg.evaluate("location.hash = '#vulnerabilidad'")
             pg.wait_for_function("document.querySelector('#mapa-vul canvas, #mapa-vul .sin-datos, #vulnerabilidad .pendiente')", timeout=30000)
-            rv = pg.evaluate("""() => {
+            rv = pg.evaluate("""async () => {
                 const i = vulInd(), t = vulTotal(i.k), filas = [...document.querySelectorAll('#vul-tabla tr')];
                 const total = filas.at(-1).querySelector('td.n .casos').textContent.replace(/\\s/g, '');
-                const g = D.censo.features[0], gris = { properties: { ...g.properties, a: [1, 3] } };
+                const h = D.censo.hexagonos.features[0], conA = a => ({ properties: { ...h.properties, a } });
                 return { canvas: !!document.querySelector('#mapa-vul canvas'), leyenda: document.querySelectorAll('#vul-leyenda span[style]').length,
+                  sinManzanas: !vulDatos.mz && !vulDatos.h10,  // no se descargan hasta acercar el mapa
                   filas: filas.length, total: total === (num(t[0]) + 'de' + num(t[1])).replace(/\\s/g, ''),
-                  rango: [vulEstilo({ properties: { ...g.properties, a: [20, 100] } }).fillColor === token('--v2'),
-                          vulEstilo({ properties: { ...g.properties, a: [100, 100] } }).fillColor === token('--v5'),
-                          vulEstilo(gris).fillColor === token('--neutro')],
-                  globo: vulGlobo({ ...gris, id: 'X' }).includes('pocos casos') && !vulGlobo({ ...gris, id: 'X' }).includes('%'),
-                  // denominador 0: no se dibuja; manzana extensa: solo contorno, sin relleno
-                  sinCero: vulVisibles().features.every(f => f.properties[vulInd().k][1] > 0) && vulVisibles().features.length < D.censo.features.length,
-                  extensa: vulEstilo(D.censo.features.find(f => f.properties.km2)).fill === false,
-                  // sectores: solo con base de 30 o más; 3 frases; críticos por encima del promedio, de mayor a menor
-                  hex30: hexVisibles().features.every(h => h.properties[vulInd().k][1] >= 30),
+                  // cortes 5, 10, 20, 40, 60, 80: 4,9 % en la 1.ª clase, 5 % en la 2.ª, 20 % en la 4.ª, 100 % en la 7.ª
+                  clases: [[4.9, 100], [5, 100], [20, 100], [100, 100]].map(a => [...TONOS_V.map(token)].indexOf(hexEstilo(conA(a)).fillColor)),
+                  rotulos: [rotulosPct([5, 10, 20, 40, 60, 80]).at(-1), rotulosPct([4, 6, 8, 10, 13, 16]).at(-1), rotulosPct([5, 10, 20, 40, 60, 80])[0]],
+                  borde: hexEstilo(conA([0, 100])).weight > 0 && hexEstilo(conA([0, 100])).fillOpacity === 1,
+                  multiplicar: getComputedStyle(document.querySelector('#mapa-vul .leaflet-tile-pane')).mixBlendMode,
+                  hex30: hexVisibles().features.every(x => x.properties[vulInd().k][1] >= 30),
                   frases: document.querySelectorAll('#vul-frases p').length,
-                  criticos: (() => { const i = vulInd(), t = vulTotal(i.k), ids = [...document.querySelectorAll('#vul-criticos [data-hex]')].map(b => b.dataset.hex);
-                    const hs = ids.map(id => D.censo.hexagonos.features.find(h => h.id === id).properties[i.k]);
+                  criticos: (() => { const ids = [...document.querySelectorAll('#vul-criticos [data-hex]')].map(b => b.dataset.hex);
+                    const hs = ids.map(id => D.censo.hexagonos.features.find(x => x.id === id).properties[i.k]);
                     return ids.length <= 5 && hs.every(x => x[0] / x[1] > t[0] / t[1]) && hs.every((x, j) => !j || hs[j - 1][0] >= x[0]); })(),
                   proporcion: [proporcion(26.7), proporcion(62), proporcion(97)].map(x => x.join('|')) };
             }""")
-            revisar(rv == {"canvas": True, "leyenda": 5, "filas": 4, "total": True, "rango": [True, True, True], "globo": True, "sinCero": True, "extensa": True,
+            revisar(rv == {"canvas": True, "leyenda": 7, "sinManzanas": True, "filas": 4, "total": True, "clases": [0, 1, 3, 6],
+                           "rotulos": ["80 a 100 %", "16 % o más", "0 a 5 %"], "borde": True, "multiplicar": "multiply",
                            "hex30": True, "frases": 3, "criticos": True, "proporcion": ["1 de cada 4|false", "6 de cada 10|true", "casi todas las|true"]},
                     f"pestaña Vulnerabilidad: {rv}")
-            # zoom 16: manzanas; vista de número: sectores aunque se acerque
-            rz = pg.evaluate("""async () => { const m = await vulP; m.setZoom(16); await new Promise(r => setTimeout(r, 400));
-                const mz = m.hasLayer(vulCapa) && !m.hasLayer(vulHex);
-                $('f-vista-vul').value = 'num'; $('f-vista-vul').dispatchEvent(new Event('change')); await new Promise(r => setTimeout(r, 300));
-                const num = m.hasLayer(vulHex) && !m.hasLayer(vulCapa);
+            # Zoom 15: hexágonos de 130 m (mínimo 20); zoom 16: manzanas (denominador 0 no se dibuja, extensas sin relleno, gris con
+            # pocos casos); vista de número: siempre los de 350 m
+            rz = pg.evaluate("""async () => { const m = await vulP, espera = ms => new Promise(r => setTimeout(r, ms));
+                m.setZoom(15); await espera(300); await vulNivel(m);
+                const h10 = m.hasLayer(vulCapas.h10) && !m.hasLayer(vulCapas.h9) && visibles('h10').features.every(x => x.properties[vulInd().k][1] >= 20);
+                m.setZoom(16); await espera(300); await vulNivel(m);
+                const mz = m.hasLayer(vulCapas.mz) && !m.hasLayer(vulCapas.h10), f = vulDatos.mz.features;
+                const g = f.find(x => !x.properties.km2), gris = { properties: { ...g.properties, a: [1, 3] } };
+                const r = { h10, mz, sinCero: visibles('mz').features.every(x => x.properties[vulInd().k][1] > 0) && visibles('mz').features.length < f.length,
+                  extensa: vulEstilo(f.find(x => x.properties.km2)).fill === false, gris: vulEstilo(gris).fillColor === token('--neutro'),
+                  globo: vulGlobo({ ...gris, id: 'X' }).includes('pocos casos') && !vulGlobo({ ...gris, id: 'X' }).includes('%') };
+                $('f-vista-vul').value = 'num'; $('f-vista-vul').dispatchEvent(new Event('change')); await espera(300); await vulNivel(m);
+                r.num = m.hasLayer(vulCapas.h9) && !m.hasLayer(vulCapas.mz);
                 $('f-vista-vul').value = 'pct'; $('f-vista-vul').dispatchEvent(new Event('change'));
-                return { mz, num, claseNum: [claseNum({ tipo: 'viv' }, 24), claseNum({ tipo: 'viv' }, 25), claseNum({ tipo: 'viv' }, 250)] }; }""")
-            revisar(rz == {"mz": True, "num": True, "claseNum": [0, 1, 4]}, f"vulnerabilidad, zoom y vista: {rz}")
+                r.claseNum = [claseNum({ tipo: 'viv' }, 24), claseNum({ tipo: 'viv' }, 25), claseNum({ tipo: 'viv' }, 250)];
+                return r; }""")
+            revisar(rz == {"h10": True, "mz": True, "sinCero": True, "extensa": True, "gris": True, "globo": True, "num": True, "claseNum": [0, 1, 4]},
+                    f"vulnerabilidad, zoom y vista: {rz}")
             revisar(r["sal"] == r["esperado"] and r["regla"] and r["desfasada"],
                     f"título de salud «{r['sal']}», esperado «{r['esperado']}», regla {r['regla']}, serie desfasada {r['desfasada']}")
             pg.close()

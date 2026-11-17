@@ -30,10 +30,11 @@
     --comp1: #b48b40; --comp2: #aa5e7d; --comp3: #2f7442;
     --q1: #cde2fb; --q2: #9ec5f4; --q3: #6da7ec; --q4: #2a78d6; --q5: #184f95;
     --neutro: #e4e9f0;  /* datos: cero casos y fondo de zonas sin dato; en Vulnerabilidad, «Pocos casos» */
-    /* Vulnerabilidad (sectores y manzanas, 5 clases): escala de calor ámbar → rojo oscuro, generada en OKLCH. Validada con
-       dataviz --ordinal: tono dentro de 40°, claridad monótona, saltos ≥ 0,06 y el paso más claro a 2:1 o más sobre blanco
-       (un amarillo pálido se pierde sobre el mapa); vecinos con ΔE ≥ 9,0 con daltonismo */
-    --v1: #f89d15; --v2: #df6b00; --v3: #c33200; --v4: #9a0000; --v5: #640000;
+    /* Vulnerabilidad (sectores y manzanas, 7 clases): crema casi neutra → rojo muy oscuro, claridad pareja en OKLCH (0,96 a
+       0,30). Validada con dataviz sobre el fondo del mapa, con las calles encima en modo «multiplicar»: claridad monótona,
+       saltos ≥ 0,06 y vecinos con ΔE ≥ 8,8 con daltonismo. Falla a propósito dos reglas (aprobado en la ronda 15b): la crema
+       casi no contrasta con el mapa (por eso cada hexágono lleva un borde gris) y el tono pasa de amarillo a rojo (65°) */
+    --v1: #faf2d4; --v2: #eac989; --v3: #e09b33; --v4: #cf6b00; --v5: #b83600; --v6: #8f0900; --v7: #5c0204;
     /* Lluvia (mm en 24 h: 1-5, 5-10, 10-20, 20-50, más de 50): azul 250 a 700 de dataviz, validado con --ordinal (ronda 12) */
     --ll1: #86b6ef; --ll2: #5598e7; --ll3: #2a78d6; --ll4: #1c5cab; --ll5: #0d366b;
     /* Obras paralizadas: tramos 1 a 5 (de mayor a menor costo) y el resto (gris; también el país en los pares de barras).
@@ -842,7 +843,9 @@
             cae en ellos; no se dibujan los de menos de 30 viviendas (o 30 personas) en la base del indicador. Con zoom 16 o más se ven
             las manzanas: las de denominador 0 no se dibujan, las de menos de 10 viviendas (o 30 personas) van en gris («Pocos
             casos») y las muy extensas (más de 0,05 km² y menos de 1000 viviendas por km², como el campus de la UDEP o el aeropuerto)
-            van solo con su contorno. Cinco rangos fijos de 20 puntos; la vista de número colorea por viviendas o personas afectadas.
+            van solo con su contorno. Siete clases fijas (0-5, 5-10, 10-20, 20-40, 40-60, 60-80 y 80-100 %; las edades, con cortes
+            propios) de crema a rojo muy oscuro, con las calles del mapa encima. Con zoom 15, hexágonos de unos 130 m (mínimo de 20
+            viviendas). La vista de número colorea por viviendas o personas afectadas, siempre con los de 350 m.
             Las frases dicen el distrito con el porcentaje más alto y el más bajo («1 de cada N» o «N de cada 10»); los sectores
             críticos son los que superan el porcentaje de Piura metropolitana, con más afectados, nombrados con OpenStreetMap. El total de cada distrito suma
             numeradores y denominadores, con las manzanas dispersas (menos de 30 habitantes, sin polígono); no promedia
@@ -990,10 +993,10 @@ const DEFINICIONES = {
   lluvia: ["Lluvia del día", "Precipitación diaria de cada estación convencional del Senamhi (mm), tal como la publica su mapa de estaciones, para el último día con datos. El Senamhi no indica en esa página la hora de corte del día (suele medirse de 7:00 a 7:00; está por confirmar). Un día sin dato no se cuenta como 0, y algunas estaciones no publican todos los días. Un registro de 0,01 mm, menos de lo que mide un pluviómetro (0,1 mm), se muestra como «inapreciable» y no cuenta como lluvia (supuesto por confirmar con el Senamhi). Las automáticas no se usan: solo publican las últimas 24 horas corridas."],
   manzana: ["Manzana", "Bloque de viviendas rodeado de calles: la unidad más pequeña con que el INEI entrega los resultados del censo."],
   dispersas: ["Manzanas dispersas", "Según el INEI, población en manzanas dispersas, con menos de 30 habitantes. Vienen agrupadas por zona (código terminado en 9999) y no tienen polígono en el mapa."],
-  sectores: ["Sectores (hexágonos)", "El mapa agrupa las manzanas en hexágonos de unos 350 m (H3, resolución 9): cada manzana va al hexágono donde cae su centro y se suman sus numeradores y denominadores. No se dibujan los sectores con menos de 30 viviendas (o 30 personas) en la base del indicador, ni entran las manzanas muy extensas. Con zoom 16 o más se ven las manzanas. Los sectores críticos son los que superan el porcentaje de Piura metropolitana, ordenados por número de afectados. Su nombre sale de OpenStreetMap: la urbanización o asentamiento que contiene el centro, el barrio más cercano a menos de 400 m o, si no hay, «cerca de» la vía principal más cercana."],
+  sectores: ["Sectores (hexágonos)", "El mapa agrupa las manzanas en hexágonos H3: de unos 350 m (resolución 9) hasta zoom 14 y de unos 130 m (resolución 10) en zoom 15; con zoom 16 o más se ven las manzanas. Cada manzana va al hexágono donde cae su centro y se suman sus numeradores y denominadores; las manzanas muy extensas no entran. No se dibujan los sectores con menos de 30 viviendas (o 30 personas) en la base del indicador; en los de 130 m, menos de 20 (con 30 quedaría oculto el 10 % de las viviendas). La vista de número usa siempre los de 350 m. Los sectores críticos son los de 350 m que superan el porcentaje de Piura metropolitana, ordenados por número de afectados. Su nombre sale de OpenStreetMap: la urbanización o asentamiento que contiene el centro, el barrio más cercano a menos de 400 m o, si no hay, «cerca de» la vía principal más cercana."],
   extensa: ["Manzana muy extensa", "Manzana de más de 0,05 km² con menos de 1000 viviendas por km², como las que incluyen el campus de la UDEP, el aeropuerto o chacras. El INEI la traza de calle a calle y no indica dónde están sus viviendas, así que pintarla entera exageraría el área. Se dibuja solo su contorno; sus viviendas cuentan en el total del distrito."],
   pocos: ["Pocos casos", "Manzanas con menos de 10 viviendas (indicadores de vivienda) o menos de 30 personas (indicadores de población) en la base del indicador elegido. Con tan pocos casos, una sola vivienda mueve mucho el porcentaje: van en gris y sin porcentaje."],
-  rangos: ["Rangos del mapa", "Cinco rangos fijos de 20 puntos: 0 a 20 %, 20 a 40 %, 40 a 60 %, 60 a 80 % y 80 a 100 %. Cada rango incluye su límite inferior: una manzana con 20 % va en el segundo."],
+  rangos: ["Rangos del mapa", "Siete clases fijas: 0 a 5 %, 5 a 10 %, 10 a 20 %, 20 a 40 %, 40 a 60 %, 60 a 80 % y 80 a 100 %. Las edades usan cortes propios porque varían poco entre barrios: menores de 15 años, 0-15, 15-20, 20-25, 25-30, 30-35, 35-40 y 40 % o más; 65 años a más, 0-4, 4-6, 6-8, 8-10, 10-13, 13-16 y 16 % o más. Cada clase incluye su límite inferior. El color va de crema (casi neutro) a rojo muy oscuro; las calles del mapa se ven encima."],
 };
 
 // Causas de paralización (como las escribe Infobras): definición, fuente (norma y artículo, o "Redacción propia") y URL.
@@ -2053,25 +2056,30 @@ async function crearMapaObras() {
 }
 
 /* ---------- Vulnerabilidad: Censo 2025 por manzana (Piura metropolitana) ---------- */
-// El archivo (unos 1,8 MB) se carga solo al abrir la pestaña. Cada indicador trae, por manzana, [numerador, denominador]
-// (el de seguro, además, el máximo posible); los totales por distrito incluyen las manzanas dispersas, que no tienen polígono.
+// La base del censo (unos 0,3 MB, con los hexágonos de 350 m) se carga al abrir la pestaña; los hexágonos de 131 m y las
+// manzanas, solo cuando se acerca el mapa. Cada indicador trae [numerador, denominador] (el de seguro, además, el máximo
+// posible); los totales por distrito incluyen las manzanas dispersas, que no tienen polígono.
 const CENSO = { fuente: "INEI, Censos Nacionales 2025, tabulados por manzana entregados el 13/11/2026", url: "https://www.inei.gob.pe/",
   fecha_corte: "2026-11-13" };  // para la tabla de fuentes, sin cargar el archivo
-const RANGOS = [20, 40, 60, 80];  // cortes fijos en %; cada rango incluye su límite inferior
-const TONOS_V = ["--v1", "--v2", "--v3", "--v4", "--v5"];
+const TONOS_V = ["--v1", "--v2", "--v3", "--v4", "--v5", "--v6", "--v7"];  // 7 clases; los cortes vienen con cada indicador
+const TONOS_NUM = ["--v2", "--v3", "--v5", "--v6", "--v7"];  // vista de número (5 clases), sin la crema: se confunde con el mapa
 const UNIDAD = { viv: ["vivienda", "viviendas"], pob: ["persona", "personas"] };
-let vulP, vulCapa, vulColores;
+let vulP, vulColores;
 const vulInd = () => D.censo.indicadores.find(i => i.k === $("f-vul").value);
 const vulPocos = (i, den) => den < D.censo.minimo[i.tipo];
 const vulTotal = k => Object.values(D.censo.distritos).reduce((s, x) => s.map((v, j) => v + (x[k][j] ?? 0)), [0, 0, 0]);
 const vulPct = (i, [n, d, max]) => (i.k === "g" ? "al menos " : "") + pctTxt(pct(n, d));
 const minuscula = s => s.charAt(0).toLowerCase() + s.slice(1);
-// Vista por sectores: hexágonos H3 de unos 350 m que suman numeradores y denominadores de sus manzanas (sin las extensas).
-// Al acercar a zoom 16 o más se ven las manzanas (solo en porcentaje). Vista «número»: viviendas o personas afectadas.
-const ZOOM_MANZANAS = 16;
+const clasePct = (i, n, d) => i.cortes.filter(c => 100 * n / d >= c).length;  // 0 a 6; cada clase incluye su límite inferior
+// Niveles: hasta zoom 14, hexágonos de 350 m (H3 9); zoom 15, de 131 m (H3 10); desde 16, manzanas. La vista de número
+// siempre usa los de 350 m (sus cortes de conteo no sirven para hexágonos siete veces más chicos).
+const ZOOM_H10 = 15, ZOOM_MANZANAS = 16;
 const CORTES_NUM = { viv: [25, 50, 100, 200], pob: [75, 150, 300, 600] };  // viviendas o personas afectadas por sector
-let vulVista = "pct", vulHex;
+const ARCHIVO_NIVEL = { h10: "censo_hex10.json", mz: "censo_manzanas.json" };
+const TEXTO_NIVEL = { h9: "Cada hexágono es un sector de unos 350 m.", h10: "Hexágonos de unos 130 m.", mz: "Se ven las manzanas." };
+let vulVista = "pct";
 const vulNum = () => vulVista === "num";
+const vulCapas = {}, vulDatos = {};  // por nivel: capa de Leaflet y sus datos ({ minimo, features })
 async function pintarVul() {
   if (vulP) return (await vulP)?.invalidateSize();
   vulP = crearVul();
@@ -2081,6 +2089,7 @@ async function crearVul() {
   [D.censo] = await Promise.all([cargar("censo_piura.json"), arranque]);
   $("mapa-vul").removeAttribute("aria-busy");
   if (!D.censo) { $("vul-panel").outerHTML = sinDatos("Vulnerabilidad por manzana", "el censo del INEI"); return null; }
+  vulDatos.h9 = D.censo.hexagonos;
   for (const i of D.censo.indicadores) DEFINICIONES["vul_" + i.k] = [i.rotulo, `Numerador: ${i.numerador}. Denominador: ${i.denominador}.`];
   const s = $("f-vul");
   s.innerHTML = D.censo.indicadores.map(i => `<option value="${i.k}">${esc(i.rotulo)}</option>`).join("");
@@ -2091,10 +2100,9 @@ async function crearVul() {
   pintarVulDetalle();
   const m = await mapaBase($("mapa-vul"), null);
   if (!m) return null;
-  const lienzo = L.canvas({ padding: .5 });  // más de 5000 polígonos: en SVG el celular se traba
-  const ventana = capa => L.Browser.mobile ? capa.bindPopup(l => vulGlobo(l.feature)) : capa.bindTooltip(l => vulGlobo(l.feature), { sticky: true });
-  vulHex = ventana(L.geoJSON(hexVisibles(), { renderer: lienzo, style: hexEstilo }));
-  vulCapa = ventana(L.geoJSON(vulVisibles(), { renderer: lienzo, style: vulEstilo }));
+  // Las calles encima del color en modo «multiplicar»: el relleno queda opaco (las 7 clases se distinguen, también con
+  // daltonismo) y las líneas y nombres del mapa se leen sobre él. Con transparencia, los dos rojos más oscuros se confundían.
+  Object.assign(m.getPane("tilePane").style, { zIndex: 410, mixBlendMode: "multiply", pointerEvents: "none" });
   m.createPane("limites").style.cssText = "z-index: 450; pointer-events: none";
   L.geoJSON({ type: "FeatureCollection", features: D.censo.limites }, { pane: "limites", interactive: false,
     style: { fill: false, weight: 2, color: token("--marino"), opacity: .8 } }).addTo(m);
@@ -2103,39 +2111,52 @@ async function crearVul() {
   const hs = [...D.censo.hexagonos.features].sort((a, b) => b.properties.v - a.properties.v), total = suma(hs.map(h => h.properties), "v");
   let acum = 0; const urb = hs.filter(h => (acum += h.properties.v) - h.properties.v < .9 * total);
   m.fitBounds(L.latLngBounds(urb.map(h => h.centro)), { padding: [16, 16] });
-  vulNivel(m);
+  await vulNivel(m);
   return m;
 }
-// Manzanas con zoom 16 o más (y en porcentaje); si no, sectores
-const vulManzanas = m => !vulNum() && m.getZoom() >= ZOOM_MANZANAS;
-function vulNivel(m) {
-  const mz = vulManzanas(m);
-  if (mz) { m.removeLayer(vulHex); vulCapa.addTo(m); } else { m.removeLayer(vulCapa); vulHex.addTo(m); }
-  vulLeyenda(mz);
-  $("vul-zoom").textContent = mz ? "Se ven las manzanas. Aleja el mapa para volver a los sectores." :
-    vulNum() ? "Cada hexágono es un sector de unos 350 m." : "Cada hexágono es un sector de unos 350 m. Acerca el mapa para ver las manzanas.";
+const nivelDe = m => vulNum() ? "h9" : m.getZoom() >= ZOOM_MANZANAS ? "mz" : m.getZoom() >= ZOOM_H10 ? "h10" : "h9";
+// Elementos que se dibujan: sectores con base de al menos su mínimo (30 o 20); manzanas con denominador mayor que 0
+function visibles(nivel) {
+  const k = vulInd().k, d = vulDatos[nivel], min = nivel === "mz" ? 1 : d.minimo;
+  return { type: "FeatureCollection", features: d.features.filter(f => f.properties[k][1] >= min) };
 }
-// Sectores que se dibujan: base del indicador de 30 o más viviendas (o personas)
-const hexVisibles = () => ({ type: "FeatureCollection", features: D.censo.hexagonos.features.filter(h => h.properties[vulInd().k][1] >= D.censo.hexagonos.minimo) });
+const hexVisibles = () => visibles("h9");
+async function vulNivel(m) {
+  const nivel = nivelDe(m);
+  if (!vulDatos[nivel]) {
+    $("vul-zoom").textContent = "Cargando…";
+    const d = await (vulDatos["carga_" + nivel] ||= cargar(ARCHIVO_NIVEL[nivel]));
+    if (!d) { $("vul-zoom").textContent = "No se pudo cargar este nivel de detalle; aleja el mapa."; return; }
+    vulDatos[nivel] = d;
+    if (nivelDe(m) !== nivel) return vulNivel(m);  // el zoom cambió mientras se cargaba
+  }
+  if (!vulCapas[nivel]) {
+    const capa = L.geoJSON(visibles(nivel), { renderer: vulCapas.lienzo ||= L.canvas({ padding: .5 }), style: nivel === "mz" ? vulEstilo : hexEstilo });
+    vulCapas[nivel] = L.Browser.mobile ? capa.bindPopup(l => vulGlobo(l.feature)) : capa.bindTooltip(l => vulGlobo(l.feature), { sticky: true });
+  }
+  for (const n of ["h9", "h10", "mz"]) if (vulCapas[n] && n !== nivel) m.removeLayer(vulCapas[n]);
+  vulCapas[nivel].addTo(m);
+  vulLeyenda(nivel);
+  $("vul-zoom").textContent = TEXTO_NIVEL[nivel] + (vulNum() ? "" : nivel === "mz" ? " Aleja el mapa para volver a los sectores." :
+    " Acerca el mapa para ver " + (nivel === "h9" ? "sectores más chicos." : "las manzanas."));
+}
 const claseNum = (i, n) => CORTES_NUM[i.tipo].filter(c => n >= c).length;
+function colores() {
+  return vulColores ||= { pct: TONOS_V.map(token), num: TONOS_NUM.map(token), neutro: token("--neutro"), borde: token("--texto-3") };
+}
 function hexEstilo(h) {
-  const i = vulInd(), [n, d] = h.properties[i.k];
-  vulColores ||= [...TONOS_V, "--neutro", "--texto-3", "--superficie"].map(token);
-  return { weight: 1, color: vulColores[7], opacity: .9, fillOpacity: .85,
-    fillColor: vulColores[vulNum() ? claseNum(i, n) : RANGOS.filter(c => 100 * n / d >= c).length] };
+  const i = vulInd(), [n, d] = h.properties[i.k], c = colores();
+  // relleno opaco con un borde gris fino: así un hexágono de 0 a 5 % (crema) no se confunde con un lugar sin hexágono
+  return { weight: .6, color: c.borde, opacity: .7, fillOpacity: 1, fillColor: vulNum() ? c.num[claseNum(i, n)] : c.pct[clasePct(i, n, d)] };
 }
-// Manzanas que se dibujan con el indicador elegido: sin las de denominador 0 (no hay nada que medir)
-const vulVisibles = () => ({ type: "FeatureCollection", features: D.censo.features.filter(f => f.properties[vulInd().k][1] > 0) });
 function vulEstilo(f) {
-  const i = vulInd(), [n, d] = f.properties[i.k];
-  vulColores ||= [...TONOS_V, "--neutro", "--texto-3", "--superficie"].map(token);  // una sola lectura de los tokens por repintado
+  const i = vulInd(), [n, d] = f.properties[i.k], c = colores();
   // manzana extensa (campus, aeropuerto, chacras): solo contorno punteado, sin relleno
-  if (f.properties.km2) return { stroke: true, weight: 1.5, color: vulColores[6], dashArray: "4 4", fill: false };
-  // sin borde: en manzanas pequeñas un borde blanco tapa el relleno (las calles ya las separan)
-  return { stroke: false, fill: true, fillOpacity: .9,
-    fillColor: vulColores[vulPocos(i, d) ? 5 : RANGOS.filter(c => 100 * n / d >= c).length] };
+  if (f.properties.km2) return { stroke: true, weight: 1.5, color: c.borde, dashArray: "4 4", fill: false };
+  // sin borde: en manzanas pequeñas un borde tapa el relleno (las calles ya las separan)
+  return { stroke: false, fill: true, fillOpacity: 1, fillColor: vulPocos(i, d) ? c.neutro : c.pct[clasePct(i, n, d)] };
 }
-const nombreSector = h => h.properties.n ? esc(h.properties.n) : "Sector sin nombre";
+const nombreSector = h => "n" in h.properties ? (h.properties.n ? esc(h.properties.n) : "Sector sin nombre") : "Sector de unos 130 m";
 function vulGlobo(f) {
   const i = vulInd(), v = f.properties[i.k], u = UNIDAD[i.tipo], dist = esc(lugar(D.censo.distritos[f.properties.u].nombre));
   if (f.centro) {  // sector (hexágono)
@@ -2154,8 +2175,7 @@ function vulGloboDato(cab, i, v, u) {
 }
 function cambiarVul() {
   vulColores = null;
-  vulCapa?.clearLayers().addData(vulVisibles());  // cambia qué manzanas tienen denominador mayor que 0
-  vulHex?.clearLayers().addData(hexVisibles());
+  for (const n of ["h9", "h10", "mz"]) vulCapas[n]?.clearLayers().addData(visibles(n));  // cambia qué elementos tienen base suficiente
   vulP?.then(m => { if (m) { m.closePopup(); vulNivel(m); } });
   pintarVulTextos();
 }
@@ -2170,14 +2190,20 @@ function fraseVul(i, lugar_, x) {
   const [prop, plural] = proporcion(pct(x[0], x[1])), [sujeto, sing, plu] = i.frase;
   return `${lugar_}, ${i.k === "g" ? "al menos " : ""}${prop} ${sujeto} ${plural ? plu : sing} (${vulPct(i, x)}).`;
 }
-function vulLeyenda(manzanas) {
+// Rótulos de las 7 clases a partir de los cortes del indicador: «0 a 5 %» … «80 a 100 %» o «16 % o más»
+const rotulosPct = c => [0, ...c].map((a, j) => j === c.length ? (a === 80 ? "80 a 100 %" : `${a} % o más`) : `${a} a ${c[j]} %`);
+function vulLeyenda(nivel = "h9") {
   const c = D.censo, i = vulInd(), u = UNIDAD[i.tipo], k = CORTES_NUM[i.tipo];
+  const min = nivel === "mz" ? null : (vulDatos[nivel] || c.hexagonos).minimo;
   $("vul-leyenda").innerHTML = vulNum()
-    ? TONOS_V.map((v, j) => `<span style="--c:var(${v})">${j === 0 ? `menos de ${k[0]}` : j === 4 ? `${k[3]} o más` : `${k[j - 1]} a ${k[j]}`}</span>`).join("") +
+    ? TONOS_NUM.map((v, j) => `<span style="--c:var(${v})">${j === 0 ? `menos de ${k[0]}` : j === 4 ? `${k[3]} o más` : `${k[j - 1]} a ${k[j]}`}</span>`).join("") +
       `<span class="sin-muestra">${u[1]} afectadas por sector</span>`
-    : TONOS_V.map((v, j) => `<span style="--c:var(${v})">${j * 20} a ${j * 20 + 20} %</span>`).join("") + (manzanas
+    : rotulosPct(i.cortes).map((r, j) => `<span style="--c:var(${TONOS_V[j]})">${r}</span>`).join("") + (nivel === "mz"
       ? `<span style="--c:var(--neutro)">${g("pocos", "Pocos casos")} (menos de ${c.minimo[i.tipo]} ${u[1]})</span>` +
         `<span class="extensa">${g("extensa", "Manzana muy extensa")} (sin color)</span>` : "");
+  if (min) $("vul-leyenda").insertAdjacentHTML("beforeend", `<span class="sin-muestra">Sin hexágono: menos de ${min} ${u[1]}</span>`);
+  if (!vulNum() && i.cortes[0] !== 5) $("vul-leyenda").insertAdjacentHTML("beforeend",
+    `<span class="sin-muestra">Cortes propios: las edades varían poco entre barrios</span>`);
   ayudas($("vul-leyenda"));
 }
 function pintarVulTextos() {
@@ -2192,7 +2218,7 @@ function pintarVulTextos() {
   $("vul-def").textContent = `Porcentaje sobre: ${minuscula(i.denominador)}.${vulNum() ? " En la vista de número, el color muestra cuántas " +
     u[1] + " afectadas hay en cada sector (concentración), no el porcentaje." : ""}`;
   vulP?.then(m => m && vulNivel(m));
-  if (!vulP) vulLeyenda(false);
+  if (!vulP) vulLeyenda("h9");
   // Sectores críticos: por encima del porcentaje de Piura metropolitana, con más afectados
   const prom = pct(t[0], t[1]), crit = hexVisibles().features.filter(h => pct(h.properties[i.k][0], h.properties[i.k][1]) > prom)
     .sort((a, b) => b.properties[i.k][0] - a.properties[i.k][0]).slice(0, 5);
@@ -2202,8 +2228,8 @@ function pintarVulTextos() {
     <span class="casos">(${vulPct(i, h.properties[i.k])})</span></li>`).join("");
   $("vul-criticos").onclick = ev => { const b = ev.target.closest("[data-hex]"); if (!b) return;
     const h = c.hexagonos.features.find(x => x.id === b.dataset.hex);
-    vulP?.then(m => { if (!m) return; m.setView(h.centro, 15);
-      vulHex.eachLayer(l => { if (l.feature.id === h.id) L.Browser.mobile ? l.openPopup(h.centro) : l.openTooltip(h.centro); }); }); };
+    vulP?.then(async m => { if (!m) return; m.setView(h.centro, ZOOM_H10 - 1); await vulNivel(m);  // zoom 14: se ve el sector de 350 m
+      vulCapas.h9.eachLayer(l => { if (l.feature.id === h.id) L.Browser.mobile ? l.openPopup(h.centro) : l.openTooltip(h.centro); }); }); };
   const [boton, nota] = comoSeCalcula(["vul_" + i.k, "sectores", "rangos", "pocos"]);
   $("vul-pie").innerHTML = `Fuente: ${esc(c.fuente)}. Nombres de los sectores: ${esc(c.hexagonos.nombres)} · ${boton}`;
   $("vul-calculo").innerHTML = nota;

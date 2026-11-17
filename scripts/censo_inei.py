@@ -215,16 +215,21 @@ def indicadores(dp, dv, P, V):
     return r
 
 
-H3_RES = 9  # hexágonos de unos 350 m de lado a lado (arista media de 201 m)
+# Dos niveles de sectores: H3 9 (unos 350 m de lado a lado, arista de 201 m) hasta zoom 14 y H3 10 (unos 131 m) en zoom 15.
+# Mínimo de la base para dibujar: 30 en el nivel 9; 20 en el 10 (con 30 quedaría oculto el 10 % de las viviendas).
+NIVELES = {9: 30, 10: 20}
 OVERPASS = "https://overpass-api.de/api/interpreter"  # API pública de OpenStreetMap
+# Cortes de las 7 clases (en %): los mismos para todos, salvo las edades, que varían poco entre barrios (ronda 15b)
+CORTES = {"e": [15, 20, 25, 30, 35, 40], "f": [4, 6, 8, 10, 13, 16]}
+CORTES_BASE = [5, 10, 20, 40, 60, 80]
 
 
-def hexagonos(unidos, claves):
+def hexagonos(unidos, claves, res):
     """Suma numeradores y denominadores de las manzanas (sin las extensas) en hexágonos H3, por el centroide."""
     import h3
     filas = unidos[~unidos["extensa"]].copy()
     cen = filas["geometry"].map(lambda g: g.centroid)
-    filas["hex"] = [h3.latlng_to_cell(c.y, c.x, H3_RES) for c in cen]
+    filas["hex"] = [h3.latlng_to_cell(c.y, c.x, res) for c in cen]
     cols = ["p", "v", "g_max"] + [k + s for k in claves for s in ("_n", "_d")]
     suma = filas.groupby("hex")[cols].sum()
     suma["m"] = filas.groupby("hex").size()
@@ -393,8 +398,14 @@ def main():
         feats.append({"type": "Feature", "id": r["codigo"], "properties": props,
                       "geometry": {"type": g["type"], "coordinates": redondear(g["coordinates"])}})
 
-    hexs = nombres_osm(hexagonos(unidos, claves))
-    print(f"Hexágonos H3 (resolución {H3_RES}): {len(hexs)}; con nombre de OpenStreetMap: {sum(1 for h in hexs if h['properties']['n'])}")
+    hexs = nombres_osm(hexagonos(unidos, claves, 9))  # solo el nivel 9 lleva nombres: de ahí salen los sectores críticos
+    hexs10 = hexagonos(unidos, claves, 10)
+    tot_v = int(unidos["v"].sum())
+    for res, hs in ((9, hexs), (10, hexs10)):
+        oculto = sum(h["properties"]["v"] for h in hs if h["properties"]["a"][1] < NIVELES[res])
+        print(f"Hexágonos H3 {res}: {len(hs)}; ocultos (menos de {NIVELES[res]} viviendas) con el "
+              f"{100 * oculto / tot_v:.1f} % de las viviendas del mapa")
+    print(f"Con nombre de OpenStreetMap (nivel 9): {sum(1 for h in hexs if h['properties']['n'])}")
 
     # Totales por distrito: suman numeradores y denominadores, con las manzanas dispersas (no se promedian porcentajes)
     distritos = {}
@@ -405,27 +416,28 @@ def main():
                         "p": int(d["p"].sum()), "v": int(d["v"].sum()),
                         **{k: [int(d[k + "_n"].sum()), int(d[k + "_d"].sum())] for k in claves}}
         distritos[u]["g"].append(int(d["g_max"].sum()))
+    # Tres archivos: la base (se carga al abrir la pestaña), los hexágonos de 131 m (al acercar a zoom 15) y las manzanas
+    # (al acercar a zoom 16). Así la pestaña no descarga de entrada lo que quizá no se mire.
     guardar("censo_piura.json", {
-        "type": "FeatureCollection",
         "fuente": "INEI, Censos Nacionales 2025, tabulados por manzana entregados el 13/11/2026",
         "url": "https://www.inei.gob.pe/",
         "fecha_corte": "2026-11-13",
         "ambito": "Piura metropolitana: distritos de Piura, Castilla y Veintiséis de Octubre",
         "minimo": MINIMO,
-        "indicadores": [{"k": k, "rotulo": rot, "tipo": t, "numerador": n, "denominador": d, "frase": FRASES[k]}
-                        for k, rot, t, n, d in INDICADORES],
-        "hexagonos": {"resolucion": H3_RES, "minimo": 30, "nombres": "© colaboradores de OpenStreetMap (ODbL)", "features": hexs},
+        "indicadores": [{"k": k, "rotulo": rot, "tipo": t, "numerador": n, "denominador": d, "frase": FRASES[k],
+                         "cortes": CORTES.get(k, CORTES_BASE)} for k, rot, t, n, d in INDICADORES],
+        "hexagonos": {"resolucion": 9, "minimo": NIVELES[9], "nombres": "© colaboradores de OpenStreetMap (ODbL)", "features": hexs},
         "validaciones": validaciones,
         "coincidencia": {"tabuladas": len(tab), "con_poligono": len(tab) - len(sin_poligono), "tasa": round(tasa, 4),
                          "sin_poligono": sin_poligono, "poligonos_sin_tabulado": poligonos_sin_tabulado},
         "distritos": distritos,
         "limites": limites,
-        "features": feats,
     })
-    tam = (DATOS / "censo_piura.json").stat().st_size / 2**20
-    print(f"Tamaño: {tam:.2f} MB")
-    if tam > 3:
-        print("Aviso: pasa de 3 MB; sube TOLERANCIA o baja DECIMALES")
+    guardar("censo_hex10.json", {"resolucion": 10, "minimo": NIVELES[10], "features": hexs10})
+    guardar("censo_manzanas.json", {"type": "FeatureCollection", "features": feats})
+    for nombre in ("censo_piura.json", "censo_hex10.json", "censo_manzanas.json"):
+        tam = (DATOS / nombre).stat().st_size / 2**20
+        print(f"Tamaño de {nombre}: {tam:.2f} MB" + (" (pasa de 3 MB)" if tam > 3 else ""))
 
 
 if __name__ == "__main__":
