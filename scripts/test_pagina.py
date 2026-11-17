@@ -216,10 +216,12 @@ def main():
             rc = pg.evaluate("""() => {
                 const ps = [...document.querySelectorAll('#clima-paneles > .panel')];
                 const r = { paneles: ps.length, detalle: document.querySelectorAll('#clima-paneles .ver-mas').length,
-                  radar: !!document.querySelector('#clima-paneles a.boton[href*="ecrmm.udep.edu.pe"]') && !!document.querySelector('#clima-paneles iframe.radar'),
+                  radar: !!document.querySelector('#clima-paneles a.boton[href*="ecrmm.udep.edu.pe"]') && !!document.querySelector('#clima-paneles img.radar-img')
+                    && (() => { const img = document.querySelector('#clima-paneles img.radar-img'); radarFallo(img);  // si el radar falla: aviso y botón
+                      return img.closest('figure').hidden && !document.querySelector('#clima-paneles .radar-fallo').hidden; })(),
                   lluvia: document.querySelectorAll('#g-lluvia svg').length, nino: !!document.querySelector('#g-nino12 svg'),
                   estado: document.querySelector('.etiqueta-estado')?.textContent === D.enfen.estado,
-                  top5: document.querySelectorAll('.lluvia-mapa ol li').length,
+                  top5: Math.min(5, D.lluvia.estaciones.filter(x => lluviaDia(x, D.lluvia.fecha_corte) >= INAPRECIABLE).length) === document.querySelectorAll('.lluvia-top b').length,
                   circulos: document.querySelectorAll('#mapa-lluvia path.leaflet-interactive').length >= D.lluvia.estaciones.length,
                   imerg: D.imerg ? true : /no cargó/i.test(document.getElementById('nota-imerg').textContent),
                   clases: [claseLluvia(0.5), claseLluvia(1), claseLluvia(49.9), claseLluvia(50)],
@@ -228,7 +230,7 @@ def main():
                 r.sinTsm = document.querySelectorAll('#clima-paneles .pendiente').length === 1;
                 D.tsm = guardado; pintarClima(); graficosClima();
                 return r; }""")
-            revisar(rc == {"paneles": 4, "detalle": 3, "radar": True, "lluvia": 3, "nino": True, "estado": True, "top5": 5, "circulos": True,
+            revisar(rc == {"paneles": 5, "detalle": 3, "radar": True, "lluvia": 3, "nino": True, "estado": True, "top5": True, "circulos": True,
                            "imerg": True, "clases": [-1, 0, 3, 4], "sinTsm": True,
                            "titulos": ["El mar frente a Paita está cerca de lo normal", "El mar frente a Paita está 8,0 °C más caliente que lo normal",
                                        "El mar frente a Paita está 1,2 °C más frío que lo normal"]}, f"pestaña Clima: {rc}")
@@ -240,12 +242,13 @@ def main():
                 const i = vulInd(), t = vulTotal(i.k), filas = [...document.querySelectorAll('#vul-tabla tr')];
                 const total = filas.at(-1).querySelector('td.n .casos').textContent.replace(/\\s/g, '');
                 const h = D.censo.hexagonos.features[0], conA = a => ({ properties: { ...h.properties, a } });
-                return { canvas: !!document.querySelector('#mapa-vul canvas'), leyenda: document.querySelectorAll('#vul-leyenda span[style]').length,
-                  sinManzanas: !vulDatos.mz && !vulDatos.h10,  // no se descargan hasta acercar el mapa
+                return { canvas: !!document.querySelector('#mapa-vul canvas'), leyenda: document.querySelectorAll('#vul-leyenda .leyenda-clases span').length,
+                  barra: Math.round([...document.querySelectorAll('#vul-leyenda .barra-clases span')].reduce((s, x) => s + +x.style.getPropertyValue('--p'), 0)),
+                  sinManzanas: !vulDatos.metro.mz && !vulDatos.metro.h10,  // no se descargan hasta acercar el mapa
                   filas: filas.length, total: total === (num(t[0]) + 'de' + num(t[1])).replace(/\\s/g, ''),
-                  // cortes 5, 10, 20, 40, 60, 80: 4,9 % en la 1.ª clase, 5 % en la 2.ª, 20 % en la 4.ª, 100 % en la 7.ª
-                  clases: [[4.9, 100], [5, 100], [20, 100], [100, 100]].map(a => [...TONOS_V.map(token)].indexOf(hexEstilo(conA(a)).fillColor)),
-                  rotulos: [rotulosPct([5, 10, 20, 40, 60, 80]).at(-1), rotulosPct([4, 6, 8, 10, 13, 16]).at(-1), rotulosPct([5, 10, 20, 40, 60, 80])[0]],
+                  // sin desagüe, cortes 2, 10, 40, 80: 1,9 % en la 1.ª clase, 2 % en la 2.ª, 40 % en la 4.ª, 100 % en la 5.ª
+                  clases: [[1.9, 100], [2, 100], [40, 100], [100, 100]].map(a => [...TONOS_V.map(token)].indexOf(hexEstilo(conA(a)).fillColor)),
+                  rotulos: [rotulosPct([2, 10, 40, 80]).at(-1), rotulosPct([4, 8, 12, 16]).at(-1), rotulosPct([2, 10, 40, 80])[0]],
                   borde: hexEstilo(conA([0, 100])).weight > 0 && hexEstilo(conA([0, 100])).fillOpacity === 1,
                   multiplicar: getComputedStyle(document.querySelector('#mapa-vul .leaflet-tile-pane')).mixBlendMode,
                   hex30: hexVisibles().features.every(x => x.properties[vulInd().k][1] >= 30),
@@ -255,8 +258,8 @@ def main():
                     return ids.length <= 5 && hs.every(x => x[0] / x[1] > t[0] / t[1]) && hs.every((x, j) => !j || hs[j - 1][0] >= x[0]); })(),
                   proporcion: [proporcion(26.7), proporcion(62), proporcion(97)].map(x => x.join('|')) };
             }""")
-            revisar(rv == {"canvas": True, "leyenda": 7, "sinManzanas": True, "filas": 4, "total": True, "clases": [0, 1, 3, 6],
-                           "rotulos": ["80 a 100 %", "16 % o más", "0 a 5 %"], "borde": True, "multiplicar": "multiply",
+            revisar(rv == {"canvas": True, "leyenda": 5, "barra": 100, "sinManzanas": True, "filas": 4, "total": True, "clases": [0, 1, 3, 4],
+                           "rotulos": ["80 a 100 %", "16 % o más", "0 a 2 %"], "borde": True, "multiplicar": "multiply",
                            "hex30": True, "frases": 3, "criticos": True, "proporcion": ["1 de cada 4|false", "6 de cada 10|true", "casi todas las|true"]},
                     f"pestaña Vulnerabilidad: {rv}")
             # Zoom 15: hexágonos de 130 m (mínimo 20); zoom 16: manzanas (denominador 0 no se dibuja, extensas sin relleno, gris con
@@ -265,7 +268,7 @@ def main():
                 m.setZoom(15); await espera(300); await vulNivel(m);
                 const h10 = m.hasLayer(vulCapas.h10) && !m.hasLayer(vulCapas.h9) && visibles('h10').features.every(x => x.properties[vulInd().k][1] >= 20);
                 m.setZoom(16); await espera(300); await vulNivel(m);
-                const mz = m.hasLayer(vulCapas.mz) && !m.hasLayer(vulCapas.h10), f = vulDatos.mz.features;
+                const mz = m.hasLayer(vulCapas.mz) && !m.hasLayer(vulCapas.h10), f = vulDatos.metro.mz.features;
                 const g = f.find(x => !x.properties.km2), gris = { properties: { ...g.properties, a: [1, 3] } };
                 const r = { h10, mz, sinCero: visibles('mz').features.every(x => x.properties[vulInd().k][1] > 0) && visibles('mz').features.length < f.length,
                   extensa: vulEstilo(f.find(x => x.properties.km2)).fill === false, gris: vulEstilo(gris).fillColor === token('--neutro'),
@@ -274,8 +277,14 @@ def main():
                 r.num = m.hasLayer(vulCapas.h9) && !m.hasLayer(vulCapas.mz);
                 $('f-vista-vul').value = 'pct'; $('f-vista-vul').dispatchEvent(new Event('change'));
                 r.claseNum = [claseNum({ tipo: 'viv' }, 24), claseNum({ tipo: 'viv' }, 25), claseNum({ tipo: 'viv' }, 250)];
+                // Otra localidad: se carga su archivo, la tabla la marca, las frases la nombran y se ve un solo nivel
+                $('f-loc').value = 'catacaos'; await cambiarLoc(); await espera(300);
+                r.loc = !!vulDatos.catacaos?.h9 && document.querySelector('#vul-localidades tr.total')?.textContent.includes('Catacaos')
+                  && document.querySelector('#vul-frases p').textContent.startsWith('En Catacaos')
+                  && ['h9', 'h10', 'mz'].filter(n => vulCapas[n] && m.hasLayer(vulCapas[n])).length === 1;
+                $('f-loc').value = 'metro'; await cambiarLoc();
                 return r; }""")
-            revisar(rz == {"h10": True, "mz": True, "sinCero": True, "extensa": True, "gris": True, "globo": True, "num": True, "claseNum": [0, 1, 4]},
+            revisar(rz == {"h10": True, "mz": True, "sinCero": True, "extensa": True, "gris": True, "globo": True, "num": True, "claseNum": [0, 1, 4], "loc": True},
                     f"vulnerabilidad, zoom y vista: {rz}")
             revisar(r["sal"] == r["esperado"] and r["regla"] and r["desfasada"],
                     f"título de salud «{r['sal']}», esperado «{r['esperado']}», regla {r['regla']}, serie desfasada {r['desfasada']}")

@@ -50,6 +50,25 @@ def rejilla(texto, nlon, nlat):
     return [[None if x < 0 else x for x in filas[i]] for i in range(nlon)]
 
 
+def es_login(texto):
+    """True si NASA devolvió su página de inicio de sesión en vez de datos (token vencido o sin autorizar la aplicación)."""
+    return "<html" in texto[:2000].lower() and ("earthdata" in texto.lower() or "login" in texto.lower())
+
+
+def archivos(ini, fin, listas):
+    """Nombres de los archivos de media hora entre ini y fin, desde la lista pública de cada día (llevan la versión, p. ej.
+    V07C). `listas` guarda las listas ya leídas."""
+    nombres = {}
+    dia = ini.date()
+    while dia <= (fin - timedelta(minutes=30)).date():
+        if dia not in listas:
+            listas[dia] = leer(LISTA.format(a=dia.year, doy=dia.timetuple().tm_yday))
+        for m in re.finditer(r"(3B-HHR-E\.MS\.MRG\.3IMERG\.(\d{8})-S(\d{6})-E\d{6}\.\d{4}\.V\w+\.HDF5)", listas[dia]):
+            nombres[datetime.strptime(m.group(2) + m.group(3), "%Y%m%d%H%M%S").replace(tzinfo=timezone.utc)] = m.group(1)
+        dia += timedelta(days=1)
+    return nombres
+
+
 def anillos_piura():
     """Contornos de los distritos de Piura en (lon, lat), desde el trazado proyectado de piura_distritos.json."""
     m = json.loads((DATOS / "piura_distritos.json").read_text(encoding="utf-8"))
@@ -79,17 +98,22 @@ def main():
     token = os.environ.get("EARTHDATA_TOKEN", "").strip()
     if not token:
         sys.exit("Falta la variable de entorno EARTHDATA_TOKEN (secreto de GitHub): no se guarda nada")
+    # Ventana de 7:00 a 7:00 de Lima (12:00 UTC). Si la del día aún no está completa en la lista (latencia de IMERG Early),
+    # se usa la última completa, de hasta 3 días antes; el mapa dice de qué fechas es.
     ahora = datetime.now(timezone.utc)
     fin = ahora.replace(hour=12, minute=0, second=0, microsecond=0)
     if ahora < fin + LATENCIA:
         fin -= timedelta(days=1)
-    ini = fin - timedelta(days=1)
-    # nombres de archivo de la lista pública (llevan la versión, p. ej. V07C)
-    nombres = {}
-    for dia in {ini.date(), (fin - timedelta(minutes=30)).date()}:
-        for m in re.finditer(r"(3B-HHR-E\.MS\.MRG\.3IMERG\.(\d{8})-S(\d{6})-E\d{6}\.\d{4}\.V\w+\.HDF5)",
-                             leer(LISTA.format(a=dia.year, doy=dia.timetuple().tm_yday))):
-            nombres[datetime.strptime(m.group(2) + m.group(3), "%Y%m%d%H%M%S").replace(tzinfo=timezone.utc)] = m.group(1)
+    listas = {}
+    for _ in range(4):
+        ini = fin - timedelta(days=1)
+        nombres = archivos(ini, fin, listas)
+        if sum(1 for k in nombres if ini <= k < fin) >= MINIMO:
+            break
+        print(f"  La ventana que termina el {fin:%d/%m %H:%M} UTC aún no está completa en la lista: se prueba el día anterior")
+        fin -= timedelta(days=1)
+    else:
+        sys.exit("No hay una ventana de 24 horas completa en los últimos 4 días: no se guarda nada")
     var = f"precipitation[0:1:0][{LON0}:1:{LON1}][{LAT0}:1:{LAT1}]"
     nlon, nlat = LON1 - LON0 + 1, LAT1 - LAT0 + 1
     suma = [[0.0] * nlat for _ in range(nlon)]
@@ -100,13 +124,22 @@ def main():
         try:
             if not archivo:
                 raise ValueError("no está en la lista")
-            g = rejilla(leer(OPENDAP.format(a=t.year, doy=t.timetuple().tm_yday, archivo=archivo, var=var), token), nlon, nlat)
+            texto = leer(OPENDAP.format(a=t.year, doy=t.timetuple().tm_yday, archivo=archivo, var=var), token)
+            if es_login(texto):
+                sys.exit("NASA respondió con su página de inicio de sesión: token vencido o sin autorización "
+                         "(revisa EARTHDATA_TOKEN y que la cuenta tenga autorizada la aplicación NASA GESDISC DATA ARCHIVE)")
+            g = rejilla(texto, nlon, nlat)
             for i in range(nlon):
                 for j in range(nlat):
                     suma[i][j] += (g[i][j] or 0.0) * 0.5  # mm/h durante media hora
             usadas += 1
-        except (OSError, ValueError) as e:  # el mensaje de urllib no incluye cabeceras: el token no se imprime
-            faltan.append(f"{t:%H:%M} UTC ({type(e).__name__}: {getattr(e, 'code', '') or str(e)[:80]})")
+        except urllib.error.HTTPError as e:  # el mensaje de urllib no incluye cabeceras: el token no se imprime
+            if e.code in (401, 403):
+                sys.exit(f"HTTP {e.code}: token vencido o sin autorización (revisa EARTHDATA_TOKEN y que la cuenta tenga "
+                         "autorizada la aplicación NASA GESDISC DATA ARCHIVE). No se guarda nada")
+            faltan.append(f"{t:%H:%M} UTC (HTTP {e.code})")
+        except (OSError, ValueError) as e:
+            faltan.append(f"{t:%H:%M} UTC ({type(e).__name__}: {str(e)[:80]})")
         t += timedelta(minutes=30)
     if usadas < MINIMO:
         sys.exit(f"Solo llegaron {usadas} de 48 medias horas (mínimo {MINIMO}): no se guarda nada. Faltan: {'; '.join(faltan[:5])}")

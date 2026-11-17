@@ -1,5 +1,6 @@
 """
-Censo 2025 (INEI) por manzana para la pestaña Vulnerabilidad: Piura metropolitana (Piura, Castilla y Veintiséis de Octubre).
+Censo 2025 (INEI) por manzana para la pestaña Vulnerabilidad: Piura metropolitana (Piura, Castilla y Veintiséis de Octubre)
+y los centros poblados urbanos de 2000 viviendas o más de los otros distritos de la provincia de Piura.
 
 Se corre a mano, una sola vez (el censo no cambia). Los archivos de origen los entregó el INEI y no van al repositorio
 (data/raw/ está en .gitignore):
@@ -21,6 +22,7 @@ Uso: python3 scripts/censo_inei.py
 import json
 import re
 import sys
+import time
 import unicodedata
 from pathlib import Path
 
@@ -43,8 +45,9 @@ TOLERANCIA = 1e-5  # simplificación en grados (≈ 1 m en Piura)
 EXTENSA_KM2, EXTENSA_DENSIDAD = 0.05, 1000
 DECIMALES = 5      # coordenadas con 5 decimales (≈ 1 m)
 
-# Materiales de paredes que cuentan como precarios (decisión de Germán Vega, ronda 12)
-PRECARIOS = ["adobe", "tapia", "quincha (cana con barro)", "piedra con barro", "madera (pona, tornillo, etc)", "triplay/ calamina/ estera"]
+# Materiales de paredes que cuentan como precarios (decisión de Germán Vega; sin adobe desde la ronda 16: en Piura
+# metropolitana es el 1,4 % de las viviendas y es un material tradicional, no improvisado)
+PRECARIOS = ["tapia", "quincha (cana con barro)", "piedra con barro", "madera (pona, tornillo, etc)", "triplay/ calamina/ estera"]
 
 # Indicadores: k, rótulo, tipo (denominador de viviendas o de población), numerador y denominador en palabras.
 # Los de agua y desagüe se expresan como carencia para que, en todo el mapa, más oscuro sea más vulnerable.
@@ -73,7 +76,7 @@ INDICADORES = [
      "Es una aproximación: no mide informalidad laboral (el censo no pregunta por el empleo)",
      "Población censada"),
     ("h", "Paredes de material precario", "viv",
-     "Viviendas con paredes exteriores de adobe, tapia, quincha, piedra con barro, madera o triplay, calamina o estera",
+     "Viviendas con paredes exteriores de tapia, quincha, piedra con barro, madera o triplay, calamina o estera (no incluye adobe)",
      "Viviendas particulares con ocupantes presentes"),
     ("i", "Piso de tierra", "viv",
      "Viviendas con piso de tierra",
@@ -218,10 +221,26 @@ def indicadores(dp, dv, P, V):
 # Dos niveles de sectores: H3 9 (unos 350 m de lado a lado, arista de 201 m) hasta zoom 14 y H3 10 (unos 131 m) en zoom 15.
 # Mínimo de la base para dibujar: 30 en el nivel 9; 20 en el 10 (con 30 quedaría oculto el 10 % de las viviendas).
 NIVELES = {9: 30, 10: 20}
-OVERPASS = "https://overpass-api.de/api/interpreter"  # API pública de OpenStreetMap
-# Cortes de las 7 clases (en %): los mismos para todos, salvo las edades, que varían poco entre barrios (ronda 15b)
-CORTES = {"e": [15, 20, 25, 30, 35, 40], "f": [4, 6, 8, 10, 13, 16]}
-CORTES_BASE = [5, 10, 20, 40, 60, 80]
+# API pública de OpenStreetMap y un espejo de la lista del wiki de OSM, por si el principal está cargado
+OVERPASS_ESPEJOS = ["https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter"]
+# Cortes de las 5 clases (en %), por familia de indicadores (ronda 16). Los servicios por red se separan porque en un
+# barrio casi todo o casi nada está conectado: con los cortes de la familia, tres clases quedaban con menos del 5 %.
+CORTES = {"a": [2, 10, 40, 80], "b": [2, 10, 40, 80],                    # servicios por red pública
+          "c": [5, 10, 20, 40], "h": [5, 10, 20, 40], "i": [5, 10, 20, 40],  # agua diaria y vivienda
+          "d": [25, 50, 75, 90], "e": [15, 20, 25, 30], "f": [4, 8, 12, 16], "g": [30, 50, 65, 80]}
+NOTAS = {"e": "Más alto = más población dependiente (no es una carencia).",
+         "f": "Más alto = más población dependiente (no es una carencia)."}
+# Localidades además de Piura metropolitana: centros poblados de los otros distritos de la provincia con al menos estas
+# viviendas (ronda 16: con 2000 entran 7; con 500 entraban 31, muchos con 2 a 5 hexágonos). Nombre con tildes para la página.
+PROVINCIA = "2001"
+LOCALIDAD_MIN = 2000
+NOMBRES_LOC = {"CATACAOS": "Catacaos", "TAMBO GRANDE": "Tambogrande", "LA UNION": "La Unión", "LA ARENA": "La Arena",
+               "LAS LOMAS": "Las Lomas", "CUCUNGARA": "Cucúngara (Cura Mori)",
+               "LA LEGUA-SAN JACINTO (LA LEGUA)": "La Legua–San Jacinto (Catacaos)"}
+
+
+def slug(s):
+    return re.sub(r"[^a-z0-9]+", "_", norm(s)).strip("_")
 
 
 def hexagonos(unidos, claves, res):
@@ -246,12 +265,33 @@ def hexagonos(unidos, claves, res):
     return feats
 
 
-def nombres_osm(hexs):
-    """Nombre reconocible de cada hexágono con OpenStreetMap (una sola consulta a Overpass):
-    1) zona residencial con nombre que contiene el centro; 2) barrio o caserío a menos de 400 m; 3) «cerca de [vía]» a menos
-    de 300 m. Si nada aplica, queda vacío (la página dice «sector sin nombre»)."""
+def consulta_overpass(q, cache):
+    """Respuesta de Overpass para la consulta q. Se guarda en data/raw/osm/ (fuera del repositorio): al volver a correr el
+    script no se consulta otra vez. Si el servidor principal está cargado (502 o 504), se prueba un espejo público."""
     import urllib.parse
     import urllib.request
+    if cache.exists():
+        return json.loads(cache.read_text(encoding="utf-8"))["elements"]
+    for intento, url in enumerate(OVERPASS_ESPEJOS * 2, 1):
+        pedido = urllib.request.Request(url, data=urllib.parse.urlencode({"data": q}).encode(),
+                                        headers={"User-Agent": "observatorio-fen-piura/1.0"})  # rechaza agentes que imitan un navegador (406)
+        try:
+            with urllib.request.urlopen(pedido, timeout=240) as r:
+                texto = r.read().decode("utf-8")
+            cache.parent.mkdir(parents=True, exist_ok=True)
+            cache.write_text(texto, encoding="utf-8")
+            return json.loads(texto)["elements"]
+        except OSError as e:
+            if intento == 2 * len(OVERPASS_ESPEJOS):
+                raise
+            print(f"  Overpass ({url.split('/')[2]}) falló ({e}); se prueba de nuevo en {20 * intento} s")
+            time.sleep(20 * intento)
+
+
+def nombres_osm(hexs, loc):
+    """Nombre reconocible de cada hexágono con OpenStreetMap (una sola consulta a Overpass por localidad):
+    1) zona residencial con nombre que contiene el centro; 2) barrio o caserío a menos de 400 m; 3) «cerca de [vía]» a menos
+    de 300 m. Si nada aplica, queda vacío (la página dice «sector sin nombre»)."""
     from shapely.geometry import LineString, Point, Polygon
     la = [h["centro"][0] for h in hexs]
     lo = [h["centro"][1] for h in hexs]
@@ -259,10 +299,7 @@ def nombres_osm(hexs):
     q = (f'[out:json][timeout:180];(node["place"~"^(neighbourhood|suburb|quarter|hamlet|village|isolated_dwelling)$"]["name"]({caja});'
          f'way["landuse"="residential"]["name"]({caja});'
          f'way["highway"~"^(trunk|primary|secondary|tertiary)$"]["name"]({caja}););out geom;')
-    pedido = urllib.request.Request(OVERPASS, data=urllib.parse.urlencode({"data": q}).encode(),
-                                    headers={"User-Agent": "observatorio-fen-piura/1.0"})  # Overpass rechaza agentes que imitan un navegador (406)
-    with urllib.request.urlopen(pedido, timeout=240) as r:
-        el = json.load(r)["elements"]
+    el = consulta_overpass(q, CRUDO.parent / "osm" / f"overpass_{loc}.json")
     zonas = [(Polygon([(p["lon"], p["lat"]) for p in e["geometry"]]), e["tags"]["name"]) for e in el
              if e["type"] == "way" and e["tags"].get("landuse") == "residential" and len(e.get("geometry", [])) >= 4]
     lugares = [(Point(e["lon"], e["lat"]), e["tags"]["name"]) for e in el if e["type"] == "node"]
@@ -297,15 +334,15 @@ def main():
     if (datos["P"][0] != datos["V"][0]).any():
         sys.exit("Las hojas POBLACION y VIVIENDA no traen las mismas manzanas en el mismo orden")
 
-    # Distritos: ubigeo verificado en los datos (provincia de Piura), no supuesto
+    # Provincia de Piura (ubigeo 2001xx). Distritos de Piura metropolitana: ubigeo verificado en los datos, no supuesto
     dp0 = datos["P"]
     nombres = {norm(d).upper(): d for d in DISTRITOS}
     ubis = (dp0[(dp0[3].map(norm) == "piura") & dp0[4].map(lambda x: norm(x).upper() in nombres)]
             .groupby(1)[4].first().to_dict())
     if len(ubis) != len(DISTRITOS):
         sys.exit(f"Se esperaban {len(DISTRITOS)} distritos y se encontraron {ubis}")
-    print("Ubigeos:", ubis)
-    sel = dp0[1].isin(ubis)
+    print("Ubigeos de Piura metropolitana:", ubis)
+    sel = dp0[1].str.startswith(PROVINCIA)
     for h in datos:
         datos[h] = datos[h][sel].reset_index(drop=True)
     ep, ev = enc["P"], enc["V"]
@@ -341,15 +378,31 @@ def main():
     print(f"Seguros: la suma de los tipos supera a «al menos un seguro» en {sP} (no son excluyentes)")
 
     ind = indicadores(datos["P"], datos["V"], P, V)
+    ind["ccpp"] = datos["P"][6].values
+    ind["nombre_ccpp"] = datos["P"][5].values
+    # Localidad de cada manzana: Piura metropolitana (los 3 distritos completos) o un centro poblado urbano de otro distrito
+    # de la provincia con LOCALIDAD_MIN viviendas o más (las dispersas de ese centro poblado cuentan en su total)
+    clave = ind["ubigeo"] + "-" + ind["ccpp"]
+    tam = ind[~ind["ubigeo"].isin(ubis)].groupby(clave)["v"].sum()
+    elegidas = sorted(tam[tam >= LOCALIDAD_MIN].index, key=lambda k: -tam[k])
+    nombres_ccpp = ind.groupby(clave)["nombre_ccpp"].first()
+    if set(nombres_ccpp[elegidas]) != set(NOMBRES_LOC):
+        sys.exit(f"Centros poblados con {LOCALIDAD_MIN} viviendas o más: {dict(nombres_ccpp[elegidas])}; revisa NOMBRES_LOC")
+    ind["loc"] = None
+    ind.loc[ind["ubigeo"].isin(ubis), "loc"] = "metro"
+    for k in elegidas:
+        ind.loc[clave == k, "loc"] = slug(NOMBRES_LOC[nombres_ccpp[k]])
+    ind = ind[ind["loc"].notna()].reset_index(drop=True)
+    print("Localidades:", {k: int(tam[k]) for k in elegidas})
     dispersa = ind["codigo"].str.endswith("9999")
     print(f"Manzanas: {len(ind)}; dispersas agrupadas (9999): {dispersa.sum()} con {ind.loc[dispersa, 'p'].sum()} habitantes "
           f"y {ind.loc[dispersa, 'v'].sum()} viviendas")
 
-    # Cartografía: solo los tres distritos; llave UBIGEO + ZONA + MANZANA
+    # Cartografía de los distritos con alguna localidad; llave UBIGEO + ZONA + MANZANA
     info = pyogrio.read_info(MANZANAS)
     capa = pyogrio.list_layers(MANZANAS)[0][0]
     print(f"Cartografía: capa {capa}, {info['features']} polígonos, {info['crs']}")
-    lista = ",".join(f"'{u}'" for u in ubis)
+    lista = ",".join(f"'{u}'" for u in sorted(ind["ubigeo"].unique()))
     mz = pyogrio.read_dataframe(MANZANAS, layer=capa, where=f"UBIGEO IN ({lista})", columns=["UBIGEO", "ZONA", "MANZANA"])
     if mz.crs is None or mz.crs.to_epsg() != 4326:
         mz = mz.to_crs(4326)
@@ -359,25 +412,27 @@ def main():
     tab = ind[~dispersa]
     unidos = tab.merge(mz[["codigo", "geometry"]], on="codigo", how="left")
     sin_poligono = unidos.loc[unidos["geometry"].isna(), "codigo"].tolist()
-    poligonos_sin_tabulado = int((~mz["codigo"].isin(tab["codigo"])).sum())
+    metro_cod = set(mz.loc[mz["UBIGEO"].isin(ubis), "codigo"])
+    poligonos_sin_tabulado = len(metro_cod - set(tab["codigo"]))
     tasa = 1 - len(sin_poligono) / len(tab)
     print(f"Unión: {len(tab) - len(sin_poligono)} de {len(tab)} manzanas con polígono ({100 * tasa:.2f} %); "
-          f"sin polígono: {sin_poligono[:20]}; polígonos sin tabulado (sin población o en las dispersas): {poligonos_sin_tabulado}")
+          f"sin polígono: {sin_poligono[:20]}; polígonos de Piura metropolitana sin tabulado: {poligonos_sin_tabulado}")
 
-    unidos = unidos[unidos["geometry"].notna()]
+    unidos = unidos[unidos["geometry"].notna()].reset_index(drop=True)
     # área real en km² (UTM 17 S, metros), con la geometría sin simplificar
     unidos["km2"] = geopandas.GeoSeries(unidos["geometry"].values, crs=4326).to_crs(32717).area.values / 1e6
     unidos["extensa"] = (unidos["km2"] > EXTENSA_KM2) & (unidos["v"] < EXTENSA_DENSIDAD * unidos["km2"])
-    print(f"Manzanas extensas (> {EXTENSA_KM2} km² y < {EXTENSA_DENSIDAD} viv/km²): {int(unidos['extensa'].sum())}, "
-          f"{unidos.loc[unidos['extensa'], 'km2'].sum():.1f} km² de {unidos['km2'].sum():.1f}, "
-          f"{int(unidos.loc[unidos['extensa'], 'v'].sum())} viviendas")
+    ext = unidos["extensa"] & (unidos["loc"] == "metro")
+    print(f"Manzanas extensas en Piura metropolitana (> {EXTENSA_KM2} km² y < {EXTENSA_DENSIDAD} viv/km²): {int(ext.sum())}; "
+          f"en las otras localidades: {int((unidos['extensa'] & ~ext).sum())}")
     geoms = shapely.set_precision(shapely.simplify(unidos["geometry"].values, TOLERANCIA, preserve_topology=True), 10 ** -DECIMALES)
     vacias = shapely.is_empty(geoms).sum()
     if vacias:
         sys.exit(f"{vacias} manzanas quedaron vacías al simplificar: baja TOLERANCIA")
 
-    # Límites de los tres distritos (INEI, CPV 2025): solo el contorno, para orientarse en el mapa
-    dist = pyogrio.read_dataframe(LIMITES, where=f"UBIGEO IN ({lista})", columns=["UBIGEO"])
+    # Límites de los tres distritos de Piura metropolitana (INEI, CPV 2025): solo el contorno, para orientarse en el mapa
+    lm = ",".join(f"'{u}'" for u in ubis)
+    dist = pyogrio.read_dataframe(LIMITES, where=f"UBIGEO IN ({lm})", columns=["UBIGEO"])
     if dist.crs is None or dist.crs.to_epsg() != 4326:
         dist = dist.to_crs(4326)
     if sorted(dist["UBIGEO"]) != sorted(ubis):
@@ -387,58 +442,72 @@ def main():
         for u, geo in zip(dist["UBIGEO"], dist.geometry)]
 
     claves = [k for k, *_ in INDICADORES]
-    feats = []
-    for (_, r), geo in zip(unidos.iterrows(), geoms):
-        g = mapping(geo)
-        props = {"u": r["ubigeo"], "p": int(r["p"]), "v": int(r["v"])}
-        if r["extensa"]:
-            props["km2"] = round(float(r["km2"]), 3)  # solo en las extensas: la página las dibuja como contorno
-        for k in claves:
-            props[k] = [int(r[k + "_n"]), int(r[k + "_d"])] + ([int(r["g_max"])] if k == "g" else [])
-        feats.append({"type": "Feature", "id": r["codigo"], "properties": props,
-                      "geometry": {"type": g["type"], "coordinates": redondear(g["coordinates"])}})
+    unidos["feat"] = [{"type": "Feature", "id": r["codigo"],
+                       "properties": {"u": r["ubigeo"], "p": int(r["p"]), "v": int(r["v"]),
+                                      **({"km2": round(float(r["km2"]), 3)} if r["extensa"] else {}),  # solo en las extensas
+                                      **{k: [int(r[k + "_n"]), int(r[k + "_d"])] + ([int(r["g_max"])] if k == "g" else []) for k in claves}},
+                       "geometry": (lambda g: {"type": g["type"], "coordinates": redondear(g["coordinates"])})(mapping(geo))}
+                      for (_, r), geo in zip(unidos.iterrows(), geoms)]
 
-    hexs = nombres_osm(hexagonos(unidos, claves, 9))  # solo el nivel 9 lleva nombres: de ahí salen los sectores críticos
-    hexs10 = hexagonos(unidos, claves, 10)
-    tot_v = int(unidos["v"].sum())
-    for res, hs in ((9, hexs), (10, hexs10)):
-        oculto = sum(h["properties"]["v"] for h in hs if h["properties"]["a"][1] < NIVELES[res])
-        print(f"Hexágonos H3 {res}: {len(hs)}; ocultos (menos de {NIVELES[res]} viviendas) con el "
-              f"{100 * oculto / tot_v:.1f} % de las viviendas del mapa")
-    print(f"Con nombre de OpenStreetMap (nivel 9): {sum(1 for h in hexs if h['properties']['n'])}")
-
-    # Totales por distrito: suman numeradores y denominadores, con las manzanas dispersas (no se promedian porcentajes)
-    distritos = {}
-    for u, d in ind.groupby("ubigeo"):
+    def totales(d):
+        """Suma de numeradores y denominadores (con las dispersas), viviendas, población y manzanas del mapa."""
         disp = d["codigo"].str.endswith("9999")
-        distritos[u] = {"nombre": ubis[u], "manzanas": int((~disp & d["codigo"].isin(unidos["codigo"])).sum()),
-                        "dispersas": {"grupos": int(disp.sum()), "p": int(d.loc[disp, "p"].sum()), "v": int(d.loc[disp, "v"].sum())},
-                        "p": int(d["p"].sum()), "v": int(d["v"].sum()),
-                        **{k: [int(d[k + "_n"].sum()), int(d[k + "_d"].sum())] for k in claves}}
-        distritos[u]["g"].append(int(d["g_max"].sum()))
-    # Tres archivos: la base (se carga al abrir la pestaña), los hexágonos de 131 m (al acercar a zoom 15) y las manzanas
-    # (al acercar a zoom 16). Así la pestaña no descarga de entrada lo que quizá no se mire.
+        t = {"manzanas": int((~disp & d["codigo"].isin(unidos["codigo"])).sum()),
+             "dispersas": {"grupos": int(disp.sum()), "p": int(d.loc[disp, "p"].sum()), "v": int(d.loc[disp, "v"].sum())},
+             "p": int(d["p"].sum()), "v": int(d["v"].sum()), **{k: [int(d[k + "_n"].sum()), int(d[k + "_d"].sum())] for k in claves}}
+        t["g"].append(int(d["g_max"].sum()))
+        return t
+
+    distritos = {u: {"nombre": ubis[u], **totales(d)} for u, d in ind[ind["loc"] == "metro"].groupby("ubigeo")}
+    localidades, archivos = [], []
+    for loc in ["metro"] + [slug(NOMBRES_LOC[nombres_ccpp[k]]) for k in elegidas]:
+        u = unidos[unidos["loc"] == loc]
+        hexs = nombres_osm(hexagonos(u, claves, 9), loc)  # solo el nivel 9 lleva nombres: de ahí salen los sectores críticos
+        hexs10 = hexagonos(u, claves, 10)
+        oculto = {res: 100 * sum(h["properties"]["v"] for h in hs if h["properties"]["a"][1] < NIVELES[res]) / max(1, int(u["v"].sum()))
+                  for res, hs in ((9, hexs), (10, hexs10))}
+        nombre = "Piura metropolitana" if loc == "metro" else next(v for v in NOMBRES_LOC.values() if slug(v) == loc)
+        print(f"{nombre}: {len(u)} manzanas, {len(hexs)} hexágonos de 350 m (ocultos {oculto[9]:.1f} % de las viviendas) "
+              f"y {len(hexs10)} de 130 m (ocultos {oculto[10]:.1f} %); con nombre: {sum(1 for h in hexs if h['properties']['n'])}")
+        b = shapely.bounds(shapely.union_all(u["geometry"].values))
+        fila = {"id": loc, "nombre": nombre, "caja": [[round(b[1], 4), round(b[0], 4)], [round(b[3], 4), round(b[2], 4)]],
+                **totales(ind[ind["loc"] == loc])}
+        if loc == "metro":
+            metro_hex = hexs
+            guardar("censo_hex10.json", {"resolucion": 10, "minimo": NIVELES[10], "features": hexs10})
+            guardar("censo_manzanas.json", {"type": "FeatureCollection", "features": u["feat"].tolist()})
+            archivos += ["censo_hex10.json", "censo_manzanas.json"]
+        else:
+            fila["archivo"] = f"censo_loc_{loc}.json"
+            guardar(fila["archivo"], {"hexagonos": {"resolucion": 9, "minimo": NIVELES[9], "features": hexs},
+                                      "hex10": {"resolucion": 10, "minimo": NIVELES[10], "features": hexs10},
+                                      "manzanas": {"type": "FeatureCollection", "features": u["feat"].tolist()}})
+            archivos.append(fila["archivo"])
+        localidades.append(fila)
+        time.sleep(2)  # una consulta a Overpass por localidad, sin apuro
+
+    # La base (se carga al abrir la pestaña): indicadores, Piura metropolitana con sus hexágonos de 350 m y la tabla de
+    # localidades. Lo demás (hexágonos de 130 m, manzanas y cada localidad) se carga cuando hace falta.
     guardar("censo_piura.json", {
         "fuente": "INEI, Censos Nacionales 2025, tabulados por manzana entregados el 13/11/2026",
         "url": "https://www.inei.gob.pe/",
         "fecha_corte": "2026-11-13",
-        "ambito": "Piura metropolitana: distritos de Piura, Castilla y Veintiséis de Octubre",
+        "ambito": "Provincia de Piura: Piura metropolitana (Piura, Castilla y Veintiséis de Octubre) y los centros poblados "
+                  f"urbanos de {LOCALIDAD_MIN} viviendas o más de los otros distritos",
         "minimo": MINIMO,
         "indicadores": [{"k": k, "rotulo": rot, "tipo": t, "numerador": n, "denominador": d, "frase": FRASES[k],
-                         "cortes": CORTES.get(k, CORTES_BASE)} for k, rot, t, n, d in INDICADORES],
-        "hexagonos": {"resolucion": 9, "minimo": NIVELES[9], "nombres": "© colaboradores de OpenStreetMap (ODbL)", "features": hexs},
+                         "cortes": CORTES[k], **({"nota": NOTAS[k]} if k in NOTAS else {})} for k, rot, t, n, d in INDICADORES],
+        "hexagonos": {"resolucion": 9, "minimo": NIVELES[9], "nombres": "© colaboradores de OpenStreetMap (ODbL)", "features": metro_hex},
         "validaciones": validaciones,
         "coincidencia": {"tabuladas": len(tab), "con_poligono": len(tab) - len(sin_poligono), "tasa": round(tasa, 4),
                          "sin_poligono": sin_poligono, "poligonos_sin_tabulado": poligonos_sin_tabulado},
         "distritos": distritos,
+        "localidades": localidades,
         "limites": limites,
     })
-    guardar("censo_hex10.json", {"resolucion": 10, "minimo": NIVELES[10], "features": hexs10})
-    guardar("censo_manzanas.json", {"type": "FeatureCollection", "features": feats})
-    for nombre in ("censo_piura.json", "censo_hex10.json", "censo_manzanas.json"):
-        tam = (DATOS / nombre).stat().st_size / 2**20
-        print(f"Tamaño de {nombre}: {tam:.2f} MB" + (" (pasa de 3 MB)" if tam > 3 else ""))
-
+    for nombre in ["censo_piura.json"] + archivos:
+        tam_mb = (DATOS / nombre).stat().st_size / 2**20
+        print(f"Tamaño de {nombre}: {tam_mb:.2f} MB" + (" (pasa de 3 MB)" if tam_mb > 3 else ""))
 
 if __name__ == "__main__":
     main()

@@ -37,6 +37,9 @@ assert imerg_piura.rejilla(TXT, 2, 3) == [[0.5, None, 2.0], [1.0, 1.5, 0.0]]
 anillos = imerg_piura.anillos_piura()
 assert imerg_piura.dentro(-80.63, -5.19, anillos) and not imerg_piura.dentro(-81.4, -5.1, anillos)  # Piura sí; el mar no
 assert not imerg_piura.dentro(-80.45, -3.57, anillos)  # Tumbes no
+# si NASA devuelve su página de inicio de sesión (token vencido o sin autorizar), se detecta y no se toma como datos
+assert imerg_piura.es_login("<!DOCTYPE html><html><head><title>Earthdata Login</title>")
+assert not imerg_piura.es_login(TXT)
 
 # NOAA CPC, Niño 1+2: cifras pegadas («20.6-0.1») y cabeceras que no son datos
 import nino12_cpc  # noqa: E402

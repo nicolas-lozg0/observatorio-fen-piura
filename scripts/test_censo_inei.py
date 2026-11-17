@@ -18,11 +18,28 @@ assert ks == list("abcdefghi"), ks
 for nombre in ("censo_piura.json", "censo_hex10.json", "censo_manzanas.json"):
     assert (DATOS / nombre).stat().st_size < 3 * 2**20, f"{nombre} debe pesar menos de 3 MB"
 assert RUTA.stat().st_size < 0.5 * 2**20, "la base (se carga al abrir la pestaña) debe ser liviana"
-# 7 clases: 6 cortes crecientes entre 0 y 100; las edades con cortes propios
-for i in d["indicadores"]:
-    assert len(i["cortes"]) == 6 and all(0 < a < b < 100 for a, b in zip(i["cortes"], i["cortes"][1:])), (i["k"], i["cortes"])
-assert {i["k"]: i["cortes"] for i in d["indicadores"]}["e"] == [15, 20, 25, 30, 35, 40]
-assert {i["k"]: i["cortes"] for i in d["indicadores"]}["a"] == [5, 10, 20, 40, 60, 80]
+# 5 clases: 4 cortes crecientes entre 0 y 100, por familia de indicadores (ronda 16)
+cortes = {i["k"]: i["cortes"] for i in d["indicadores"]}
+for k, c in cortes.items():
+    assert len(c) == 4 and all(0 < a < b < 100 for a, b in zip(c, c[1:])), (k, c)
+assert cortes["a"] == cortes["b"] == [2, 10, 40, 80] and cortes["c"] == cortes["h"] == cortes["i"] == [5, 10, 20, 40]
+assert cortes["d"] == [25, 50, 75, 90] and cortes["e"] == [15, 20, 25, 30] and cortes["f"] == [4, 8, 12, 16] and cortes["g"] == [30, 50, 65, 80]
+assert "adobe" in [i for i in d["indicadores"] if i["k"] == "h"][0]["numerador"] and "no incluye adobe" in [i for i in d["indicadores"] if i["k"] == "h"][0]["numerador"]
+# Localidades: Piura metropolitana primero y luego los centros poblados de 2000 viviendas o más, cada uno con su archivo
+locs = d["localidades"]
+assert locs[0]["id"] == "metro" and len(locs) == 8, [x["id"] for x in locs]
+for x in locs:
+    assert all(0 <= x[k][0] <= x[k][1] for k in ks), x["id"]
+    if x["id"] == "metro":
+        continue
+    assert x["v"] >= 2000 and (DATOS / x["archivo"]).stat().st_size < 1 * 2**20, (x["id"], x["v"])
+    f = json.loads((DATOS / x["archivo"]).read_text(encoding="utf-8"))
+    mzl = [m["properties"] for m in f["manzanas"]["features"] if "km2" not in m["properties"]]
+    for nivel in ("hexagonos", "hex10"):  # los hexágonos de cada localidad suman lo mismo que sus manzanas
+        for k in ks:
+            assert sum(h["properties"][k][1] for h in f[nivel]["features"]) == sum(m[k][1] for m in mzl), (x["id"], nivel, k)
+    # el total de la localidad (con sus dispersas) es la suma de sus manzanas con polígono más las dispersas
+    assert x["v"] == sum(m["properties"]["v"] for m in f["manzanas"]["features"]) + x["dispersas"]["v"], x["id"]
 assert set(d["distritos"]) == {"200101", "200104", "200115"}, d["distritos"].keys()
 assert all(v["filas_con_diferencia"] == 0 for v in d["validaciones"]), [v for v in d["validaciones"] if v["filas_con_diferencia"]]
 c = d["coincidencia"]
@@ -80,7 +97,9 @@ for nivel in (hx, h10["features"]):  # los dos niveles suman lo mismo que las ma
 assert sum(1 for h in hx if h["properties"]["n"]) > 0.8 * len(hx), "la mayoría de los sectores debe tener nombre"
 assert all(set(i["frase"]) and len(i["frase"]) == 3 for i in d["indicadores"])
 
-assert len(ids) == c["con_poligono"] == sum(x["manzanas"] for x in d["distritos"].values())
+# Piura metropolitana: sus manzanas del mapa; la coincidencia cuenta las de todas las localidades
+assert len(ids) == locs[0]["manzanas"] == sum(x["manzanas"] for x in d["distritos"].values())
+assert c["con_poligono"] == sum(x["manzanas"] for x in locs)
 # Totales por distrito = manzanas del mapa + dispersas (en los denominadores de viviendas y población)
 for u, x in d["distritos"].items():
     for k in ks:
