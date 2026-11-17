@@ -46,6 +46,10 @@ jobs:
       - id: tsm
         run: python scripts/tsm_paita.py
         continue-on-error: true
+      - id: nino12
+        run: python scripts/nino12_cpc.py
+        continue-on-error: true
+      # No escribe datos: falla si el ENFEN publicó un comunicado más reciente que docs/data/enfen_comunicado.json
       - id: enfen
         run: python scripts/enfen.py
         continue-on-error: true
@@ -68,6 +72,7 @@ jobs:
           IPC: ${{ steps.ipc.outcome }}
           LLUVIA: ${{ steps.lluvia.outcome }}
           TSM: ${{ steps.tsm.outcome }}
+          NINO12: ${{ steps.nino12.outcome }}
           ENFEN: ${{ steps.enfen.outcome }}
         run: |
           fallidos=0
@@ -77,7 +82,8 @@ jobs:
             echo "| Fuente | Script | Resultado |"
             echo "| --- | --- | --- |"
             for f in "Emergencia FEN (MEF)|fen_mef.py|$FEN" "IPC (INEI)|ipc_inei.py|$IPC" "Lluvia (Senamhi)|lluvia_senamhi.py|$LLUVIA" \
-                     "Temperatura del mar (NOAA)|tsm_paita.py|$TSM" "Estado de alerta (ENFEN)|enfen.py|$ENFEN"; do
+                     "Temperatura del mar (NOAA)|tsm_paita.py|$TSM" "Niño 1+2 semanal (NOAA CPC)|nino12_cpc.py|$NINO12" \
+                     "Aviso de comunicado nuevo del ENFEN (falla = hay que actualizar el JSON a mano)|enfen.py|$ENFEN"; do
               IFS="|" read -r nombre script resultado <<< "$f"
               case "$resultado" in
                 success) txt="correcto" ;;

@@ -1,7 +1,8 @@
 # Librerías solo para scripts que corren en la máquina local (no en GitHub Actions).
-# censo_inei.py: lectura de la cartografía del INEI (.gdb, .shp) y simplificación de geometrías.
+# censo_inei.py: lectura de la cartografía del INEI (.gdb, .shp), simplificación de geometrías y hexágonos H3.
 # Versiones compatibles con numpy 1.26 (Anaconda base).
 geopandas>=1.0,<1.1
 pyogrio>=0.10,<0.11
 shapely>=2.0,<2.1
 pyproj>=3.6,<3.8
+h3>=4,<5

@@ -37,6 +37,10 @@ DISTRITOS = ["PIURA", "CASTILLA", "VEINTISEIS DE OCTUBRE"]
 CODIGO = re.compile(r"\d{11}[0-9A-ZÑ]{3,4}")  # ubigeo (6) + zona (5) + manzana (3, o 4 con letra; 9999 = dispersas)
 MINIMO = {"viv": 10, "pob": 30}  # por debajo, la manzana va en gris («Pocos casos») en ese indicador
 TOLERANCIA = 1e-5  # simplificación en grados (≈ 1 m en Piura)
+# Manzana «extensa»: el INEI la traza de calle a calle e incluye terreno sin viviendas (el campus de la UDEP, el
+# aeropuerto, chacras). Con más de 0,05 km² y menos de 1000 viviendas por km², su color cubriría ese terreno: se dibuja
+# solo el contorno punteado y no entra en los hexágonos (sí en el total del distrito).
+EXTENSA_KM2, EXTENSA_DENSIDAD = 0.05, 1000
 DECIMALES = 5      # coordenadas con 5 decimales (≈ 1 m)
 
 # Materiales de paredes que cuentan como precarios (decisión de Germán Vega, ronda 12)
@@ -75,6 +79,21 @@ INDICADORES = [
      "Viviendas con piso de tierra",
      "Viviendas particulares con ocupantes presentes"),
 ]
+
+
+# Frases en lenguaje simple: [sujeto, verbo en singular, verbo en plural] para «1 de cada 4 viviendas no tiene…» y
+# «6 de cada 10 personas no tienen…». El sujeto incluye la base cuando no es el total (c y d).
+FRASES = {
+    "a": ["viviendas", "no tiene desagüe por red pública", "no tienen desagüe por red pública"],
+    "b": ["viviendas", "no tiene agua por red pública", "no tienen agua por red pública"],
+    "c": ["viviendas con agua de red pública o pilón", "no la tiene todos los días", "no la tienen todos los días"],
+    "d": ["viviendas con agua todos los días", "no la tiene las 24 horas", "no la tienen las 24 horas"],
+    "e": ["personas", "es menor de 15 años", "son menores de 15 años"],
+    "f": ["personas", "tiene 65 años o más", "tienen 65 años o más"],
+    "g": ["personas", "no tiene EsSalud ni seguro privado", "no tienen EsSalud ni seguro privado"],
+    "h": ["viviendas", "tiene paredes de material precario", "tienen paredes de material precario"],
+    "i": ["viviendas", "tiene piso de tierra", "tienen piso de tierra"],
+}
 
 
 def norm(s):
@@ -196,13 +215,73 @@ def indicadores(dp, dv, P, V):
     return r
 
 
+H3_RES = 9  # hexágonos de unos 350 m de lado a lado (arista media de 201 m)
+OVERPASS = "https://overpass-api.de/api/interpreter"  # API pública de OpenStreetMap
+
+
+def hexagonos(unidos, claves):
+    """Suma numeradores y denominadores de las manzanas (sin las extensas) en hexágonos H3, por el centroide."""
+    import h3
+    filas = unidos[~unidos["extensa"]].copy()
+    cen = filas["geometry"].map(lambda g: g.centroid)
+    filas["hex"] = [h3.latlng_to_cell(c.y, c.x, H3_RES) for c in cen]
+    cols = ["p", "v", "g_max"] + [k + s for k in claves for s in ("_n", "_d")]
+    suma = filas.groupby("hex")[cols].sum()
+    suma["m"] = filas.groupby("hex").size()
+    suma["u"] = filas.groupby("hex")["ubigeo"].agg(lambda s: s.value_counts().index[0])  # distrito con más manzanas
+    feats = []
+    for cell, r in suma.iterrows():
+        anillo = [[round(lng, DECIMALES), round(lat, DECIMALES)] for lat, lng in h3.cell_to_boundary(cell)]
+        props = {"u": r["u"], "m": int(r["m"]), "p": int(r["p"]), "v": int(r["v"])}
+        for k in claves:
+            props[k] = [int(r[k + "_n"]), int(r[k + "_d"])] + ([int(r["g_max"])] if k == "g" else [])
+        lat, lng = h3.cell_to_latlng(cell)
+        feats.append({"type": "Feature", "id": cell, "properties": props, "centro": [round(lat, 5), round(lng, 5)],
+                      "geometry": {"type": "Polygon", "coordinates": [anillo + anillo[:1]]}})
+    return feats
+
+
+def nombres_osm(hexs):
+    """Nombre reconocible de cada hexágono con OpenStreetMap (una sola consulta a Overpass):
+    1) zona residencial con nombre que contiene el centro; 2) barrio o caserío a menos de 400 m; 3) «cerca de [vía]» a menos
+    de 300 m. Si nada aplica, queda vacío (la página dice «sector sin nombre»)."""
+    import urllib.parse
+    import urllib.request
+    from shapely.geometry import LineString, Point, Polygon
+    la = [h["centro"][0] for h in hexs]
+    lo = [h["centro"][1] for h in hexs]
+    caja = f"{min(la) - .01},{min(lo) - .01},{max(la) + .01},{max(lo) + .01}"
+    q = (f'[out:json][timeout:180];(node["place"~"^(neighbourhood|suburb|quarter|hamlet|village|isolated_dwelling)$"]["name"]({caja});'
+         f'way["landuse"="residential"]["name"]({caja});'
+         f'way["highway"~"^(trunk|primary|secondary|tertiary)$"]["name"]({caja}););out geom;')
+    pedido = urllib.request.Request(OVERPASS, data=urllib.parse.urlencode({"data": q}).encode(),
+                                    headers={"User-Agent": "observatorio-fen-piura/1.0"})  # Overpass rechaza agentes que imitan un navegador (406)
+    with urllib.request.urlopen(pedido, timeout=240) as r:
+        el = json.load(r)["elements"]
+    zonas = [(Polygon([(p["lon"], p["lat"]) for p in e["geometry"]]), e["tags"]["name"]) for e in el
+             if e["type"] == "way" and e["tags"].get("landuse") == "residential" and len(e.get("geometry", [])) >= 4]
+    lugares = [(Point(e["lon"], e["lat"]), e["tags"]["name"]) for e in el if e["type"] == "node"]
+    vias = [(LineString([(p["lon"], p["lat"]) for p in e["geometry"]]), e["tags"]["name"]) for e in el
+            if e["type"] == "way" and "highway" in e["tags"] and len(e.get("geometry", [])) >= 2]
+    print(f"OpenStreetMap: {len(zonas)} zonas residenciales, {len(lugares)} barrios o caseríos y {len(vias)} vías con nombre")
+    grado = 111_320  # metros por grado (aprox.)
+    for h in hexs:
+        c = Point(h["centro"][1], h["centro"][0])
+        z = [n for p, n in zonas if p.is_valid and p.contains(c)]
+        cerca = lambda xs: min(((g.distance(c) * grado, n) for g, n in xs), default=(1e9, None))
+        d1, n1 = cerca(lugares)
+        d2, n2 = cerca(vias)
+        h["properties"]["n"] = z[0] if z else n1 if d1 < 400 else f"cerca de {n2}" if d2 < 300 else ""
+    return hexs
+
+
 def redondear(c):
     return [redondear(x) for x in c] if isinstance(c[0], (list, tuple)) else [round(c[0], DECIMALES), round(c[1], DECIMALES)]
 
 
 def main():
     verificar_espacio()
-    import geopandas  # noqa: F401  (falla aquí, con un mensaje claro, si faltan las librerías locales)
+    import geopandas  # falla aquí, con un mensaje claro, si faltan las librerías locales
     import pyogrio
     import shapely
     from shapely.geometry import mapping
@@ -281,6 +360,12 @@ def main():
           f"sin polígono: {sin_poligono[:20]}; polígonos sin tabulado (sin población o en las dispersas): {poligonos_sin_tabulado}")
 
     unidos = unidos[unidos["geometry"].notna()]
+    # área real en km² (UTM 17 S, metros), con la geometría sin simplificar
+    unidos["km2"] = geopandas.GeoSeries(unidos["geometry"].values, crs=4326).to_crs(32717).area.values / 1e6
+    unidos["extensa"] = (unidos["km2"] > EXTENSA_KM2) & (unidos["v"] < EXTENSA_DENSIDAD * unidos["km2"])
+    print(f"Manzanas extensas (> {EXTENSA_KM2} km² y < {EXTENSA_DENSIDAD} viv/km²): {int(unidos['extensa'].sum())}, "
+          f"{unidos.loc[unidos['extensa'], 'km2'].sum():.1f} km² de {unidos['km2'].sum():.1f}, "
+          f"{int(unidos.loc[unidos['extensa'], 'v'].sum())} viviendas")
     geoms = shapely.set_precision(shapely.simplify(unidos["geometry"].values, TOLERANCIA, preserve_topology=True), 10 ** -DECIMALES)
     vacias = shapely.is_empty(geoms).sum()
     if vacias:
@@ -301,10 +386,15 @@ def main():
     for (_, r), geo in zip(unidos.iterrows(), geoms):
         g = mapping(geo)
         props = {"u": r["ubigeo"], "p": int(r["p"]), "v": int(r["v"])}
+        if r["extensa"]:
+            props["km2"] = round(float(r["km2"]), 3)  # solo en las extensas: la página las dibuja como contorno
         for k in claves:
             props[k] = [int(r[k + "_n"]), int(r[k + "_d"])] + ([int(r["g_max"])] if k == "g" else [])
         feats.append({"type": "Feature", "id": r["codigo"], "properties": props,
                       "geometry": {"type": g["type"], "coordinates": redondear(g["coordinates"])}})
+
+    hexs = nombres_osm(hexagonos(unidos, claves))
+    print(f"Hexágonos H3 (resolución {H3_RES}): {len(hexs)}; con nombre de OpenStreetMap: {sum(1 for h in hexs if h['properties']['n'])}")
 
     # Totales por distrito: suman numeradores y denominadores, con las manzanas dispersas (no se promedian porcentajes)
     distritos = {}
@@ -322,7 +412,9 @@ def main():
         "fecha_corte": "2026-11-13",
         "ambito": "Piura metropolitana: distritos de Piura, Castilla y Veintiséis de Octubre",
         "minimo": MINIMO,
-        "indicadores": [{"k": k, "rotulo": rot, "tipo": t, "numerador": n, "denominador": d} for k, rot, t, n, d in INDICADORES],
+        "indicadores": [{"k": k, "rotulo": rot, "tipo": t, "numerador": n, "denominador": d, "frase": FRASES[k]}
+                        for k, rot, t, n, d in INDICADORES],
+        "hexagonos": {"resolucion": H3_RES, "minimo": 30, "nombres": "© colaboradores de OpenStreetMap (ODbL)", "features": hexs},
         "validaciones": validaciones,
         "coincidencia": {"tabuladas": len(tab), "con_poligono": len(tab) - len(sin_poligono), "tasa": round(tasa, 4),
                          "sin_poligono": sin_poligono, "poligonos_sin_tabulado": poligonos_sin_tabulado},

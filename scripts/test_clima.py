@@ -30,9 +30,32 @@ except ValueError:
 ASCII = "Dataset {...}\n---\nsst.sst[3][1][1]\n[0][0], 27.3\n[1][0], -9.96921E36\n[2][0], 27.48\n\nsst.time[3]\n82860.0"
 assert tsm_paita.valores(ASCII) == [27.3, None, 27.48], tsm_paita.valores(ASCII)
 
-# ENFEN: encabezado del comunicado N° 20 (texto real del PDF)
-TEXTO = ("COMISIÓN MULTISECTORIAL ENCARGADA DEL ESTUDIO NACIONAL DEL FENÓMENO “EL NIÑO” – ENFEN Decreto Supremo N° 007-2017-PRODUCE "
-         "COMUNICADO OFICIAL ENFEN N°20-2026 13 noviembre 2026 Alerta de El Niño Costero1 EL NIÑO COSTERO CONTINUARÍA")
-assert enfen.leer_comunicado(TEXTO) == ("20-2026", date(2026, 11, 13), "Alerta de El Niño costero"), enfen.leer_comunicado(TEXTO)
-assert enfen.leer_comunicado(TEXTO.replace("Alerta de El Niño Costero", "No activo"))[2] == "No activo"
+# IMERG: rejilla de OPeNDAP (el −9999,9 es sin dato) y celdas dentro del departamento
+import imerg_piura  # noqa: E402
+TXT = "Dataset {...}\n---\nprecipitation.precipitation[1][2][3]\n[0][0], 0.5, -9999.9, 2\n[0][1], 1, 1.5, 0\n"
+assert imerg_piura.rejilla(TXT, 2, 3) == [[0.5, None, 2.0], [1.0, 1.5, 0.0]]
+anillos = imerg_piura.anillos_piura()
+assert imerg_piura.dentro(-80.63, -5.19, anillos) and not imerg_piura.dentro(-81.4, -5.1, anillos)  # Piura sí; el mar no
+assert not imerg_piura.dentro(-80.45, -3.57, anillos)  # Tumbes no
+
+# NOAA CPC, Niño 1+2: cifras pegadas («20.6-0.1») y cabeceras que no son datos
+import nino12_cpc  # noqa: E402
+CPC = (" Weekly SST data starts week centered on 2Sept1981\n\n                Nino1+2      Nino3        Nino34        Nino4\n"
+       " Week          SST SSTA     SST SSTA     SST SSTA     SST SSTA\n"
+       " 02SEP1981     20.6-0.1     24.8-0.1     26.5-0.2     28.3-0.3\n"
+       " 11NOV2026     27.1 5.4     29.4 4.3     29.9 3.2     29.9 1.3\n")
+assert nino12_cpc.leer(CPC) == [["1981-09-02", 20.6, -0.1], ["2026-11-11", 27.1, 5.4]], nino12_cpc.leer(CPC)
+
+# ENFEN: números de comunicado en la portada (texto real de los enlaces); el más reciente se compara por (año, número)
+PORTADA = '<a href="/download/x/">Comunicado Oficial Enfen N° 20-2026</a> <a href="/download/y/">Comunicado Oficial Enfen N° 19-2026</a>'
+assert enfen.numeros(PORTADA) == [(2026, 20), (2026, 19)], enfen.numeros(PORTADA)
+assert max(enfen.numeros(PORTADA + "Comunicado Oficial Enfen N° 1-2027")) == (2027, 1)  # el N.° 1 de 2027 es más reciente que el 20 de 2026
+
+# Manual: el JSON del ENFEN tiene los campos que usa la tarjeta, con fechas válidas
+import json  # noqa: E402
+from comun import DATOS  # noqa: E402
+c = json.loads((DATOS / "enfen_comunicado.json").read_text(encoding="utf-8"))
+assert {"numero", "fecha_corte", "estado", "magnitud", "horizonte", "puntos", "url_pdf", "proximo", "paita_costera"} <= set(c), set(c)
+assert 2 <= len(c["puntos"]) <= 3 and all(len(p.split()) <= 20 for p in c["puntos"]), c["puntos"]
+assert date.fromisoformat(c["fecha_corte"]) < date.fromisoformat(c["proximo"])
 print("OK")

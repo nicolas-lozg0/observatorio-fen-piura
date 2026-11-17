@@ -70,7 +70,8 @@ def main():
                 pg = nav.new_page(viewport={"width": ancho, "height": 900})
                 errores = []
                 pg.on("pageerror", lambda e: errores.append(str(e)))
-                pg.on("console", lambda m: m.type == "error" and errores.append(m.text))
+                # imerg_piura.json no existe hasta la primera ejecución del workflow imerg.yml (necesita el token): su 404 no es un error de la página
+                pg.on("console", lambda m: m.type == "error" and not m.location.get("url", "").endswith("imerg_piura.json") and errores.append(m.text))
                 pg.goto(base + "#resumen")
                 pg.wait_for_function("document.querySelectorAll('#resumen-paneles .panel').length >= 5", timeout=15000)
                 for t in PESTANAS:
@@ -207,23 +208,28 @@ def main():
                 pg.wait_for_function(f"document.querySelector('#{mapa} .leaflet-interactive, #{mapa} .sin-datos')", timeout=20000)
                 n = pg.evaluate(f"document.querySelectorAll('#{mapa} path.leaflet-interactive').length")
                 revisar(n >= 60 or pg.evaluate(f"!!document.querySelector('#{mapa} .sin-datos')"), f"mapa {mapa}: {n} distritos")
-            # Clima: 4 tarjetas con «Más detalle» (salvo el radar, que tiene su botón), gráficos dibujados, regla del título del mar,
-            # día sin dato fuera de las barras, y una fuente que falta no rompe la pestaña
+            # Clima: 4 tarjetas con «Más detalle» (salvo el radar: incrustado y con su botón), gráficos dibujados, regla del título
+            # del mar, un círculo por estación en el mapa de lluvia, el top 5, y una fuente que falta no rompe la pestaña
             pg.evaluate("location.hash = '#clima'")
             pg.wait_for_selector("#g-tsm svg")
+            pg.wait_for_function("document.querySelector('#mapa-lluvia .leaflet-interactive, #mapa-lluvia .sin-datos')", timeout=20000)
             rc = pg.evaluate("""() => {
                 const ps = [...document.querySelectorAll('#clima-paneles > .panel')];
-                const dia = D.lluvia.fecha_corte, sin = D.lluvia.estaciones.filter(x => lluviaDia(x, dia) == null).length;
-                const barras = document.querySelectorAll('#clima-paneles .barras-h li').length;
                 const r = { paneles: ps.length, detalle: document.querySelectorAll('#clima-paneles .ver-mas').length,
-                  radar: !!document.querySelector('#clima-paneles a.boton[href*="ecrmm.udep.edu.pe"]'),
-                  lluvia: document.querySelectorAll('#g-lluvia svg').length, barras: barras === D.lluvia.estaciones.length - sin,
+                  radar: !!document.querySelector('#clima-paneles a.boton[href*="ecrmm.udep.edu.pe"]') && !!document.querySelector('#clima-paneles iframe.radar'),
+                  lluvia: document.querySelectorAll('#g-lluvia svg').length, nino: !!document.querySelector('#g-nino12 svg'),
+                  estado: document.querySelector('.etiqueta-estado')?.textContent === D.enfen.estado,
+                  top5: document.querySelectorAll('.lluvia-mapa ol li').length,
+                  circulos: document.querySelectorAll('#mapa-lluvia path.leaflet-interactive').length >= D.lluvia.estaciones.length,
+                  imerg: D.imerg ? true : /no cargó/i.test(document.getElementById('nota-imerg').textContent),
+                  clases: [claseLluvia(0.5), claseLluvia(1), claseLluvia(49.9), claseLluvia(50)],
                   titulos: [tsmTitulo(0.4), tsmTitulo(8.03), tsmTitulo(-1.2)] };
                 const guardado = D.tsm; D.tsm = null; pintarClima();
                 r.sinTsm = document.querySelectorAll('#clima-paneles .pendiente').length === 1;
                 D.tsm = guardado; pintarClima(); graficosClima();
                 return r; }""")
-            revisar(rc == {"paneles": 4, "detalle": 3, "radar": True, "lluvia": 3, "barras": True, "sinTsm": True,
+            revisar(rc == {"paneles": 4, "detalle": 3, "radar": True, "lluvia": 3, "nino": True, "estado": True, "top5": 5, "circulos": True,
+                           "imerg": True, "clases": [-1, 0, 3, 4], "sinTsm": True,
                            "titulos": ["El mar frente a Paita está cerca de lo normal", "El mar frente a Paita está 8,0 °C más caliente que lo normal",
                                        "El mar frente a Paita está 1,2 °C más frío que lo normal"]}, f"pestaña Clima: {rc}")
             # Vulnerabilidad: el censo se carga al abrir la pestaña; mapa en canvas, leyenda de 5 rangos + «Pocos casos»,
@@ -239,10 +245,29 @@ def main():
                   rango: [vulEstilo({ properties: { ...g.properties, a: [20, 100] } }).fillColor === token('--v2'),
                           vulEstilo({ properties: { ...g.properties, a: [100, 100] } }).fillColor === token('--v5'),
                           vulEstilo(gris).fillColor === token('--neutro')],
-                  globo: vulGlobo({ ...gris, id: 'X' }).includes('pocos casos') && !vulGlobo({ ...gris, id: 'X' }).includes('%') };
+                  globo: vulGlobo({ ...gris, id: 'X' }).includes('pocos casos') && !vulGlobo({ ...gris, id: 'X' }).includes('%'),
+                  // denominador 0: no se dibuja; manzana extensa: solo contorno, sin relleno
+                  sinCero: vulVisibles().features.every(f => f.properties[vulInd().k][1] > 0) && vulVisibles().features.length < D.censo.features.length,
+                  extensa: vulEstilo(D.censo.features.find(f => f.properties.km2)).fill === false,
+                  // sectores: solo con base de 30 o más; 3 frases; críticos por encima del promedio, de mayor a menor
+                  hex30: hexVisibles().features.every(h => h.properties[vulInd().k][1] >= 30),
+                  frases: document.querySelectorAll('#vul-frases p').length,
+                  criticos: (() => { const i = vulInd(), t = vulTotal(i.k), ids = [...document.querySelectorAll('#vul-criticos [data-hex]')].map(b => b.dataset.hex);
+                    const hs = ids.map(id => D.censo.hexagonos.features.find(h => h.id === id).properties[i.k]);
+                    return ids.length <= 5 && hs.every(x => x[0] / x[1] > t[0] / t[1]) && hs.every((x, j) => !j || hs[j - 1][0] >= x[0]); })(),
+                  proporcion: [proporcion(26.7), proporcion(62), proporcion(97)].map(x => x.join('|')) };
             }""")
-            revisar(rv == {"canvas": True, "leyenda": 6, "filas": 4, "total": True, "rango": [True, True, True], "globo": True},
+            revisar(rv == {"canvas": True, "leyenda": 5, "filas": 4, "total": True, "rango": [True, True, True], "globo": True, "sinCero": True, "extensa": True,
+                           "hex30": True, "frases": 3, "criticos": True, "proporcion": ["1 de cada 4|false", "6 de cada 10|true", "casi todas las|true"]},
                     f"pestaña Vulnerabilidad: {rv}")
+            # zoom 16: manzanas; vista de número: sectores aunque se acerque
+            rz = pg.evaluate("""async () => { const m = await vulP; m.setZoom(16); await new Promise(r => setTimeout(r, 400));
+                const mz = m.hasLayer(vulCapa) && !m.hasLayer(vulHex);
+                $('f-vista-vul').value = 'num'; $('f-vista-vul').dispatchEvent(new Event('change')); await new Promise(r => setTimeout(r, 300));
+                const num = m.hasLayer(vulHex) && !m.hasLayer(vulCapa);
+                $('f-vista-vul').value = 'pct'; $('f-vista-vul').dispatchEvent(new Event('change'));
+                return { mz, num, claseNum: [claseNum({ tipo: 'viv' }, 24), claseNum({ tipo: 'viv' }, 25), claseNum({ tipo: 'viv' }, 250)] }; }""")
+            revisar(rz == {"mz": True, "num": True, "claseNum": [0, 1, 4]}, f"vulnerabilidad, zoom y vista: {rz}")
             revisar(r["sal"] == r["esperado"] and r["regla"] and r["desfasada"],
                     f"título de salud «{r['sal']}», esperado «{r['esperado']}», regla {r['regla']}, serie desfasada {r['desfasada']}")
             pg.close()

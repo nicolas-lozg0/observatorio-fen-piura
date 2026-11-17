@@ -83,6 +83,29 @@ python3 scripts/test_pagina.py
 - **Requisito, una sola vez:** `pip3 install playwright`. No hace falta `playwright install`: en macOS 12 Playwright no trae navegador, y la prueba usa Brave o Chrome si están instalados. Con otro navegador basado en Chromium: `NAVEGADOR=/ruta/al/ejecutable python3 scripts/test_pagina.py`.
 - **Dónde corre:** solo en tu computadora; no va en el workflow.
 
+## Comunicado del ENFEN (a mano, cada 15 días aproximadamente)
+
+La tarjeta del ENFEN en la pestaña Clima sale de `docs/data/enfen_comunicado.json`, que se llena a mano con cada comunicado oficial. Si el ENFEN publica uno nuevo, el paso «Aviso de comunicado nuevo del ENFEN» del workflow diario falla y el resumen lo dice; la página también avisa «Dato no actualizado» a los 20 días.
+
+1. Abre el comunicado (PDF) desde https://enfen.imarpe.gob.pe/comunicados/ y el Informe Técnico del mismo número.
+2. Edita `docs/data/enfen_comunicado.json`:
+
+   | Campo | Qué poner | Ejemplo (N.° 20-2026) |
+   | --- | --- | --- |
+   | `numero` | Número y año del comunicado | `"20-2026"` |
+   | `fecha_corte` | Fecha del comunicado (aaaa-mm-dd) | `"2026-11-13"` |
+   | `estado` | Estado del sistema de alerta, tal como lo dice el encabezado | `"Alerta de El Niño costero"` |
+   | `magnitud` | Magnitud prevista del evento costero | `"Extraordinaria"` |
+   | `horizonte` | Hasta cuándo se espera | `"Hasta febrero de 2027; se debilitaría hasta julio de 2027"` |
+   | `puntos` | 2 o 3 puntos clave para Piura, de 20 palabras como máximo cada uno, con palabras del comunicado | lluvias, caudales del río Piura, temperatura del aire |
+   | `url_pdf` | Enlace al PDF, sin el parámetro `&refresh=…` | `…/comunicado-oficial-enfen-n-20-2026/?wpdmdl=2218` |
+   | `proximo` | Fecha del próximo comunicado, si el texto la dice (al final) | `"2026-11-30"` |
+   | `paita_costera` | Anomalía de la TSM en la estación costera de Paita (IMARPE), con su periodo, tomada del Informe Técnico (sección de estaciones costeras) | `8.6`, «del 1 al 9 de noviembre de 2026» |
+   | `actualizado_a_mano` | Fecha en que editaste el archivo | `"2026-11-16"` |
+
+3. Corre `python3 scripts/test_clima.py` (revisa que estén todos los campos y que los puntos no pasen de 20 palabras) y `python3 scripts/enfen.py` (debe decir que el JSON tiene el último comunicado).
+4. Haz commit y push.
+
 ## Otra opción a futuro
 
 Si el profesor prefiere no depender de una computadora, se puede instalar un *self-hosted runner* de GitHub en una máquina en Perú (por ejemplo, un servidor de la UDEP). El workflow correría ahí y estas dos fuentes volverían a ser automáticas. Requiere una máquina encendida siempre y la autorización de DIRCOM o de TI.

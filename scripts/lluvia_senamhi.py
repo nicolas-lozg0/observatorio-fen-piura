@@ -22,7 +22,7 @@ MAPA = "https://www.senamhi.gob.pe/mapas/mapa-estaciones-2/"
 ESTACION = MAPA + "map_red_graf.php?cod={cod}&estado={estado}&tipo_esta={ico}&cate={cate}&cod_old="
 CONVENCIONALES = {"CO", "CP", "MAP", "PLU"}  # climatológica ordinaria y principal, agrometeorológica principal, pluviométrica
 CAJA = (-6.4, -4.0, -81.4, -79.2)  # lat y lon del departamento de Piura, con margen; se confirma con «Dep.: PIURA»
-SERIES = ["105063", "105106", "104058"]  # San Miguel (ciudad de Piura), Morropón y Ayabaca: series de 30 días
+SERIES = ["105012", "105106", "104058"]  # Bernal (Bajo Piura, 31 km de la ciudad), Morropón y Ayabaca: series de 30 días
 MINIMO = 10  # estaciones de Piura que deben leerse; menos indica que la página cambió
 
 

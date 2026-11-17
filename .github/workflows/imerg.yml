@@ -1,0 +1,40 @@
+# Lluvia de 24 h estimada por satélite (NASA IMERG Early) sobre Piura, de 7:00 a 7:00 de Lima.
+# Corre aparte del flujo diario porque IMERG Early sale unas 4 horas después de cada media hora: a las 12:30 de Lima
+# ya está completa la ventana que cerró a las 7:00. El token de Earthdata va en el secreto EARTHDATA_TOKEN y solo se
+# pasa como variable de entorno al paso que lo usa.
+name: Lluvia por satélite (IMERG)
+
+on:
+  schedule:
+    - cron: "30 17 * * *"  # 12:30 hora de Perú
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  imerg:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - run: python scripts/test_clima.py
+      - name: Descargar y sumar IMERG
+        env:
+          EARTHDATA_TOKEN: ${{ secrets.EARTHDATA_TOKEN }}
+        run: python scripts/imerg_piura.py
+      - name: Guardar datos nuevos
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/data/imerg_piura.json
+          git diff --cached --quiet || git commit -m "Actualiza lluvia por satélite $(date -u +%F)"
+          for i in 1 2 3; do
+            git pull --rebase && git push && break
+            [ "$i" = 3 ] && exit 1
+            echo "Push falló (intento $i de 3); nuevo intento en $((15 * i)) s"; sleep $((15 * i))
+          done

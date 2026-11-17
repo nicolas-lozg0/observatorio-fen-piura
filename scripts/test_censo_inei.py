@@ -34,6 +34,39 @@ for f in d["features"]:
     lon, lat = f["geometry"]["coordinates"][0][0][0] if f["geometry"]["type"] == "MultiPolygon" else f["geometry"]["coordinates"][0][0]
     assert -81.4 < lon < -79.2 and -6.4 < lat < -4.0, (f["id"], lon, lat)  # WGS84 (no UTM), dentro del departamento de Piura
 
+# Manzanas extensas (campus de la UDEP, aeropuerto): marcadas con su área; el resto, sin marca
+def km2_aprox(geo):
+    """Área aproximada (fórmula del cordón, grados → km² con cos 5,2° ≈ 0,996), sin librerías: corre en Actions."""
+    anillo = lambda r: abs(sum(x0 * y1 - x1 * y0 for (x0, y0), (x1, y1) in zip(r, r[1:]))) / 2
+    pols = [geo["coordinates"]] if geo["type"] == "Polygon" else geo["coordinates"]
+    return sum(anillo(p[0]) - sum(anillo(h) for h in p[1:]) for p in pols) * 111.32 ** 2 * 0.996
+
+
+extensas = {f["id"]: f["properties"] for f in d["features"] if "km2" in f["properties"]}
+assert {"20010100300059", "20010401400006A"} <= set(extensas), "el campus de la UDEP y el aeropuerto deben ser extensas"
+for k, p in extensas.items():
+    assert p["km2"] > 0.05 and p["v"] < 1000 * p["km2"], (k, p["km2"], p["v"])
+for f in d["features"]:
+    if "km2" not in f["properties"]:  # área aproximada en grados → km² (cos 5,2° ≈ 0,996): ninguna grande y vacía sin marca
+        km2 = km2_aprox(f["geometry"])
+        assert not (km2 > 0.06 and f["properties"]["v"] < 900 * km2), (f["id"], km2, f["properties"]["v"])
+# Denominador 0 en algún indicador: existen (la página no las dibuja); nunca un numerador mayor que 0 sobre 0
+assert any(f["properties"]["d"][1] == 0 for f in d["features"])
+assert all(not (f["properties"][k][1] == 0 and f["properties"][k][0] > 0) for f in d["features"] for k in ks)
+
+# Hexágonos: suman exactamente las manzanas que no son extensas (numeradores, denominadores y número de manzanas)
+hx = d["hexagonos"]["features"]
+assert d["hexagonos"]["resolucion"] == 9 and d["hexagonos"]["minimo"] == 30
+assert len({h["id"] for h in hx}) == len(hx)
+normales = [f["properties"] for f in d["features"] if "km2" not in f["properties"]]
+assert sum(h["properties"]["m"] for h in hx) == len(normales)
+for k in ks:
+    for j in (0, 1):
+        assert sum(h["properties"][k][j] for h in hx) == sum(p[k][j] for p in normales), (k, j)
+    assert all(0 <= h["properties"][k][0] <= h["properties"][k][1] for h in hx), k
+assert sum(1 for h in hx if h["properties"]["n"]) > 0.8 * len(hx), "la mayoría de los sectores debe tener nombre"
+assert all(set(i["frase"]) and len(i["frase"]) == 3 for i in d["indicadores"])
+
 assert len(ids) == c["con_poligono"] == sum(x["manzanas"] for x in d["distritos"].values())
 # Totales por distrito = manzanas del mapa + dispersas (en los denominadores de viviendas y población)
 for u, x in d["distritos"].items():
