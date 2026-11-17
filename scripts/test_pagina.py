@@ -126,7 +126,7 @@ def main():
                 # Todo var(--token) usado en la página (estilos y SVG generados) debe estar definido
                 sin_definir = pg.evaluate("""() => { const css = getComputedStyle(document.documentElement);
                     const usados = new Set([...document.documentElement.outerHTML.matchAll(/var\\((--[\\w-]+)[),]/g)].map(m => m[1]));
-                    return [...usados].filter(v => !['--c', '--x', '--p', '--n', '--prom'].includes(v) && !css.getPropertyValue(v).trim()); }""")
+                    return [...usados].filter(v => !['--c', '--x', '--p', '--n', '--prom', '--t'].includes(v) && !css.getPropertyValue(v).trim()); }""")
                 revisar(not sin_definir, f"{ancho}px: tokens sin definir: {sin_definir}")
                 revisar(not errores, f"{ancho}px: errores en la consola: {errores[:3]}")
                 pg.close()
@@ -225,13 +225,19 @@ def main():
                   circulos: document.querySelectorAll('#mapa-lluvia path.leaflet-interactive').length >= D.lluvia.estaciones.length,
                   imerg: D.imerg ? true : /no cargó/i.test(document.getElementById('nota-imerg').textContent),
                   clases: [claseLluvia(0.5), claseLluvia(1), claseLluvia(49.9), claseLluvia(50)],
-                  titulos: [tsmTitulo(0.4), tsmTitulo(8.03), tsmTitulo(-1.2)] };
+                  titulos: [tsmTitulo(0.4), tsmTitulo(8.03), tsmTitulo(-1.2)],
+                  // temperatura (ronda 18): después del mar y antes del radar, con su gráfico de 4 líneas y la nota de reanálisis
+                  temp: (() => { const cl = ps.map(p => [...p.classList].find(c => c.startsWith('clima-')));
+                    return cl.indexOf('clima-temp') === cl.indexOf('clima-mar') + 1 && cl.indexOf('clima-rios') < cl.indexOf('clima-radar')
+                      && document.querySelectorAll('#g-temp polyline').length === 4
+                      && /Reanálisis, no estación/.test(document.querySelector('.clima-temp').textContent)
+                      && /a esta fecha de 1997 estaba/.test(document.querySelector('.clima-temp h3').textContent); })() };
                 const guardado = D.tsm; D.tsm = null; pintarClima();
                 r.sinTsm = document.querySelectorAll('#clima-paneles .pendiente').length === 1;
                 D.tsm = guardado; pintarClima(); graficosClima();
                 return r; }""")
-            revisar(rc == {"paneles": 5, "detalle": 3, "radar": True, "lluvia": 3, "nino": True, "estado": True, "top5": True, "circulos": True,
-                           "imerg": True, "clases": [-1, 0, 3, 4], "sinTsm": True,
+            revisar(rc == {"paneles": 7, "detalle": 4, "radar": True, "lluvia": 3, "nino": True, "estado": True, "top5": True, "circulos": True,
+                           "imerg": True, "clases": [-1, 0, 3, 4], "sinTsm": True, "temp": True,
                            "titulos": ["El mar frente a Paita está cerca de lo normal", "El mar frente a Paita está 8,0 °C más caliente que lo normal",
                                        "El mar frente a Paita está 1,2 °C más frío que lo normal"]}, f"pestaña Clima: {rc}")
             # Lluvia, una sola fecha (ronda 17): para cada estación, la última barra de su serie (globo) tiene el mismo día y los
@@ -285,25 +291,38 @@ def main():
                   // los % de la leyenda suman 100 (mayor resto) y una clase con casos que redondea a 0 dice «menos de 1 %»
                   enteros: [enteros100([1, 1, 1]), enteros100([0.2, 50, 49.8, 0, 0]), pctClase(0, 3), pctClase(0, 0)].map(String),
                   suma100: [...document.querySelectorAll('#vul-leyenda .grilla-clases b')].reduce((s, b) => s + (parseInt(b.textContent) || 0), 0),
-                  fraseBarra: document.querySelector('#vul-leyenda .frase-barra').textContent.startsWith('De cada 100 viviendas de Piura metropolitana, '),
+                  fraseBarra: document.querySelector('#vul-leyenda .frase-barra').textContent.startsWith('De cada 100 viviendas de la ciudad de Piura, '),
                   comparacion: (() => { const fs = [...document.querySelectorAll('#vul-localidades .fila-loc')], ps = fs.map(f => +f.querySelector('.barra').style.getPropertyValue('--p'));
                     const ls = D.censo.localidades, prom = pct(ls.reduce((s, x) => s + x.a[0], 0), ls.reduce((s, x) => s + x.a[1], 0));
                     return fs.length === ls.length && ps.every((p, j) => !j || ps[j - 1] >= p) && fs.filter(f => f.classList.contains('sel')).length === 1
                       && Math.abs($('vul-localidades').style.getPropertyValue('--prom') - prom) < 1e-9
-                      && /en número, la mayoría está en Piura metropolitana/.test($('vul-comp-titular').textContent); })(),
+                      && /en número, la mayoría está en la ciudad de Piura/.test($('vul-comp-titular').textContent); })(),
                   borde: hexEstilo(conA([0, 100])).weight > 0 && hexEstilo(conA([0, 100])).fillOpacity === 1,
                   multiplicar: getComputedStyle(document.querySelector('#mapa-vul .leaflet-tile-pane')).mixBlendMode,
                   hex30: hexVisibles().features.every(x => x.properties[vulInd().k][1] >= 30),
-                  frases: document.querySelectorAll('#vul-frases p').length,
+                  // una fila de casas por distrito, de mayor a menor %, con 10 casas y su texto alternativo; sin la línea del total
+                  frases: (() => { const fs = [...document.querySelectorAll('#vul-frases .fila-casas')], ds = Object.values(D.censo.distritos);
+                    const ps = fs.map(f => +f.querySelector('p').textContent.match(/\\(([\\d,]+) %\\)/)[1].replace(',', '.'));
+                    return fs.length === ds.length && ds.every(x => fs.some(f => f.querySelector('p').textContent.startsWith(lugar(x.nombre) + ':')))
+                      && ps.every((p, j) => !j || ps[j - 1] >= p) && fs.every(f => { const s = f.querySelector('svg');
+                        return s.getAttribute('role') === 'img' && s.getAttribute('aria-label') + '.' === f.querySelector('p').textContent
+                          && s.getAttribute('focusable') === 'false' && s.querySelectorAll('g path').length === 10; })
+                      && !/En toda/.test($('vul-frases').textContent); })(),
+                  decimos: [decimos(31.9), decimos(3), decimos(98.1), decimos(100), decimos(12)].map(x => x.join('|')),
+                  // los 5 sectores: más de la mitad afectada, de mayor a menor número, con su barra y su cifra
                   criticos: (() => { const ids = [...document.querySelectorAll('#vul-criticos [data-hex]')].map(b => b.dataset.hex);
                     const hs = ids.map(id => D.censo.hexagonos.features.find(x => x.id === id).properties[i.k]);
-                    return ids.length <= 5 && hs.every(x => x[0] / x[1] > t[0] / t[1]) && hs.every((x, j) => !j || hs[j - 1][0] >= x[0]); })(),
+                    return ids.length === 5 && hs.every(x => x[0] > x[1] / 2) && hs.every((x, j) => !j || hs[j - 1][0] >= x[0])
+                      && document.querySelectorAll('#vul-criticos .barra-crit').length === 5
+                      && /sectores más críticos están en/.test($('vul-criticos-titulo').textContent)
+                      && /^Sectores donde más de la mitad de las viviendas no tienen desagüe/.test($('vul-criticos-sub').textContent); })(),
                   proporcion: [proporcion(26.7), proporcion(62), proporcion(97)].map(x => x.join('|')) };
             }""")
             revisar(rv == {"canvas": True, "leyenda": 10, "barra": 100, "sinManzanas": True, "filas": 4, "total": True, "clases": [0, 1, 3, 4],
                            "rotulos": ["Casi todas", "80–100 %", "0–5 %", "16 % o más", "menos de 4 %"],
                            "enteros": ["34,33,33", "0,50,50,0,0", "menos de 1 %", "0 %"], "suma100": 100, "fraseBarra": True, "comparacion": True, "borde": True, "multiplicar": "multiply",
-                           "hex30": True, "frases": 3, "criticos": True, "proporcion": ["1 de cada 4|false", "6 de cada 10|true", "casi todas las|true"]},
+                           "hex30": True, "frases": True, "criticos": True,
+                           "decimos": ["3 de cada 10|true", "menos de 1 de cada 10|false", "casi 10 de cada 10|true", "10 de cada 10|true", "1 de cada 10|false"], "proporcion": ["1 de cada 4|false", "6 de cada 10|true", "casi todas las|true"]},
                     f"pestaña Vulnerabilidad: {rv}")
             # Zoom 15: hexágonos de 130 m (mínimo 20); zoom 16: manzanas (denominador 0 no se dibuja, extensas sin relleno, gris con
             # pocos casos); vista de número: densidad por hectárea de manzana en el mismo nivel; localidades sin el nivel de 130 m
@@ -321,17 +340,22 @@ def main():
                 $('f-vista-vul').value = 'pct'; $('f-vista-vul').dispatchEvent(new Event('change'));
                 const conHa = (n, ha) => ({ properties: { a: [n, 100], ha } }), ia = { k: 'a', densidad: [5, 10, 20, 40] };
                 r.claseNum = [claseNum(ia, conHa(4.9, 1)), claseNum(ia, conHa(10, 2)), claseNum(ia, conHa(400, 2)), claseNum(ia, conHa(5, 0))];
-                // Otra localidad: se carga su archivo, la tabla la marca, las frases la nombran y se ve un solo nivel
+                // clic en el primer sector crítico: zoom 14, borde de resalte y su globo abierto
+                await vulNivel(m); document.querySelector('#vul-criticos button').click(); await espera(600);
+                const abierto = !!vulCapas.globo && m.hasLayer(vulCapas.globo) && vulCapas.globo.getContent().includes(vulGlobo(D.censo.hexagonos.features.find(x => x.id === document.querySelector('#vul-criticos button').dataset.hex)).slice(0, 30));
+                r.clic = !!vulCapas.resalte && m.hasLayer(vulCapas.resalte) && m.getZoom() === 14 && abierto;
+                // Otra localidad: se carga su archivo, la tabla la marca, las frases la nombran y se ve un solo nivel; el resalte se va
                 $('f-loc').value = 'catacaos'; await cambiarLoc(); await espera(300);
                 r.loc = !!vulDatos.catacaos?.h9 && document.querySelector('#vul-localidades .fila-loc.sel')?.textContent.includes('Catacaos')
-                  && document.querySelector('#vul-frases p').textContent.startsWith('En Catacaos')
+                  && document.querySelector('#vul-frases .fila-casas p').textContent.startsWith('Catacaos:')
+                  && document.querySelectorAll('#vul-frases .fila-casas').length === 2 && !vulCapas.resalte
                   && document.querySelector('#vul-leyenda .frase-barra').textContent.includes('de Catacaos')
                   && ['h9', 'h10', 'mz'].filter(n => vulCapas[n] && m.hasLayer(vulCapas[n])).length === 1;
                 m.setZoom(15); await espera(300); await vulNivel(m);
                 r.sin130 = m.hasLayer(vulCapas.mz) && !vulCapas.h10 && !vulDatos.catacaos.h10;
                 $('f-loc').value = 'metro'; await cambiarLoc();
                 return r; }""")
-            revisar(rz == {"h10": True, "mz": True, "sinCero": True, "extensa": True, "gris": True, "globo": True, "num": True, "claseNum": [0, 1, 4, 0], "loc": True, "sin130": True},
+            revisar(rz == {"h10": True, "mz": True, "sinCero": True, "extensa": True, "gris": True, "globo": True, "num": True, "claseNum": [0, 1, 4, 0], "loc": True, "sin130": True, "clic": True},
                     f"vulnerabilidad, zoom y vista: {rz}")
             revisar(r["sal"] == r["esperado"] and r["regla"] and r["desfasada"],
                     f"título de salud «{r['sal']}», esperado «{r['esperado']}», regla {r['regla']}, serie desfasada {r['desfasada']}")

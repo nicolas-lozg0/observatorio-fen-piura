@@ -26,9 +26,9 @@ assert all(cortes[k] == [5, 20, 50, 80] for k in "abcdhi")
 assert [len(i.get("palabras", [])) for i in d["indicadores"]] == [5, 5, 5, 5, 0, 0, 0, 5, 5]
 assert cortes["e"] == [15, 20, 25, 30] and cortes["f"] == [4, 8, 12, 16] and cortes["g"] == [30, 50, 65, 80]
 assert "adobe" in [i for i in d["indicadores"] if i["k"] == "h"][0]["numerador"] and "no incluye adobe" in [i for i in d["indicadores"] if i["k"] == "h"][0]["numerador"]
-# Localidades: Piura metropolitana primero y luego los centros poblados de 2000 viviendas o más, cada uno con su archivo
+# Localidades: Ciudad de Piura primero y luego los centros poblados de 2000 viviendas o más, cada uno con su archivo
 locs = d["localidades"]
-assert locs[0]["id"] == "metro" and len(locs) == 8, [x["id"] for x in locs]
+assert locs[0]["id"] == "metro" and locs[0]["nombre"] == "Ciudad de Piura" and len(locs) == 8, [x["id"] for x in locs]
 for x in locs:
     assert all(0 <= x[k][0] <= x[k][1] for k in ks), x["id"]
     if x["id"] == "metro":
@@ -99,7 +99,7 @@ for nivel in (hx, h10["features"]):  # los dos niveles suman lo mismo que las ma
 assert sum(1 for h in hx if h["properties"]["n"]) > 0.8 * len(hx), "la mayoría de los sectores debe tener nombre"
 assert all(set(i["frase"]) and len(i["frase"]) == 3 for i in d["indicadores"])
 
-# Piura metropolitana: sus manzanas del mapa; la coincidencia cuenta las de todas las localidades
+# Ciudad de Piura: sus manzanas del mapa; la coincidencia cuenta las de todas las localidades
 assert len(ids) == locs[0]["manzanas"] == sum(x["manzanas"] for x in d["distritos"].values())
 assert c["con_poligono"] == sum(x["manzanas"] for x in locs)
 # Totales por distrito = manzanas del mapa + dispersas (en los denominadores de viviendas y población)
@@ -120,4 +120,11 @@ assert all("ha" in f["properties"] for f in d["features"])
 area_mz = sum(f["properties"]["ha"] for f in d["features"] if "km2" not in f["properties"])
 area_hex = sum(h["properties"]["ha"] for h in d["hexagonos"]["features"])
 assert abs(area_mz - area_hex) / area_mz < 0.01, (area_mz, area_hex)
-print(f"Densidad: {area_hex:.0f} ha de manzanas en los sectores de Piura metropolitana (manzanas: {area_mz:.0f} ha)")
+print(f"Densidad: {area_hex:.0f} ha de manzanas en los sectores de Ciudad de Piura (manzanas: {area_mz:.0f} ha)")
+
+# Nombres de los sectores (ronda 18): «Sector …» o vacío, sin «Asentamiento Humano» ni «AA.HH.» (pasan a «A. H.»), sin espacios dobles
+import re as _re
+nombres = [h["properties"]["n"] for h in d["hexagonos"]["features"]]
+assert all(n == "" or n.startswith("Sector ") for n in nombres), [n for n in nombres if n and not n.startswith("Sector ")][:5]
+assert not [n for n in nombres if _re.search(r"(?i)asentamiento humano|AA\.?HH|  ", n)], [n for n in nombres if _re.search(r"(?i)asentamiento humano|AA\.?HH|  ", n)][:5]
+assert "Piura metropolitana" not in RUTA.read_text(encoding="utf-8")

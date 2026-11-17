@@ -1,5 +1,5 @@
 """
-Censo 2025 (INEI) por manzana para la pestaña Vulnerabilidad: Piura metropolitana (Piura, Castilla y Veintiséis de Octubre)
+Censo 2025 (INEI) por manzana para la pestaña Vulnerabilidad: Ciudad de Piura (Piura, Castilla y Veintiséis de Octubre)
 y los centros poblados urbanos de 2000 viviendas o más de los otros distritos de la provincia de Piura.
 
 Se corre a mano, una sola vez (el censo no cambia). Los archivos de origen los entregó el INEI y no van al repositorio
@@ -34,7 +34,7 @@ CRUDO = RAIZ / "data" / "raw" / "inei_censo2025"
 TABULADOS = CRUDO / "tabulados" / "CPV 2025 - Pob viv hogar - Mz Agrupadas - Piura.xlsx"
 MANZANAS = CRUDO / "cartografia" / "manzanas" / "base MANZANA CPV2025.gdb"
 LIMITES = CRUDO / "cartografia" / "distritos" / "Límites distritales - CPV2025" / "DISTRITOS26.shp"
-# Piura metropolitana: se buscan por nombre en los tabulados (provincia de Piura) y se verifica su ubigeo
+# Ciudad de Piura: se buscan por nombre en los tabulados (provincia de Piura) y se verifica su ubigeo
 DISTRITOS = ["PIURA", "CASTILLA", "VEINTISEIS DE OCTUBRE"]
 CODIGO = re.compile(r"\d{11}[0-9A-ZÑ]{3,4}")  # ubigeo (6) + zona (5) + manzana (3, o 4 con letra; 9999 = dispersas)
 MINIMO = {"viv": 10, "pob": 30}  # por debajo, la manzana va en gris («Pocos casos») en ese indicador
@@ -45,8 +45,8 @@ TOLERANCIA = 1e-5  # simplificación en grados (≈ 1 m en Piura)
 EXTENSA_KM2, EXTENSA_DENSIDAD = 0.05, 1000
 DECIMALES = 5      # coordenadas con 5 decimales (≈ 1 m)
 
-# Materiales de paredes que cuentan como precarios (decisión de Germán Vega; sin adobe desde la ronda 16: en Piura
-# metropolitana es el 1,4 % de las viviendas y es un material tradicional, no improvisado)
+# Materiales de paredes que cuentan como precarios (decisión de Germán Vega; sin adobe desde la ronda 16: en la
+# Ciudad de Piura es el 1,4 % de las viviendas y es un material tradicional, no improvisado)
 PRECARIOS = ["tapia", "quincha (cana con barro)", "piedra con barro", "madera (pona, tornillo, etc)", "triplay/ calamina/ estera"]
 
 # Indicadores: k, rótulo, tipo (denominador de viviendas o de población), numerador y denominador en palabras.
@@ -233,7 +233,7 @@ CORTES = {**{k: ESCALA for k in "abcdhi"}, "e": [15, 20, 25, 30], "f": [4, 8, 12
 DENSIDAD = {**{k: [5, 10, 20, 40] for k in "abcdhif"}, "e": [10, 20, 40, 80], "g": [25, 50, 100, 200]}
 NOTAS = {"e": "Más alto = más población dependiente (no es una carencia).",
          "f": "Más alto = más población dependiente (no es una carencia)."}
-# Localidades además de Piura metropolitana: centros poblados de los otros distritos de la provincia con al menos estas
+# Localidades además de Ciudad de Piura: centros poblados de los otros distritos de la provincia con al menos estas
 # viviendas (ronda 16: con 2000 entran 7; con 500 entraban 31, muchos con 2 a 5 hexágonos). Nombre con tildes para la página.
 PROVINCIA = "2001"
 LOCALIDAD_MIN = 2000
@@ -316,8 +316,26 @@ def nombres_osm(hexs, loc):
         cerca = lambda xs: min(((g.distance(c) * grado, n) for g, n in xs), default=(1e9, None))
         d1, n1 = cerca(lugares)
         d2, n2 = cerca(vias)
-        h["properties"]["n"] = z[0] if z else n1 if d1 < 400 else f"cerca de {n2}" if d2 < 300 else ""
+        # ronda 18: «Sector [nombre]» si el centro cae en la zona; «Sector cerca de [nombre]» si es un barrio o vía cercana
+        h["properties"]["n"] = (f"Sector {limpiar_nombre(z[0])}" if z else f"Sector cerca de {limpiar_nombre(n1)}" if d1 < 400
+                                else f"Sector cerca de {limpiar_nombre(n2)}" if d2 < 300 else "")
     return hexs
+
+
+MINUSCULAS = {"de", "del", "la", "las", "los", "el", "y", "e", "en"}
+
+
+def limpiar_nombre(s):
+    """Nombres uniformes: «Asentamiento Humano», «AA.HH.», «AAHH» y «A.H.» pasan a «A. H.»; sin espacios dobles; un nombre
+    todo en mayúsculas pasa a mayúscula inicial (las palabras cortas, en minúscula)."""
+    s = re.sub(r"\s+", " ", s).strip()
+    s = re.sub(r"(?i)^(asentamiento\s+humano|a\.?\s?a\.?\s?h\.?\s?h\.?|a\.\s?h\.)\s*", "A. H. ", s)
+    resto = s[6:] if s.startswith("A. H. ") else s
+    if resto.isupper() and len(resto.split()) > 1:
+        palabras = resto.lower().split()
+        resto = " ".join(w if j and w in MINUSCULAS else w[:1].upper() + w[1:] for j, w in enumerate(palabras))
+        s = ("A. H. " if s.startswith("A. H. ") else "") + resto
+    return s
 
 
 def redondear(c):
@@ -337,14 +355,14 @@ def main():
     if (datos["P"][0] != datos["V"][0]).any():
         sys.exit("Las hojas POBLACION y VIVIENDA no traen las mismas manzanas en el mismo orden")
 
-    # Provincia de Piura (ubigeo 2001xx). Distritos de Piura metropolitana: ubigeo verificado en los datos, no supuesto
+    # Provincia de Piura (ubigeo 2001xx). Distritos de Ciudad de Piura: ubigeo verificado en los datos, no supuesto
     dp0 = datos["P"]
     nombres = {norm(d).upper(): d for d in DISTRITOS}
     ubis = (dp0[(dp0[3].map(norm) == "piura") & dp0[4].map(lambda x: norm(x).upper() in nombres)]
             .groupby(1)[4].first().to_dict())
     if len(ubis) != len(DISTRITOS):
         sys.exit(f"Se esperaban {len(DISTRITOS)} distritos y se encontraron {ubis}")
-    print("Ubigeos de Piura metropolitana:", ubis)
+    print("Ubigeos de Ciudad de Piura:", ubis)
     sel = dp0[1].str.startswith(PROVINCIA)
     for h in datos:
         datos[h] = datos[h][sel].reset_index(drop=True)
@@ -383,7 +401,7 @@ def main():
     ind = indicadores(datos["P"], datos["V"], P, V)
     ind["ccpp"] = datos["P"][6].values
     ind["nombre_ccpp"] = datos["P"][5].values
-    # Localidad de cada manzana: Piura metropolitana (los 3 distritos completos) o un centro poblado urbano de otro distrito
+    # Localidad de cada manzana: Ciudad de Piura (los 3 distritos completos) o un centro poblado urbano de otro distrito
     # de la provincia con LOCALIDAD_MIN viviendas o más (las dispersas de ese centro poblado cuentan en su total)
     clave = ind["ubigeo"] + "-" + ind["ccpp"]
     tam = ind[~ind["ubigeo"].isin(ubis)].groupby(clave)["v"].sum()
@@ -419,21 +437,21 @@ def main():
     poligonos_sin_tabulado = len(metro_cod - set(tab["codigo"]))
     tasa = 1 - len(sin_poligono) / len(tab)
     print(f"Unión: {len(tab) - len(sin_poligono)} de {len(tab)} manzanas con polígono ({100 * tasa:.2f} %); "
-          f"sin polígono: {sin_poligono[:20]}; polígonos de Piura metropolitana sin tabulado: {poligonos_sin_tabulado}")
+          f"sin polígono: {sin_poligono[:20]}; polígonos de Ciudad de Piura sin tabulado: {poligonos_sin_tabulado}")
 
     unidos = unidos[unidos["geometry"].notna()].reset_index(drop=True)
     # área real en km² (UTM 17 S, metros), con la geometría sin simplificar
     unidos["km2"] = geopandas.GeoSeries(unidos["geometry"].values, crs=4326).to_crs(32717).area.values / 1e6
     unidos["extensa"] = (unidos["km2"] > EXTENSA_KM2) & (unidos["v"] < EXTENSA_DENSIDAD * unidos["km2"])
     ext = unidos["extensa"] & (unidos["loc"] == "metro")
-    print(f"Manzanas extensas en Piura metropolitana (> {EXTENSA_KM2} km² y < {EXTENSA_DENSIDAD} viv/km²): {int(ext.sum())}; "
+    print(f"Manzanas extensas en Ciudad de Piura (> {EXTENSA_KM2} km² y < {EXTENSA_DENSIDAD} viv/km²): {int(ext.sum())}; "
           f"en las otras localidades: {int((unidos['extensa'] & ~ext).sum())}")
     geoms = shapely.set_precision(shapely.simplify(unidos["geometry"].values, TOLERANCIA, preserve_topology=True), 10 ** -DECIMALES)
     vacias = shapely.is_empty(geoms).sum()
     if vacias:
         sys.exit(f"{vacias} manzanas quedaron vacías al simplificar: baja TOLERANCIA")
 
-    # Límites de los tres distritos de Piura metropolitana (INEI, CPV 2025): solo el contorno, para orientarse en el mapa
+    # Límites de los tres distritos de Ciudad de Piura (INEI, CPV 2025): solo el contorno, para orientarse en el mapa
     lm = ",".join(f"'{u}'" for u in ubis)
     dist = pyogrio.read_dataframe(LIMITES, where=f"UBIGEO IN ({lm})", columns=["UBIGEO"])
     if dist.crs is None or dist.crs.to_epsg() != 4326:
@@ -469,7 +487,7 @@ def main():
         hexs10 = hexagonos(u, claves, 10)
         oculto = {res: 100 * sum(h["properties"]["v"] for h in hs if h["properties"]["a"][1] < NIVELES[res]) / max(1, int(u["v"].sum()))
                   for res, hs in ((9, hexs), (10, hexs10))}
-        nombre = "Piura metropolitana" if loc == "metro" else next(v for v in NOMBRES_LOC.values() if slug(v) == loc)
+        nombre = "Ciudad de Piura" if loc == "metro" else next(v for v in NOMBRES_LOC.values() if slug(v) == loc)
         print(f"{nombre}: {len(u)} manzanas, {len(hexs)} hexágonos de 350 m (ocultos {oculto[9]:.1f} % de las viviendas) "
               f"y {len(hexs10)} de 130 m (ocultos {oculto[10]:.1f} %); con nombre: {sum(1 for h in hexs if h['properties']['n'])}")
         b = shapely.bounds(shapely.union_all(u["geometry"].values))
@@ -489,13 +507,13 @@ def main():
         localidades.append(fila)
         time.sleep(2)  # una consulta a Overpass por localidad, sin apuro
 
-    # La base (se carga al abrir la pestaña): indicadores, Piura metropolitana con sus hexágonos de 350 m y la tabla de
+    # La base (se carga al abrir la pestaña): indicadores, Ciudad de Piura con sus hexágonos de 350 m y la tabla de
     # localidades. Lo demás (hexágonos de 130 m, manzanas y cada localidad) se carga cuando hace falta.
     guardar("censo_piura.json", {
         "fuente": "INEI, Censos Nacionales 2025, tabulados por manzana entregados el 13/11/2026",
         "url": "https://www.inei.gob.pe/",
         "fecha_corte": "2026-11-13",
-        "ambito": "Provincia de Piura: Piura metropolitana (Piura, Castilla y Veintiséis de Octubre) y los centros poblados "
+        "ambito": "Provincia de Piura: Ciudad de Piura (distritos de Piura, Castilla y Veintiséis de Octubre) y los centros poblados "
                   f"urbanos de {LOCALIDAD_MIN} viviendas o más de los otros distritos",
         "minimo": MINIMO,
         "indicadores": [{"k": k, "rotulo": rot, "tipo": t, "numerador": n, "denominador": d, "frase": FRASES[k],

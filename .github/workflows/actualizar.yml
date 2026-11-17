@@ -49,6 +49,13 @@ jobs:
       - id: nino12
         run: python scripts/nino12_cpc.py
         continue-on-error: true
+      # Temperatura del aire (ERA5-Land vía Open-Meteo, sin clave) y nivel de los ríos (Senamhi: solo 24 h, se acumula)
+      - id: temperatura
+        run: python scripts/temperatura_piura.py
+        continue-on-error: true
+      - id: rios
+        run: python scripts/rios_senamhi.py
+        continue-on-error: true
       # No escribe datos: falla si el ENFEN publicó un comunicado más reciente que docs/data/enfen_comunicado.json
       - id: enfen
         run: python scripts/enfen.py
@@ -74,6 +81,8 @@ jobs:
           TSM: ${{ steps.tsm.outcome }}
           NINO12: ${{ steps.nino12.outcome }}
           ENFEN: ${{ steps.enfen.outcome }}
+          TEMPERATURA: ${{ steps.temperatura.outcome }}
+          RIOS: ${{ steps.rios.outcome }}
         run: |
           fallidos=0
           {
@@ -83,6 +92,8 @@ jobs:
             echo "| --- | --- | --- |"
             for f in "Emergencia FEN (MEF)|fen_mef.py|$FEN" "IPC (INEI)|ipc_inei.py|$IPC" "Lluvia (Senamhi)|lluvia_senamhi.py|$LLUVIA" \
                      "Temperatura del mar (NOAA)|tsm_paita.py|$TSM" "Niño 1+2 semanal (NOAA CPC)|nino12_cpc.py|$NINO12" \
+                     "Temperatura del aire (ERA5-Land, Open-Meteo)|temperatura_piura.py|$TEMPERATURA" \
+                     "Nivel de los ríos (Senamhi, se acumula)|rios_senamhi.py|$RIOS" \
                      "Aviso de comunicado nuevo del ENFEN (falla = hay que actualizar el JSON a mano)|enfen.py|$ENFEN"; do
               IFS="|" read -r nombre script resultado <<< "$f"
               case "$resultado" in

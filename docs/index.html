@@ -30,6 +30,7 @@
     --comp1: #b48b40; --comp2: #aa5e7d; --comp3: #2f7442;
     --q1: #cde2fb; --q2: #9ec5f4; --q3: #6da7ec; --q4: #2a78d6; --q5: #184f95;
     --neutro: #e4e9f0;  /* datos: cero casos y fondo de zonas sin dato; en Vulnerabilidad, «Pocos casos» */
+    --gris-ref: #aab4c0;  /* líneas de referencia que no deben competir (temperatura de 1997 y 2016) */
     /* Vulnerabilidad (sectores y manzanas, 5 clases): crema casi neutra → rojo oscuro, claridad pareja en OKLCH (0,96 a
        0,30). Validada con dataviz tal como se ve (multiplicada por el fondo del mapa): claridad monótona, saltos ≥ 0,06,
        vecinos con ΔE ≥ 13,7 con daltonismo y ≥ 16,6 con visión normal. Falla a propósito dos reglas (aprobado): la crema
@@ -60,7 +61,7 @@
     :root:not([data-theme="light"]) {
       color-scheme: dark;
       --fondo: #121211; --superficie: #1a1a19; --linea: #33332f; --esqueleto: #2a2a27;
-      --texto: #f0efec; --texto-2: #c3c2b7; --texto-3: #9a998f; --titulo: #9ec5f4;
+      --texto: #f0efec; --texto-2: #c3c2b7; --texto-3: #9a998f; --gris-ref: #5f6772; --titulo: #9ec5f4;
       --acento: #3987e5; --acento-suave: #23364d; --pista: #23364d; --alerta: #f59e0b; --alerta-suave: #2a2a27; --neutro: #2a2a27;
       --comp1: #916a18; --comp2: #914766; --comp3: #5da16d;  /* oscuro: ΔE 11,0 / 15,2; rosa 2,7:1, con rótulo visible */
       --o1: #f2f7fe; --o2: #a9ccf6; --o3: #5e9be6; --o4: #2d68b8; --o5: #1f4170; --o-resto: #8a8a82;
@@ -70,7 +71,7 @@
   :root[data-theme="dark"] {
     color-scheme: dark;
     --fondo: #121211; --superficie: #1a1a19; --linea: #33332f; --esqueleto: #2a2a27;
-    --texto: #f0efec; --texto-2: #c3c2b7; --texto-3: #9a998f; --titulo: #9ec5f4;
+    --texto: #f0efec; --texto-2: #c3c2b7; --texto-3: #9a998f; --gris-ref: #5f6772; --titulo: #9ec5f4;
     --acento: #3987e5; --acento-suave: #23364d; --pista: #23364d; --alerta: #f59e0b; --alerta-suave: #2a2a27; --neutro: #2a2a27;
     --comp1: #916a18; --comp2: #914766; --comp3: #5da16d;
     --o1: #f2f7fe; --o2: #a9ccf6; --o3: #5e9be6; --o4: #2d68b8; --o5: #1f4170; --o-resto: #8a8a82;
@@ -328,7 +329,8 @@
   #clima-paneles { grid-template-columns: repeat(6, minmax(0, 1fr)); }
   #clima-paneles > .clima-enfen { grid-column: span 4; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 var(--e5); }
   #clima-paneles > .clima-mar { grid-column: span 2; }
-  #clima-paneles > .clima-radar, #clima-paneles > .clima-lluvia { grid-column: span 3; }
+  #clima-paneles > .clima-radar, #clima-paneles > .clima-lluvia, #clima-paneles > .clima-temp, #clima-paneles > .clima-rios { grid-column: span 3; }
+  .en-preparacion { border-style: dashed; }
   #clima-paneles > .clima-series { grid-column: 1 / -1; }
   .clima-enfen > .pie, .clima-enfen > .calculo { grid-column: 1 / -1; }
   .enfen-mas > summary { display: none; }  /* en computadora, siempre abierto */
@@ -406,7 +408,6 @@
   @media (max-width: 639px) { .reparto .barra-clases, .grilla-clases { display: none; }
     .lista-clases { display: grid; grid-template-columns: max-content minmax(2.5rem, 1fr) 4rem; } }
   .leyenda-nota { margin: var(--e1) 0 0; }
-  .vul-frases p { margin: var(--e2) 0 0; max-width: 68ch; }
   .frase-barra { margin: var(--e2) 0 0; max-width: 68ch; }
   /* Comparación entre localidades: nombre, barra (con la línea del promedio) y las dos cifras con el mismo peso */
   .comp-loc { list-style: none; margin: var(--e2) 0; padding: 0; max-width: 900px; }
@@ -425,11 +426,26 @@
     .cifras-loc { justify-content: flex-start; gap: var(--e4); } }
   .leyenda .sin-muestra::before { display: none; }
   .vul-sub { margin: var(--e5) 0 var(--e1); font-size: var(--t-base); color: var(--titulo); }
-  .vul-criticos { margin: 0; padding-left: var(--e5); font-size: var(--t-sm); }
-  .vul-criticos li { margin-bottom: var(--e1); }
-  .vul-criticos button { display: inline; padding: 0; border: 0; background: none; font: inherit; color: var(--acento); text-decoration: underline;
-    cursor: pointer; text-align: left; }
-  .vul-criticos .casos { color: var(--texto-3); }
+  /* Frases con casas: texto y una fila de 10 casas (debajo del texto en el celular) */
+  .vul-frases { max-width: 900px; }
+  .fila-casas { display: grid; grid-template-columns: minmax(0, 1fr) 236px; gap: var(--e1) var(--e4); align-items: center; margin-top: var(--e2); }
+  .fila-casas p { margin: 0; }
+  .fila-casas.ref p { color: var(--texto-2); }
+  .fila-casas .casas { width: 236px; height: 20px; display: block; }
+  @media (max-width: 600px) { .fila-casas { grid-template-columns: minmax(0, 1fr); } }
+  /* Los 5 sectores: cada fila es un botón (nombre y distrito, barra, cifra) */
+  .vul-criticos { list-style: none; margin: var(--e2) 0 0; padding: 0; max-width: 900px; }
+  .fila-critico { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) 15rem; gap: var(--e1) var(--e3); align-items: center;
+    width: 100%; padding: var(--e2); border: 0; border-bottom: 1px solid var(--linea); background: none; font: inherit; color: inherit;
+    text-align: left; cursor: pointer; }
+  .fila-critico:hover, .fila-critico:focus-visible { background: var(--acento-suave); }
+  .fila-critico b { color: var(--acento); text-decoration: underline; font-weight: 600; }
+  .nombre-crit .dist { color: var(--texto-2); font-size: var(--t-sm); }
+  .barra-crit { display: block; height: 14px; width: calc(var(--t) * 1%); background: var(--pista); border-radius: 0 4px 4px 0; overflow: hidden; }
+  .barra-crit span { display: block; height: 100%; width: calc(var(--p) * 1%); background: var(--v4); }
+  .cifra-crit { font-variant-numeric: tabular-nums; font-size: var(--t-sm); }
+  .nota-globo { color: var(--texto-3); font-size: var(--t-xs); }
+  @media (max-width: 600px) { .fila-critico { grid-template-columns: minmax(0, 1fr); } }
   #vul-distritos .cuerpo-detalle { max-width: 720px; }
   .vul-cifra { font: 800 var(--t-md)/1.2 var(--f-titulo); color: var(--titulo); margin: 0; }
   #vul-distritos .casos, #vul-panel .tabla .casos { display: block; font-size: var(--t-xs); font-weight: 400; color: var(--texto-3); }
@@ -763,13 +779,13 @@
   <!-- ===================== VULNERABILIDAD ===================== -->
   <section class="pestana" id="vulnerabilidad" aria-labelledby="t-vulnerabilidad" hidden>
     <h2 id="t-vulnerabilidad">¿Dónde están las viviendas más expuestas?</h2>
-    <p class="intro">Primera exploración del Censo 2025 por <span data-g="manzana">manzana</span> en Piura, Castilla y Veintiséis de
-      Octubre: servicios de agua y desagüe, materiales de la vivienda, edades y seguro de salud. Cada indicador se muestra por
+    <p class="intro">Primera exploración del Censo 2025 por <span data-g="manzana">manzana</span> en la Ciudad de Piura (distritos de
+      Piura, Castilla y Veintiséis de Octubre) y los centros poblados urbanos más grandes de la provincia: servicios de agua y desagüe, materiales de la vivienda, edades y seguro de salud. Cada indicador se muestra por
       separado, sin índices ni ponderaciones.</p>
     <div class="paneles">
       <div class="panel ancho" id="vul-panel">
         <div class="filtros filtros-vul">
-          <label>Localidad<select id="f-loc" disabled><option>Piura metropolitana</option></select></label>
+          <label>Localidad<select id="f-loc" disabled><option>Ciudad de Piura</option></select></label>
           <label>Indicador<select id="f-vul" disabled><option>Cargando…</option></select></label>
           <label>Ver<select id="f-vista-vul" disabled><option value="pct">Porcentaje</option><option value="num">Número por hectárea</option></select></label>
         </div>
@@ -779,16 +795,17 @@
         <div class="vul-frases" id="vul-frases"></div>
         <p class="nota" id="vul-def"></p>
         <div id="vul-leyenda"></div>
-        <div id="mapa-vul" class="mapa-l" role="region" aria-label="Mapa de Piura metropolitana por sectores (hexágonos) coloreados según el indicador elegido"
+        <div id="mapa-vul" class="mapa-l" role="region" aria-label="Mapa de la ciudad de Piura o de la localidad elegida por sectores (hexágonos) coloreados según el indicador elegido"
           aria-busy="true"></div>
         <p class="nota" id="vul-zoom"></p>
         <h4 class="vul-sub" id="vul-criticos-titulo"></h4>
+        <p class="nota" id="vul-criticos-sub"></p>
         <ol class="vul-criticos" id="vul-criticos"></ol>
         <h4 class="vul-sub">Comparación entre localidades</h4>
         <p class="frase" id="vul-comp-titular"></p>
         <ol class="comp-loc" id="vul-localidades"></ol>
         <p class="nota" id="vul-prom"></p>
-        <p class="nota">Solo zonas urbanas con manzanas censales; no incluye población rural dispersa. Piura metropolitana: los distritos
+        <p class="nota">Solo zonas urbanas con manzanas censales; no incluye población rural dispersa. Ciudad de Piura: los distritos
           de Piura, Castilla y Veintiséis de Octubre; las demás, los centros poblados de 2000 viviendas o más de los otros distritos
           de la provincia.</p>
         <p class="pie" id="vul-pie"></p>
@@ -810,7 +827,7 @@
       <div class="cuerpo-detalle">
         <h3>Los nueve indicadores</h3>
         <div class="tabla"><table class="ancha min-640">
-          <thead><tr><th>Indicador</th><th class="nombre">Numerador</th><th class="nombre">Denominador</th><th class="n">Piura metropolitana</th></tr></thead>
+          <thead><tr><th>Indicador</th><th class="nombre">Numerador</th><th class="nombre">Denominador</th><th class="n">Ciudad de Piura</th></tr></thead>
           <tbody id="vul-indicadores"></tbody>
         </table></div>
         <h3>Notas de método</h3>
@@ -934,16 +951,20 @@
             indicadores de servicios y vivienda, una sola escala en palabras (casi ninguna, 0-5 %; pocas, 5-20 %; menos de la mitad,
             20-50 %; más de la mitad, 50-80 %; casi todas, 80-100 %); los tres demográficos conservan sus cortes. Los cortes no se
             mueven aunque una clase quede casi vacía, para comparar entre localidades (el detalle está en el glosario, «Rangos del
-            mapa»). Con zoom 15, hexágonos de unos 130 m (mínimo de 20 viviendas), solo en Piura metropolitana. La vista de número
+            mapa»). Con zoom 15, hexágonos de unos 130 m (mínimo de 20 viviendas), solo en la Ciudad de Piura. La vista de número
             colorea por afectados por hectárea de manzana (densidad neta: el área de las manzanas del sector, sin calles ni terreno
             vacío, para que la medida no cambie de un nivel a otro), con cinco clases fijas por grupo de indicadores. «Paredes de
-            material precario» no incluye el adobe (1,4 % de las viviendas de Piura metropolitana). El selector de localidad
+            material precario» no incluye el adobe (1,4 % de las viviendas de la Ciudad de Piura). El selector de localidad
             agrega los centros poblados urbanos de 2000 viviendas o más de los otros distritos de la provincia; solo zonas
             urbanas con manzanas censales, sin la población rural dispersa.
             La barra de la leyenda y su frase reparten las viviendas (o personas) de los sectores de 350 m de toda la localidad;
             la comparación entre localidades ordena las barras de mayor a menor porcentaje, con la línea del promedio de las 8 zonas
             urbanas (suma numeradores y denominadores). Las frases dicen el distrito con el porcentaje más alto y el más bajo («1 de cada N» o «N de cada 10»); los sectores
-            críticos son los que superan el porcentaje de Piura metropolitana, con más afectados, nombrados con OpenStreetMap. El total de cada distrito suma
+            críticos son los sectores de 350 m donde más de la mitad de las viviendas (o personas) tiene la carencia (en las edades, la clase
+            más alta), ordenados por número de afectados y nombrados con OpenStreetMap («Sector [nombre]» si el centro cae en la zona;
+            «Sector cerca de [nombre]» si es un barrio o una vía cercana). El área metropolitana oficial (Plan de Desarrollo Urbano de
+            Piura, Veintiséis de Octubre, Castilla y Catacaos al 2032) también incluye Catacaos; aquí Catacaos se muestra como localidad
+            aparte porque no forma una mancha urbana continua con los otros tres distritos. El total de cada distrito suma
             numeradores y denominadores, con las manzanas dispersas (menos de 30 habitantes, sin polígono); no promedia
             porcentajes. «Sin EsSalud ni seguro privado» es el mínimo posible, porque una persona puede tener dos seguros; es una
             aproximación y no mide informalidad laboral. Las columnas se ubican por el texto de su encabezado, se comprueba que
@@ -1052,7 +1073,7 @@ const PRELIMINAR = 2;  // últimas semanas del año en curso: preliminares (punt
 const NIVELES = [["E", "Gobierno nacional"], ["R", "Gobierno regional"], ["M", "Gobiernos locales"]];
 const PESTANAS = ["resumen", "clima", "dengue", "gasto", "obras", "vulnerabilidad", "salud", "precios", "fuentes"];
 // Días que puede pasar una fuente sin actualizarse antes de avisar "Dato no actualizado desde…"
-const PLAZOS = { obras: 35, camas: 45, gasto: 3, inv: 3, fen: 3, d26: 14, ipc: 45, lluvia: 2, tsm: 4, enfen: 20, imerg: 2, nino12: 14 };
+const PLAZOS = { obras: 35, camas: 45, gasto: 3, inv: 3, fen: 3, d26: 14, ipc: 45, lluvia: 2, tsm: 4, enfen: 20, imerg: 2, nino12: 14, temp: 12 };
 
 // Todas las definiciones de la página en un solo objeto: términos (subrayados en el texto) y cálculos ("Cómo se calcula")
 const DEFINICIONES = {
@@ -1081,6 +1102,7 @@ const DEFINICIONES = {
   doce: ["Variación en 12 meses", "Cuánto cambiaron los precios frente al mismo mes del año anterior."],
   mensual: ["Variación mensual", "Cuánto cambiaron los precios frente al mes anterior."],
   enfen: ["ENFEN", "Comisión Multisectorial encargada del Estudio Nacional del Fenómeno El Niño. Declara el estado del sistema de alerta ante El Niño y La Niña costeros (no activo, vigilancia o alerta) en sus comunicados oficiales, por lo general cada quince días. Se muestra el estado del último comunicado, tal como aparece en su encabezado."],
+  temp: ["Temperatura del aire", "Temperatura máxima diaria del aire a 2 m en la ciudad de Piura, del reanálisis ERA5-Land (Copernicus/ECMWF) en una celda de unos 10 km, vía Open-Meteo. Es un reanálisis, no una estación: la estación convencional de la ciudad (San Miguel, Senamhi) publica pocos días y no tiene normales en línea. Llega con unos 7 días de retraso. Lo normal de cada fecha es el promedio 1991-2020 de ese día, suavizado con una media móvil de 15 días. La anomalía del título es el promedio de los últimos 7 días frente a lo normal de esos días (la máxima de un solo día varía 2 a 3 °C); «cerca de lo normal» si no pasa de 0,5 °C. Como referencia, las mismas fechas de 1997 (Niño 1997-98) y de 2016 (antes del Niño costero 2017), del mismo reanálisis."],
   tsm: ["Temperatura del mar", "Temperatura de la superficie del mar estimada por satélite (NOAA OISST v2.1, diaria) en una celda de unos 25 km frente a Paita (5,125° S y 81,375° O); la celda pegada a la costa es tierra. La anomalía es la diferencia con el promedio 1991-2020 del mismo día y la misma celda (el periodo que usa el ENFEN). El satélite suele marcar algo menos que la estación costera de IMARPE. Título: «más caliente» o «más frío» si la anomalía pasa de 0,5 °C; si no, «cerca de lo normal»."],
   nino12: ["Región Niño 1+2", "Zona del océano Pacífico frente a Perú y Ecuador (0° a 10° S, 90° a 80° O) con la que el ENFEN define El Niño costero. La NOAA publica cada semana la anomalía de su temperatura superficial frente al promedio 1991-2020. Una anomalía de +0,4 °C o más, sostenida, indica condiciones cálidas."],
   tsm_costera: ["Satélite y estación costera", "El dato satelital es el promedio de una celda de unos 25 km de lado, a unos 29 km mar adentro de Paita (la celda pegada a la costa es tierra). La estación costera del IMARPE mide en el muelle, donde el agua puede estar más caliente; su dato es la anomalía mensual parcial que publica el ENFEN en su Informe Técnico. Por eso pueden diferir algo; si la diferencia pasa de 1 °C, la tarjeta lo dice."],
@@ -1090,7 +1112,8 @@ const DEFINICIONES = {
   lluvia_30: ["Lluvia de los últimos 30 días", "Lluvia diaria de los 30 días de calendario que terminan en el último día con datos, con la misma fecha que el mapa. Por defecto, una estación de la costa (Bernal, en el Bajo Piura, a 31 km de la ciudad: las estaciones de la ciudad no publican a diario), una del valle medio (Morropón) y una de la sierra (Ayabaca); el selector cambia cada gráfico a cualquier estación convencional del departamento. El total suma los días con dato. Los tres gráficos usan la misma escala: el máximo de los tres, con un mínimo de 20 mm y un tope de 60 mm; un día con más de 60 mm se corta y lleva su valor encima. Un día con 0 mm lleva una marca fina en la base; un día sin dato queda vacío. No se compara con lo normal: el Senamhi no publica hoy las normales mensuales por estación (su página de normales redirige al portal gob.pe) y no se inventa una referencia."],
   manzana: ["Manzana", "Bloque de viviendas rodeado de calles: la unidad más pequeña con que el INEI entrega los resultados del censo."],
   dispersas: ["Manzanas dispersas", "Según el INEI, población en manzanas dispersas, con menos de 30 habitantes. Vienen agrupadas por zona (código terminado en 9999) y no tienen polígono en el mapa."],
-  sectores: ["Sectores (hexágonos)", "El mapa agrupa las manzanas en hexágonos H3: de unos 350 m (resolución 9) hasta zoom 14 y, solo en Piura metropolitana, de unos 130 m (resolución 10) en zoom 15; con zoom 16 o más (en las demás localidades, desde 15) se ven las manzanas. En las localidades se salta el nivel de 130 m porque, menos densas, quedaba oculto hasta el 42 % de sus viviendas. Cada manzana va al hexágono donde cae su centro y se suman sus numeradores, denominadores y áreas; las manzanas muy extensas no entran. No se dibujan los sectores con menos de 30 viviendas (o 30 personas) en la base del indicador; en los de 130 m, menos de 20. La vista de número divide los afectados entre las hectáreas de manzana del sector (sin calles, parques ni terreno vacío): así la medida es parecida en los tres niveles, cosa que no pasa con el área del hexágono. La barra y sus frases usan siempre los sectores de 350 m de toda la localidad. Los sectores críticos son los de 350 m que superan el porcentaje de la localidad, ordenados por número de afectados. Su nombre sale de OpenStreetMap: la urbanización o asentamiento que contiene el centro, el barrio más cercano a menos de 400 m o, si no hay, «cerca de» la vía principal más cercana."],
+  sector: ["Sector", "Un sector es un hexágono de unos 350 m; no coincide exactamente con los límites del barrio. Se nombra «Sector [nombre]» si su centro cae en una urbanización o asentamiento de OpenStreetMap, y «Sector cerca de [nombre]» si el nombre es de un barrio o una vía cercana."],
+  sectores: ["Sectores (hexágonos)", "El mapa agrupa las manzanas en hexágonos H3: de unos 350 m (resolución 9) hasta zoom 14 y, solo en la Ciudad de Piura, de unos 130 m (resolución 10) en zoom 15; con zoom 16 o más (en las demás localidades, desde 15) se ven las manzanas. En las localidades se salta el nivel de 130 m porque, menos densas, quedaba oculto hasta el 42 % de sus viviendas. Cada manzana va al hexágono donde cae su centro y se suman sus numeradores, denominadores y áreas; las manzanas muy extensas no entran. No se dibujan los sectores con menos de 30 viviendas (o 30 personas) en la base del indicador; en los de 130 m, menos de 20. La vista de número divide los afectados entre las hectáreas de manzana del sector (sin calles, parques ni terreno vacío): así la medida es parecida en los tres niveles, cosa que no pasa con el área del hexágono. La barra y sus frases usan siempre los sectores de 350 m de toda la localidad. Los sectores críticos son los de 350 m donde más de la mitad de las viviendas (o personas) tiene la carencia; en las dos edades, los de la clase más alta (30 % o más de menores de 15; 16 % o más de 65 años o más). Se ordenan por número de afectados. Su nombre sale de OpenStreetMap: la urbanización o asentamiento que contiene el centro, el barrio más cercano a menos de 400 m o, si no hay, «cerca de» la vía principal más cercana."],
   extensa: ["Manzana muy extensa", "Manzana de más de 0,05 km² con menos de 1000 viviendas por km², como las que incluyen el campus de la UDEP, el aeropuerto o chacras. El INEI la traza de calle a calle y no indica dónde están sus viviendas, así que pintarla entera exageraría el área. Se dibuja solo su contorno; sus viviendas cuentan en el total del distrito."],
   pocos: ["Pocos casos", "Manzanas con menos de 10 viviendas (indicadores de vivienda) o menos de 30 personas (indicadores de población) en la base del indicador elegido. Con tan pocos casos, una sola vivienda mueve mucho el porcentaje: van en gris y sin porcentaje."],
   rangos: ["Rangos del mapa", "Vista de porcentaje. Servicios y vivienda (sin desagüe, sin agua por red, sin agua todos los días, sin agua las 24 horas, paredes precarias y piso de tierra), una sola escala en palabras: casi ninguna (0-5 %), pocas (5-20 %), menos de la mitad (20-50 %), más de la mitad (50-80 %) y casi todas (80-100 %). Menores de 15 años: menos de 15, 15-20, 20-25, 25-30 y 30 % o más; 65 años o más: menos de 4, 4-8, 8-12, 12-16 y 16 % o más; sin EsSalud ni seguro privado: menos de 30, 30-50, 50-65, 65-80 y 80 % o más. Vista de número, afectados por hectárea de manzana: viviendas y personas de 65 años o más, menos de 5, 5-10, 10-20, 20-40 y 40 o más; menores de 15 años, menos de 10, 10-20, 20-40, 40-80 y 80 o más; sin EsSalud ni seguro privado, menos de 25, 25-50, 50-100, 100-200 y 200 o más. Los cortes son fijos a propósito: no se mueven aunque una clase quede casi vacía, para que el mapa compare entre localidades. Cada clase incluye su límite inferior. El color va de crema (casi neutro) a rojo oscuro; las calles del mapa se ven encima."],
@@ -1147,7 +1170,7 @@ function aFecha(s) {
   return iso ? new Date(+iso[1], iso[2] - 1, +iso[3]) : dmy ? new Date(+dmy[3], dmy[2] - 1, +dmy[1]) : null;
 }
 const DATOS = () => ({ obras: D.obras, camas: D.camas, gasto: D.gasto, inv: D.invMeta, fen: D.fen, d26: D.d26, ipc: D.ipc,
-  lluvia: D.lluvia, tsm: D.tsm, enfen: D.enfen, imerg: D.imerg, nino12: D.nino12 });
+  lluvia: D.lluvia, tsm: D.tsm, enfen: D.enfen, imerg: D.imerg, nino12: D.nino12, temp: D.temp });
 // Distintivo de estado: desactualizado (reloj) o en trámite (reloj de arena); lo pendiente se dice en la frase del panel
 const ICONO_ESTADO = {
   desactualizado: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
@@ -2159,8 +2182,8 @@ async function crearMapaObras() {
   return m;
 }
 
-/* ---------- Vulnerabilidad: Censo 2025 por manzana (Piura metropolitana) ---------- */
-// La base del censo (unos 0,3 MB: indicadores, Piura metropolitana con sus hexágonos de 350 m y la tabla de localidades) se
+/* ---------- Vulnerabilidad: Censo 2025 por manzana (Ciudad de Piura y localidades) ---------- */
+// La base del censo (unos 0,3 MB: indicadores, la Ciudad de Piura con sus hexágonos de 350 m y la tabla de localidades) se
 // carga al abrir la pestaña; lo demás, cuando hace falta: hexágonos de 130 m (zoom 15), manzanas (zoom 16) y cada localidad.
 // Cada indicador trae [numerador, denominador] (el de seguro, además, el máximo posible); los totales incluyen las manzanas
 // dispersas, que no tienen polígono.
@@ -2176,7 +2199,7 @@ const vulTotal = k => { const x = locActual()[k]; return [x[0], x[1], x[2] ?? 0]
 const vulPct = (i, [n, d, max]) => (i.k === "g" ? "al menos " : "") + pctTxt(pct(n, d));
 const minuscula = s => s.charAt(0).toLowerCase() + s.slice(1);
 const clasePct = (i, n, d) => i.cortes.filter(c => 100 * n / d >= c).length;  // 0 a 4; cada clase incluye su límite inferior
-// Niveles: hasta zoom 14, hexágonos de 350 m (H3 9); zoom 15, de 130 m (H3 10), solo en Piura metropolitana (en los pueblos,
+// Niveles: hasta zoom 14, hexágonos de 350 m (H3 9); zoom 15, de 130 m (H3 10), solo en la Ciudad de Piura (en los pueblos,
 // menos densos, ocultaba hasta el 42 % de las viviendas); desde 16 (en las localidades, desde 15), manzanas. Un nivel a la vez.
 // La vista de número usa los mismos niveles: su medida (afectados por hectárea de manzana) no depende del tamaño del sector.
 const ZOOM_H10 = 15, ZOOM_MANZANAS = 16;
@@ -2232,7 +2255,7 @@ async function crearVul() {
   await vulNivel(m);
   return m;
 }
-// Encuadre: Piura metropolitana, en los sectores que reúnen el 90 % de las viviendas (los rurales alejan mucho el mapa);
+// Encuadre: la Ciudad de Piura, en los sectores que reúnen el 90 % de las viviendas (los rurales alejan mucho el mapa);
 // otra localidad, en su caja
 function encuadrar(m) {
   if (vulLoc !== "metro") return m.fitBounds(locActual().caja, { padding: [16, 16], maxZoom: ZOOM_H10 - 1 });  // empieza en sectores
@@ -2247,7 +2270,7 @@ function visibles(nivel, loc = vulLoc) {
   return { type: "FeatureCollection", features: d.features.filter(f => f.properties[k][1] >= min) };
 }
 const hexVisibles = () => visibles("h9");
-// Datos de un nivel: Piura metropolitana tiene un archivo por nivel; cada localidad, uno con los tres
+// Datos de un nivel: la Ciudad de Piura tiene un archivo por nivel; cada localidad, uno con los tres
 async function datosNivel(loc, nivel) {
   const v = vulDatos[loc] ||= {};
   if (v[nivel]) return v[nivel];
@@ -2279,7 +2302,7 @@ async function vulNivel(m) {
 async function cambiarLoc() {
   vulLoc = $("f-loc").value;
   const m = await vulP;
-  if (m) { for (const n of ["h9", "h10", "mz"]) if (vulCapas[n]) m.removeLayer(vulCapas[n]); }
+  if (m) { for (const n of ["h9", "h10", "mz"]) if (vulCapas[n]) m.removeLayer(vulCapas[n]); quitarResalte(m); }
   vulCapas = { lienzo: vulCapas.lienzo, limites: vulCapas.limites };
   await datosNivel(vulLoc, "h9");
   pintarVulTextos();
@@ -2308,7 +2331,8 @@ const nombreSector = h => "n" in h.properties ? (h.properties.n ? esc(h.properti
 const lugarDe = f => vulLoc === "metro" ? esc(lugar(D.censo.distritos[f.properties.u]?.nombre ?? "")) : esc(locActual().nombre);
 function vulGlobo(f) {
   const i = vulInd(), v = f.properties[i.k], u = UNIDAD[i.tipo], dist = lugarDe(f);
-  if (f.centro) return vulGloboDato(`<strong>${nombreSector(f)}</strong> (${dist})<br>${num(f.properties.m)} manzanas<br>${esc(i.rotulo)}: `, i, v, u, f);
+  if (f.centro) return vulGloboDato(`<strong>${nombreSector(f)}</strong> (${dist})<br>${num(f.properties.m)} manzanas<br>${esc(i.rotulo)}: `, i, v, u, f)
+    + ("n" in f.properties ? `<br><span class="nota-globo">${esc(DEFINICIONES.sector[1].split(".")[0])}.</span>` : "");
   const cab = `<strong>${dist}</strong><br>Manzana <span class="cod">${esc(f.id)}</span><br>`;
   if (f.properties.km2) return cab + `Manzana muy extensa (${num(f.properties.km2, 1)} km², ${num(f.properties.v)} viviendas): el censo no indica
     dónde están las viviendas dentro de ella, por eso no se colorea. Cuenta en el total.`;
@@ -2323,20 +2347,38 @@ function vulGloboDato(cab, i, v, u, f) {
 function cambiarVul() {
   vulColores = null;
   for (const n of ["h9", "h10", "mz"]) vulCapas[n]?.clearLayers().addData(visibles(n));  // cambia qué elementos tienen base suficiente
-  vulP?.then(m => { if (m) { m.closePopup(); vulNivel(m); } });
+  vulP?.then(m => { if (m) { m.closePopup(); quitarResalte(m); vulNivel(m); } });
   pintarVulTextos();
 }
 // «1 de cada 4» (singular) o «6 de cada 10» (plural), según el porcentaje
+// «3 de cada 10» para todas las frases con casas (redondeado); en los bordes, «menos de 1» o «casi 10»
+function decimos(p) {
+  const r = Math.round(p / 10);
+  if (p > 0 && r === 0) return ["menos de 1 de cada 10", false];
+  if (r === 10 && p < 99.5) return ["casi 10 de cada 10", true];
+  return [`${r} de cada 10`, r !== 1];
+}
+let idCasas = 0;
+const CASA = "M10 1 L20 9 H17 V19 H3 V9 H0 Z";  // silueta sólida: techo y cuerpo
+// Una fila de 10 casas: las afectadas en rojo, el resto en gris; la fracción pinta parte de una casa (3,2 = 3 y una al 20 %)
+function filaCasas(i, nombre, x, ref) {
+  const p = pct(x[0], x[1]) ?? 0, [prop, plural] = decimos(p), [sujeto, sing, plu] = i.frase;
+  const texto = `${nombre}: ${i.k === "g" ? "al menos " : ""}${prop} ${sujeto} ${plural ? plu : sing} (${pctTxt(p)})`;
+  // la casa parcial se llena de abajo hacia arriba (un corte vertical se leía como un «1»)
+  const casas = p / 10, enteras = Math.floor(casas), parte = casas - enteras, id = `casas-${++idCasas}`;
+  const fila = fill => Array.from({ length: 10 }, (_, k) => `<path transform="translate(${k * 24} 0)" d="${CASA}" fill="${fill}"/>`).join("");
+  return `<div class="fila-casas${ref ? " ref" : ""}"><p>${texto}.</p>
+    <svg class="casas" viewBox="0 0 236 20" role="img" aria-label="${esc(texto)}" focusable="false"><defs><clipPath id="${id}"><rect width="${enteras * 24}"
+      height="20"/>${parte > 0 ? `<rect x="${enteras * 24}" y="${(20 * (1 - parte)).toFixed(1)}" width="20" height="${(20 * parte).toFixed(1)}"/>` : ""}</clipPath></defs>${
+      fila("var(--neutro)")}<g clip-path="url(#${id})">${fila("var(--v4)")}</g></svg></div>`;
+}
 function proporcion(p) {
   if (p >= 95) return ["casi todas las", true];
   if (p >= 45) return [`${Math.round(p / 10)} de cada 10`, true];
   if (p >= 1) return [`1 de cada ${Math.round(100 / p)}`, false];
   return ["menos de 1 de cada 100", false];
 }
-function fraseVul(i, lugar_, x) {
-  const [prop, plural] = proporcion(pct(x[0], x[1])), [sujeto, sing, plu] = i.frase;
-  return `${lugar_}, ${i.k === "g" ? "al menos " : ""}${prop} ${sujeto} ${plural ? plu : sing} (${vulPct(i, x)}).`;
-}
+const nombreTexto = x => x.id === "metro" ? "la ciudad de Piura" : x.nombre;
 // Leyenda de 5 clases: etiqueta en palabras (fila 1) y rango (fila 2). Servicios y vivienda traen sus palabras («Casi
 // ninguna» … «Casi todas»); los demográficos y la vista de número usan «Muy baja» … «Muy alta»
 const NIVELES_TXT = ["Muy baja", "Baja", "Media", "Alta", "Muy alta"];
@@ -2365,7 +2407,7 @@ function repartoVul(i) {
   return base;
 }
 function fraseBarra(i, base) {
-  const tot = base.reduce((a, b) => a + b, 0), loc = esc(locActual().nombre), ent = enteros100(base);  // las mismas cifras que la leyenda
+  const tot = base.reduce((a, b) => a + b, 0), loc = esc(nombreTexto(locActual())), ent = enteros100(base);  // las mismas cifras que la leyenda
   if (!tot) return "";
   if (!vulNum()) {
     const verbo = i.tipo === "viv" ? ["está", "están"] : ["vive", "viven"];
@@ -2384,7 +2426,7 @@ function fraseBarra(i, base) {
 // Leyenda: título, frase, barra apilada sin cifras y debajo una grilla de 5 columnas del mismo ancho (etiqueta, rango y %);
 // en menos de 640 px, una lista de 5 filas con una barrita cada una. El cursor sobre un segmento o una columna atenúa las demás
 function vulLeyenda(nivel = "h9") {
-  const c = D.censo, i = vulInd(), u = UNIDAD[i.tipo], base = repartoVul(i), loc = esc(locActual().nombre);
+  const c = D.censo, i = vulInd(), u = UNIDAD[i.tipo], base = repartoVul(i), loc = esc(nombreTexto(locActual()));
   const et = etiquetasVul(i), rg = rangosVul(i), ent = enteros100(base), txt = j => pctClase(ent[j], base[j]);
   const tot = base.reduce((a, b) => a + b, 0) || 1, color = j => `--c:var(${TONOS_V[j]})`;
   const min = nivel === "mz" ? null : (vulDatos[vulLoc]?.[nivel] || c.hexagonos).minimo;
@@ -2414,43 +2456,74 @@ function pintarVulTextos() {
   const c = D.censo, i = vulInd(), t = vulTotal(i.k), u = UNIDAD[i.tipo], loc = locActual(), metro = vulLoc === "metro";
   $("vul-titulo").textContent = tituloVul(i);
   $("vul-cifra").innerHTML = `${esc(loc.nombre)}: ${vulPct(i, t)} <span class="nota">(${num(t[0])} de ${num(t[1])} ${u[1]})</span>`;
-  // Frases: en Piura metropolitana, el distrito más alto y el más bajo; en otra localidad, ella frente a Piura metropolitana
-  const ds = Object.values(c.distritos), orden = [...ds].sort((a, b) => pct(b[i.k][0], b[i.k][1]) - pct(a[i.k][0], a[i.k][1]));
-  const pm = c.localidades[0];
-  $("vul-frases").innerHTML = (metro ? [fraseVul(i, `En ${esc(lugar(orden[0].nombre))}`, orden[0][i.k]),
-      fraseVul(i, `En ${esc(lugar(orden.at(-1).nombre))}`, orden.at(-1)[i.k])]
-    : [fraseVul(i, `En ${esc(loc.nombre)}`, loc[i.k]), fraseVul(i, "En Piura metropolitana", pm[i.k])])
-    .concat(`En toda ${metro ? "Piura metropolitana" : esc(loc.nombre)} son ${num(t[0])} ${u[1]}${i.k === "g" ? " como mínimo" : ""}.`)
-    .map(x => `<p>${x}</p>`).join("");
+  // Frases con casas: en la Ciudad de Piura, sus 3 distritos de mayor a menor %; en otra localidad, ella y la Ciudad de Piura
+  // como referencia. Siempre 10 casas por fila, para comparar entre filas
+  const ds = Object.values(c.distritos), pm = c.localidades[0];
+  const filas = metro ? [...ds].sort((a, b) => pct(b[i.k][0], b[i.k][1]) - pct(a[i.k][0], a[i.k][1])).map(x => [esc(lugar(x.nombre)), x[i.k]])
+    : [[esc(loc.nombre), loc[i.k]], ["Ciudad de Piura (referencia)", pm[i.k]]];
+  $("vul-frases").innerHTML = filas.map(([nombre, x], j) => filaCasas(i, nombre, x, j && !metro)).join("");
   $("vul-def").textContent = vulNum() ? `El color muestra cuántas ${u[1]} afectadas hay por hectárea de manzana (concentración), no el porcentaje.`
     : `Porcentaje sobre: ${minuscula(i.denominador)}.`;
   vulP?.then(m => m && vulNivel(m));
   if (!vulP) vulLeyenda("h9");
-  // Sectores críticos: por encima del porcentaje de la localidad, con más afectados
-  const prom = pct(t[0], t[1]), crit = vulDatos[vulLoc]?.h9 ? hexVisibles().features.filter(h => pct(h.properties[i.k][0], h.properties[i.k][1]) > prom)
-    .sort((a, b) => b.properties[i.k][0] - a.properties[i.k][0]).slice(0, 5) : [];
-  $("vul-criticos-titulo").textContent = `Los ${crit.length} sectores con más ${u[1]} afectadas (por encima del promedio de ${loc.nombre})`;
-  $("vul-criticos").innerHTML = crit.map(h => `<li><button type="button" data-hex="${h.id}">${nombreSector(h)}</button>
-    (${lugarDe(h)}): ${num(h.properties[i.k][0])} de ${num(h.properties[i.k][1])} ${u[1]}
-    <span class="casos">(${vulPct(i, h.properties[i.k])})</span></li>`).join("");
-  $("vul-criticos").onclick = ev => { const b = ev.target.closest("[data-hex]"); if (!b) return;
-    const h = vulDatos[vulLoc].h9.features.find(x => x.id === b.dataset.hex);
-    vulP?.then(async m => { if (!m) return; m.setView(h.centro, ZOOM_H10 - 1); await vulNivel(m);  // zoom 14: se ve el sector de 350 m
-      vulCapas.h9.eachLayer(l => { if (l.feature.id === h.id) L.Browser.mobile ? l.openPopup(h.centro) : l.openTooltip(h.centro); }); }); };
+  pintarCriticos(i);
   pintarComparacion(i);
   const [boton, nota] = comoSeCalcula(["vul_" + i.k, "sectores", "rangos", "pocos"]);
   $("vul-pie").innerHTML = `Fuente: ${esc(c.fuente)}. Nombres de los sectores: ${esc(c.hexagonos.nombres)} · ${boton}`;
   $("vul-calculo").innerHTML = nota;
   const fila = (nombre, x, fuerte) => `<tr${fuerte ? ' class="total"' : ""}><td>${fuerte ? `<strong>${nombre}</strong>` : nombre}<span
     class="casos">${num(x.manzanas)} manzanas</span></td><td class="n">${vulPct(i, x[i.k])}<span class="casos">${num(x[i.k][0])} de ${num(x[i.k][1])}</span></td></tr>`;
-  $("vul-tabla").innerHTML = ds.map(x => fila(esc(lugar(x.nombre)), x)).join("") + fila("Piura metropolitana", { ...pm, [i.k]: pm[i.k] }, true);
+  $("vul-tabla").innerHTML = ds.map(x => fila(esc(lugar(x.nombre)), x)).join("") + fila("Ciudad de Piura", { ...pm, [i.k]: pm[i.k] }, true);
   const disp = pm.dispersas;
   $("vul-nota-tabla").innerHTML = `El porcentaje de cada distrito suma los numeradores y los denominadores de sus manzanas (no promedia
     porcentajes). Incluye ${num(disp.grupos)} grupos de ${g("dispersas", "manzanas dispersas")} (${num(disp.p)} personas y ${num(disp.v)}
-    viviendas), que no aparecen en el mapa.${i.k === "g" ? ` En este indicador, el valor real de Piura metropolitana está entre
+    viviendas), que no aparecen en el mapa.${i.k === "g" ? ` En este indicador, el valor real de la Ciudad de Piura está entre
     ${pctTxt(pct(pm.g[0], pm.g[1]))} y ${pctTxt(pct(pm.g[2], pm.g[1]))}.` : ""}`;
   ayudas($("vulnerabilidad"));
 }
+// Los 5 sectores más críticos: de 350 m, donde más de la mitad tiene la carencia (en las edades, la clase más alta), por número
+// de afectados. Cada fila: nombre y distrito, una barra (largo = viviendas del sector; relleno = afectadas) y la cifra
+function criterioCritico(i) {
+  const edad = i.k === "e" || i.k === "f", corte = edad ? i.cortes.at(-1) : 50;
+  return { cumple: ([n, d]) => edad ? 100 * n / d >= corte : n > d / 2,
+    texto: `${edad ? `${corte} % o más` : "más de la mitad"} de las ${i.frase[0]} ${i.frase[2]}` };
+}
+function pintarCriticos(i) {
+  const u = UNIDAD[i.tipo], loc = locActual(), metro = vulLoc === "metro", cr = criterioCritico(i);
+  const crit = vulDatos[vulLoc]?.h9 ? hexVisibles().features.filter(h => cr.cumple(h.properties[i.k]))
+    .sort((a, b) => b.properties[i.k][0] - a.properties[i.k][0]).slice(0, 5) : [];
+  const k = crit.length, afect = i.nota ? u[1] : `${u[1]} afectadas`;
+  const porDist = {};
+  for (const h of crit) porDist[lugarDe(h)] = (porDist[lugarDe(h)] || 0) + 1;
+  const [dist, dn] = Object.entries(porDist).sort((a, b) => b[1] - a[1])[0] || [];
+  const suma = crit.reduce((s, h) => s + h.properties[i.k][0], 0), lugarTxt = esc(nombreTexto(loc));
+  $("vul-criticos-titulo").innerHTML = !k ? `En ningún sector de ${lugarTxt} ${esc(cr.texto)}`
+    : k < 5 ? `Solo ${k === 1 ? "1 sector cumple" : `${k} sectores cumplen`} el criterio${metro ? `; ${dn === k ? (k === 1 ? "está" : `los ${k} están`)
+      : `${dn} están`} en ${dist}` : ` en ${esc(loc.nombre)}; ${k === 1 ? "tiene" : "suman"} ${num(suma)} ${afect}`}`
+    : metro ? (dn === k ? `Los 5 sectores más críticos están en ${dist}` : `${dn} de los 5 sectores más críticos están en ${dist}`)
+    : `Los 5 sectores más críticos de ${esc(loc.nombre)} suman ${num(suma)} ${afect}`;
+  $("vul-criticos-sub").innerHTML = `${g("sector", "Sectores")} donde ${esc(cr.texto)}, ordenados por número de ${u[1]}.`;
+  const maxD = Math.max(1, ...crit.map(h => h.properties[i.k][1]));
+  $("vul-criticos").innerHTML = crit.map(h => { const [n, d] = h.properties[i.k];
+    return `<li><button type="button" class="fila-critico" data-hex="${h.id}">
+      <span class="nombre-crit"><b>${nombreSector(h)}</b> <span class="dist">${lugarDe(h)}</span></span>
+      <span class="barra-crit" style="--t:${100 * d / maxD}"><span style="--p:${100 * n / d}"></span></span>
+      <span class="cifra-crit">${num(n)} de ${num(d)} ${u[1]} (${num(pct(n, d), 0)} %)</span></button></li>`; }).join("");
+  $("vul-criticos").onclick = ev => { const b = ev.target.closest("[data-hex]"); if (b) irASector(b.dataset.hex); };
+  ayudas($("vul-criticos-sub"));
+}
+// Clic (o Enter) en una fila: el mapa va al sector (zoom 14, nivel de 350 m), lo resalta con un borde y abre su globo
+async function irASector(id) {
+  const m = await vulP, h = vulDatos[vulLoc]?.h9?.features.find(x => x.id === id);
+  if (!m || !h) return;
+  m.setView(h.centro, ZOOM_H10 - 1);
+  await vulNivel(m);
+  quitarResalte(m);
+  vulCapas.resalte = L.geoJSON(h, { interactive: false, style: { fill: false, weight: 4, color: token("--texto") } }).addTo(m);
+  // globo propio en el centro del sector (el del mapa está atado al grupo y se cierra al mover el cursor)
+  vulCapas.globo = (L.Browser.mobile ? L.popup() : L.tooltip({ direction: "top" })).setLatLng(h.centro).setContent(vulGlobo(h)).addTo(m);
+}
+const quitarResalte = m => { for (const k of ["resalte", "globo"]) if (vulCapas[k]) { m.removeLayer(vulCapas[k]); vulCapas[k] = null; } };
 // Comparación entre localidades: barras de mayor a menor %, con el color de su clase, la línea del promedio de las zonas
 // urbanas (suma numeradores y denominadores) y un titular que contrasta el mayor % con el mayor número
 function pintarComparacion(i) {
@@ -2466,8 +2539,8 @@ function pintarComparacion(i) {
   $("vul-prom").textContent = `Línea punteada: promedio de las ${filas.length} zonas urbanas, ${pctTxt(prom)} (suma numeradores y denominadores; no promedia porcentajes).`;
   const grupo = filas.filter(x => x.p >= filas[0].p - 10).slice(0, 3), mayor = [...filas].sort((a, b) => b.n - a.n)[0];
   const [prop, plural] = proporcion(Math.min(...grupo.map(x => x.p)));
-  const enNumero = grupo.includes(mayor) ? (grupo.length > 1 ? `; en número, la mayor cantidad está en ${esc(mayor.nombre)}` : "; también es donde hay más en número")
-    : `; en número, ${mayor.n > sumN / 2 ? "la mayoría está" : "la mayor cantidad está"} en ${esc(mayor.nombre)}`;
+  const enNumero = grupo.includes(mayor) ? (grupo.length > 1 ? `; en número, la mayor cantidad está en ${esc(nombreTexto(mayor))}` : "; también es donde hay más en número")
+    : `; en número, ${mayor.n > sumN / 2 ? "la mayoría está" : "la mayor cantidad está"} en ${esc(nombreTexto(mayor))}`;
   $("vul-comp-titular").innerHTML = `En ${lista(grupo.map(x => esc(x.nombre)))}, ${i.k === "g" ? "al menos " : ""}${prop} ${esc(i.frase[0])}
     ${esc(plural ? i.frase[2] : i.frase[1])}${enNumero} (${num(mayor.n)} de ${num(sumN)}).`;
 }
@@ -2920,6 +2993,26 @@ function pintarClima() {
         `<div class="grafico" id="g-tsm"></div>${masDetalle(t.url, "NOAA")}`,
       pie: fuente(t), vence: "tsm", calc: ["tsm", "tsm_costera"] });
   } else h += sinDatos("Temperatura del mar frente a Paita", "la NOAA");
+  // Temperatura del aire (reanálisis) y ríos (en preparación): una fila nueva en computadora; en celular, antes del radar
+  const tp = D.temp;
+  if (tp) {
+    const u = tp.filas.at(-1), an = tp.anomalia_7d, a = an.actual;
+    const titulo = (a == null ? "Temperatura máxima en la ciudad de Piura" : Math.abs(a) <= TSM_UMBRAL ? `Piura está cerca de lo normal (${conSigno(a)} °C)`
+      : `Piura está ${num(Math.abs(a), 1)} °C más ${a > 0 ? "caliente" : "fría"} que lo normal`)
+      + (a != null && an["1997"] != null ? `; a esta fecha de 1997 estaba ${conSigno(an["1997"])} °C` : "");
+    h += panel({ titulo, clase: "clima-temp", cifra: grados(u[1]), ud: `máxima del ${diaLluvia(u[0])}; lo normal para esa fecha es ${grados(u[2])}`,
+      extra: `${a != null ? `<p class="frase">Últimos 7 días frente a lo normal: <strong>${conSigno(a)} °C</strong>${an["2016"] != null
+          ? `; en las mismas fechas de 2016, ${conSigno(an["2016"])} °C` : ""}.</p>` : ""}<div class="grafico" id="g-temp"></div>
+        <p class="nota">Reanálisis, no estación: ERA5-Land en una celda de unos 10 km sobre la ciudad. Último día disponible:
+          ${diaLluvia(u[0])} (llega con unos 7 días de retraso). Gris claro: 1997 y 2016, como referencia.</p>${masDetalle(tp.url, "Open-Meteo")}`,
+      pie: fuente(tp), vence: "temp", calc: ["temp"] });
+  } else h += sinDatos("Temperatura del aire en la ciudad de Piura", "Open-Meteo");
+  h += `<div class="panel clima-rios en-preparacion"><h3>Caudal de los ríos Piura y Chira: en preparación</h3>
+    <p class="frase">El Senamhi publica en línea el nivel de sus estaciones automáticas (solo las últimas 24 horas) y un estado de alerta,
+      pero no el caudal ni los umbrales oficiales. El caudal de Puente Sánchez Cerro sale en reportes diarios en PDF solo en temporada
+      de lluvias, y los umbrales que circulan (900, 1290 y 1900 m³/s) vienen de la prensa, no de un documento oficial.</p>
+    <p class="nota">Mientras tanto, el observatorio guarda cada día el nivel de Puente Ñácara (río Piura) y La Ardilla (río Chira), para
+      tener la serie cuando empiecen las lluvias. Falta: el documento oficial de umbrales y el acceso al caudal de Sánchez Cerro.</p></div>`;
   h += panel({ titulo: "Lluvia ahora: radar de la UDEP", clase: "clima-radar", frase: "Imagen más reciente del radar (tasa en mm por hora).",
     extra: `<figure class="radar-fig"><img class="radar-img" src="${RADAR_IMG}" loading="lazy" onerror="radarFallo(this)"
         alt="Imagen más reciente del radar de lluvias de la UDEP: tasa de precipitación sobre Piura; la hora está en el título de la imagen">
@@ -3016,6 +3109,13 @@ function graficosClima() {
     { nombre: "Normal", color: "var(--texto-3)", v: t.filas.map(f => +(f[1] - f[2]).toFixed(2)) },
     { nombre: "Mar", color: "var(--acento)", principal: true, v: t.filas.map(f => f[1]) }],
     "lineas", { dias: true, sinCero: true, fmt: grados, eje: v => `${num(v)}°`, alto: esCelular() ? 170 : 220 });
+  const tp = D.temp;  // temperatura: actual, normal y, en gris claro, las mismas fechas de 1997 y 2016
+  if (tp && $("g-temp")) graficoMeses($("g-temp"), tp.filas.map(f => f[0]), [
+    { nombre: "2016", color: "var(--gris-ref)", ancho: 1.5, v: tp.filas.map(f => f[4]) },
+    { nombre: "1997", color: "var(--gris-ref)", ancho: 1.5, v: tp.filas.map(f => f[3]) },
+    { nombre: "Normal", color: "var(--texto-3)", v: tp.filas.map(f => f[2]) },
+    { nombre: "Actual", color: "var(--acento)", principal: true, v: tp.filas.map(f => f[1]) }],
+    "lineas", { dias: true, sinCero: true, fmt: grados, eje: v => `${num(v)}°`, alto: esCelular() ? 190 : 220 });
   graficosLluvia();
 }
 // Lluvia de 30 días: tres estaciones por defecto (lluvia_senamhi.py: Bernal en la costa, a 31 km de la ciudad porque las de
@@ -3068,7 +3168,7 @@ function pintarFuentes() {
     ["Líneas de pobreza (canasta básica)", D.pobreza && { ...D.pobreza, fecha_corte: `${fecha(D.pobreza.fecha_corte)} (año ${D.pobreza.lineas.total.anios.at(-1)})` }, "Anual (mayo), a mano"],
     ["IPC de Piura", D.ipc && { ...D.ipc, fecha_corte: `${fecha(D.ipc.fecha_corte)} (${mesTxt(D.ipc.ultimo_mes)})` }, "Mensual (día 1)", "ipc"],
     ["Límites distritales del mapa", D.mapa && { ...D.mapa, fecha_corte: "límites de 2007" }, "Fijo"],
-    ["Vulnerabilidad por manzana (Censo 2025, Piura metropolitana)", CENSO, "Fijo: se procesa a mano una sola vez"],
+    ["Vulnerabilidad por manzana (Censo 2025, Ciudad de Piura y localidades)", CENSO, "Fijo: se procesa a mano una sola vez"],
   ];
   const filaF = ([ind, d, frec, clave]) =>
     `<tr><td>${ind}</td><td>${d ? enlace(d) : `<span class="revisar">no se pudo cargar</span>`}</td><td>${frec}${clave ?
@@ -3079,6 +3179,7 @@ function pintarFuentes() {
       "Cada 15 días, aproximadamente; se copia a mano (el workflow avisa si hay uno nuevo)", "enfen"],
     ["Anomalía semanal del mar, región Niño 1+2", D.nino12, "Semanal (NOAA CPC)", "nino12"],
     ["Temperatura del mar frente a Paita (satélite)", D.tsm, "Diaria, con 1 o 2 días de retraso", "tsm"],
+    ["Temperatura máxima del aire en la ciudad de Piura (reanálisis ERA5-Land, Open-Meteo)", D.temp, "Diaria, con unos 7 días de retraso", "temp"],
     ["Temperatura del mar en la estación costera de Paita", D.enfen?.paita_costera && { ...D.enfen.paita_costera, fecha_corte: D.enfen.fecha_corte },
       "Con cada Informe Técnico del ENFEN; a mano"],
     ["Lluvia diaria por estación (último día con datos)", D.lluvia, "Diaria", "lluvia"],
@@ -3171,10 +3272,10 @@ let listo;
 const arranque = new Promise(r => listo = r);  // se cumple cuando D tiene los datos de la carga inicial
 (async () => {
   mostrar();
-  const [gasto, inv, fen, obras, dh, d26, camas, mapa, ipc, camasSerie, ipress, pobreza, cortos, nombres, deps, revisadas, lluvia, tsm, enfen, nino12, imerg] = await Promise.all(["gasto_piura.json",
+  const [gasto, inv, fen, obras, dh, d26, camas, mapa, ipc, camasSerie, ipress, pobreza, cortos, nombres, deps, revisadas, lluvia, tsm, enfen, nino12, imerg, temp] = await Promise.all(["gasto_piura.json",
     "inversiones_piura.json", "fen_piura.json", "infobras_piura.json", "dengue_historico.json", "dengue_2026.json", "camas_piura.json",
     "piura_distritos.json", "ipc_piura.json", "camas_serie.json", "ipress_piura.json", "lineas_pobreza.json", "nombres_cortos_obras.json", "nombres_entidades.json", "infobras_departamentos.json", "obras_revisadas.json",
-    "lluvia_piura.json", "tsm_paita.json", "enfen_comunicado.json", "nino12.json", "imerg_piura.json"].map(cargar));
+    "lluvia_piura.json", "tsm_paita.json", "enfen_comunicado.json", "nino12.json", "imerg_piura.json", "temperatura_piura.json"].map(cargar));
   if (!gasto) {
     listo();  // la pestaña Vulnerabilidad no depende del gasto: que no se quede esperando
     $("resumen-paneles").innerHTML = `<p>No se pudieron cargar los datos. Si abriste el archivo directamente, sírvelo con
@@ -3184,7 +3285,7 @@ const arranque = new Promise(r => listo = r);  // se cumple cuando D tiene los d
   D.gasto = { ...gasto, rows: filas(gasto) };
   if (inv) { D.invMeta = inv; D.inv = Object.fromEntries(filas(inv).map(r => [r.cui, r])); }
   if (fen) D.fen = { ...fen, rows: filas(fen) };
-  Object.assign(D, { obras, dh, d26, camas, mapa, ipc, camasSerie, ipress, pobreza, cortos, nombres, deps, revisadas, lluvia, tsm, enfen, nino12, imerg });
+  Object.assign(D, { obras, dh, d26, camas, mapa, ipc, camasSerie, ipress, pobreza, cortos, nombres, deps, revisadas, lluvia, tsm, enfen, nino12, imerg, temp });
   listo();
   // Nombres legibles de entidades: diccionario o, si falta, la regla sobre el nombre original
   for (const k in gasto.nombres.entidad) gasto.nombres.entidad[k] = nombres?.mef?.[k] || legible(gasto.nombres.entidad[k]);

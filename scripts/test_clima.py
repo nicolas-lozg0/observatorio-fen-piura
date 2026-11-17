@@ -62,3 +62,31 @@ assert {"numero", "fecha_corte", "estado", "magnitud", "horizonte", "puntos", "u
 assert 2 <= len(c["puntos"]) <= 3 and all(len(p.split()) <= 20 for p in c["puntos"]), c["puntos"]
 assert date.fromisoformat(c["fecha_corte"]) < date.fromisoformat(c["proximo"])
 print("OK")
+
+# Ríos (ronda 18): niveles por hora en punto de la ventana de una estación automática; sin año en la etiqueta, el de hoy (o el
+# anterior si quedaría en el futuro); los vacíos no cuentan
+from datetime import date as _date, datetime as _dt  # noqa: E402
+import rios_senamhi  # noqa: E402
+HID = "const LABEL = ['31/12 23:50','01/01 00:00','01/01 00:10','01/01 01:00',];\nconst DATOS = [ .61, .62, .63, ,];"
+assert rios_senamhi.niveles(HID, _dt(2027, 1, 1, 2)) == [["2027-01-01T00:00", 0.62]], rios_senamhi.niveles(HID, _dt(2027, 1, 1, 2))
+assert rios_senamhi.niveles(HID.replace("'31/12 23:50'", "'31/12 23:00'"), _dt(2027, 1, 1, 2))[0] == ["2026-12-31T23:00", 0.61]
+MON = 'x [{"codZonal":"01","nomZonal":"#FFF","codEstacion":"47E09732","nomEstacion":"LA ARDILLA","nivel":2,"estado":1}] y'
+assert rios_senamhi.alertas(MON) == {"47E09732": 2}
+
+# Temperatura (ronda 18): la normal suavizada, el 29 de febrero como 28, y la anomalía de los últimos 7 días
+import temperatura_piura as tp  # noqa: E402
+serie = {}
+for a in range(1991, 2021):
+    d0 = _date(a, 1, 1)
+    while d0.year == a:
+        serie[d0] = 30.0
+        d0 = _date.fromordinal(d0.toordinal() + 1)
+for k in range(120):
+    f = _date.fromordinal(_date(2026, 11, 10).toordinal() - k)
+    serie[f] = 32.0
+    serie[_date(1997, f.month, f.day)] = 31.0
+ultimo, filas, anom = tp.calcular(serie)
+assert ultimo == _date(2026, 11, 10) and len(filas) == 90 and filas[-1] == ["2026-11-10", 32.0, 30.0, 31.0, 30.0], filas[-1]
+assert anom == {"actual": 2.0, "1997": 1.0, "2016": 0.0}, anom
+assert tp.md(_date(2024, 2, 29)) == (2, 28)
+print("OK: ríos (niveles y alertas) y temperatura (normal suavizada y anomalía)")
