@@ -527,6 +527,11 @@ def main():
         "localidades": localidades,
         "limites": limites,
     })
+    # Resumen mínimo para la portada (ronda 19): así la portada no carga el censo entero (0,3 MB)
+    m = localidades[0]
+    guardar("censo_resumen.json", {"fuente": "INEI, Censos Nacionales 2025, tabulados por manzana entregados el 13/11/2026",
+                                   "url": "https://www.inei.gob.pe/", "fecha_corte": "2026-11-13", "nombre": m["nombre"],
+                                   "viviendas": m["v"], "sin_desague": m["a"]})
     for nombre in ["censo_piura.json"] + archivos:
         tam_mb = (DATOS / nombre).stat().st_size / 2**20
         print(f"Tamaño de {nombre}: {tam_mb:.2f} MB" + (" (pasa de 3 MB)" if tam_mb > 3 else ""))

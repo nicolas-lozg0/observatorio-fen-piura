@@ -72,21 +72,37 @@ assert rios_senamhi.niveles(HID, _dt(2027, 1, 1, 2)) == [["2027-01-01T00:00", 0.
 assert rios_senamhi.niveles(HID.replace("'31/12 23:50'", "'31/12 23:00'"), _dt(2027, 1, 1, 2))[0] == ["2026-12-31T23:00", 0.61]
 MON = 'x [{"codZonal":"01","nomZonal":"#FFF","codEstacion":"47E09732","nomEstacion":"LA ARDILLA","nivel":2,"estado":1}] y'
 assert rios_senamhi.alertas(MON) == {"47E09732": 2}
+AV = """<tr><td><a href="./?p=avisos-detalle-hidrologicos&ca=1&ce=47E0D438">INCREMENTO DEL CAUDAL DEL RÍO ALAMOR - ESTACIÓN ALAMOR</a></td>
+<td><a href="x">1687 (vigente)</a></td><td>2026-11-17</td><td>2026-11-17</td><td>3</td><td><span>AMARILLO</span></td></tr>
+<tr><td><a href="x">SITUACIÓN ACTUAL DEL CAUDAL DEL RÍO TUMBES - ESTACIÓN EL TIGRE</a></td><td>1690</td><td>2026-11-17</td><td>2026-11-17</td><td>2</td><td>NARANJA</td></tr>"""
+av = rios_senamhi.avisos(AV)  # solo las cuencas del Piura y del Chira: el Tumbes no
+assert av == [{"numero": 1687, "titulo": "INCREMENTO DEL CAUDAL DEL RÍO ALAMOR - ESTACIÓN ALAMOR", "rio": "ALAMOR", "estacion": "ALAMOR",
+               "cuenca": "Chira", "inicio": "2026-11-17", "fin": "2026-11-17", "horas": 3, "nivel": "AMARILLO", "vigente": True,
+               "codigo": "47E0D438"}], av
 
-# Temperatura (ronda 18): la normal suavizada, el 29 de febrero como 28, y la anomalía de los últimos 7 días
+# Temperatura (ronda 19): franja normal (percentiles del promedio de 7 días), unión con el pronóstico corregido y anomalías
 import temperatura_piura as tp  # noqa: E402
-serie = {}
-for a in range(1991, 2021):
-    d0 = _date(a, 1, 1)
-    while d0.year == a:
-        serie[d0] = 30.0
-        d0 = _date.fromordinal(d0.toordinal() + 1)
-for k in range(120):
-    f = _date.fromordinal(_date(2026, 11, 10).toordinal() - k)
-    serie[f] = 32.0
-    serie[_date(1997, f.month, f.day)] = 31.0
-ultimo, filas, anom = tp.calcular(serie)
-assert ultimo == _date(2026, 11, 10) and len(filas) == 90 and filas[-1] == ["2026-11-10", 32.0, 30.0, 31.0, 30.0], filas[-1]
+uno = lambda f: _date.fromordinal(f.toordinal() + 1)
+era5 = {}
+f = _date(1991, 1, 1)
+while f <= _date(2026, 11, 10):
+    era5[f] = 30.0 if f.year <= 2020 else 32.0
+    f = uno(f)
+for k in range(120):  # 1997: 31 °C en las fechas del gráfico
+    g = _date.fromordinal(_date(2026, 11, 16).toordinal() - k)
+    era5[_date(1997, g.month, g.day)] = 31.0
+pron = {}
+f = _date(2026, 8, 1)
+while f <= _date(2026, 11, 17):
+    pron[f] = 31.5  # el pronóstico marca 0,5 °C menos que ERA5-Land
+    f = uno(f)
+serie, est, corr, ult = tp.unir(era5, pron, _date(2026, 11, 16))
+assert corr == 0.5 and ult == _date(2026, 11, 10) and len(est) == 6 and serie[_date(2026, 11, 16)] == 32.0, (corr, ult, len(est))
+assert _date(2026, 11, 17) not in serie  # hoy no: su máxima aún no se completa
+fr = tp.franja_normal(era5)
+assert fr[(11, 16)] == (30.0, 30.0, 30.0), fr[(11, 16)]
+filas, anom = tp.calcular(serie, est, _date(2026, 11, 16), fr)
+assert len(filas) == 90 and filas[-1] == ["2026-11-16", 32.0, 32.0, 30.0, 30.0, 30.0, 31.0, 30.0, 1], filas[-1]
 assert anom == {"actual": 2.0, "1997": 1.0, "2016": 0.0}, anom
 assert tp.md(_date(2024, 2, 29)) == (2, 28)
-print("OK: ríos (niveles y alertas) y temperatura (normal suavizada y anomalía)")
+print("OK: ríos (niveles, alertas y avisos) y temperatura (franja normal, unión con el pronóstico y anomalías)")

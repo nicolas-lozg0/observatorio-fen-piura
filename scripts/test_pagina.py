@@ -143,9 +143,25 @@ def main():
                 // con la serie desfasada un mes, el título vuelve a la pregunta
                 D.camas = { ...D.camas, periodo: 'agosto de 1999' };
                 const desfasada = ocupacionSerie() === null;
-                return { t, sal, esperado, regla, desfasada };
+                // ronda 19: franja de El Niño con el estado del ENFEN y el mar; tarjeta de Vulnerabilidad con sus 10 casas
+                const fr = document.querySelector('#hoy .franja-nino');
+                const franja = !!fr && fr.querySelector('.etiqueta-estado')?.textContent === D.enfen.estado && /Mar frente a Paita/.test(fr.textContent)
+                  && !!fr.querySelector('a[href="#clima"]');
+                const vp = document.querySelector('#resumen-paneles .vul-portada');
+                const vul = !!vp && vp.querySelectorAll('svg.casas g path').length === 10 && /^39\\.607 viviendas de la ciudad de Piura sin desagüe por red pública \\(26,7 %\\)$/.test(vp.querySelector('h3').textContent)
+                  && !!vp.querySelector('a[href="#vulnerabilidad"]');
+                // ríos: solo un aviso naranja o rojo de los últimos 2 días entra en la franja (hoy, si lo hay, puede ser amarillo)
+                const guardado = D.rios.avisos, hoyIso = new Date(Date.now() - 5 * 36e5).toISOString().slice(0, 10);
+                const av = n => ({ numero: 9999, titulo: 'INCREMENTO DEL CAUDAL DEL RÍO PIURA - ESTACIÓN PUENTE ÑACARA', rio: 'PIURA',
+                  estacion: 'PUENTE ÑACARA', cuenca: 'Piura', inicio: hoyIso, fin: hoyIso, horas: 2, nivel: n, vigente: true });
+                D.rios.avisos = [av('AMARILLO')]; const conAmarillo = /aviso-franja/.test(franjaNino());
+                D.rios.avisos = [av('NARANJA')]; const conNaranja = /Aviso\\s+naranja[^]*río Piura, estación Puente Ñacara/.test(franjaNino());
+                D.rios.avisos = guardado;
+                const rios = !conAmarillo && conNaranja;
+                return { t, sal, esperado, regla, desfasada, franja, vul, rios };
             }""")
-            revisar(len(r["t"]) == 5 and all(r["t"]), f"títulos de la portada: {r['t']}")
+            revisar(r["franja"] and r["vul"] and r["rios"], f"portada: franja de El Niño {r['franja']}, tarjeta de Vulnerabilidad {r['vul']}, aviso de ríos {r['rios']}")
+            revisar(len(r["t"]) == 6 and all(r["t"]), f"títulos de la portada: {r['t']}")
             # Dengue: tendencia de las 4 últimas semanas completas; cambiar una semana preliminar no la mueve
             r2 = pg.evaluate("""() => {
                 const d = D.d26, t = tendenciaDengue(d), titulo = document.querySelector('#resumen-paneles .destacado h3').textContent.trim();
@@ -230,13 +246,16 @@ def main():
                   temp: (() => { const cl = ps.map(p => [...p.classList].find(c => c.startsWith('clima-')));
                     return cl.indexOf('clima-temp') === cl.indexOf('clima-mar') + 1 && cl.indexOf('clima-rios') < cl.indexOf('clima-radar')
                       && document.querySelectorAll('#g-temp polyline').length === 4
-                      && /Reanálisis, no estación/.test(document.querySelector('.clima-temp').textContent)
+                      && /No es una estación/.test(document.querySelector('.clima-temp').textContent) && !!document.querySelector('#g-temp polygon')
+                      && document.querySelector('.clima-temp .cifra').textContent.trim() === conSigno(D.temp.anomalia_7d.actual) + ' °C'
+                      && document.querySelector('.clima-temp h3').textContent.includes(num(Math.abs(D.temp.anomalia_7d.actual), 1) + ' °C')
+                      && document.querySelectorAll('.clima-rios .rio').length === 2 && document.querySelectorAll('.clima-rios .aviso').length === 2
                       && /a esta fecha de 1997 estaba/.test(document.querySelector('.clima-temp h3').textContent); })() };
                 const guardado = D.tsm; D.tsm = null; pintarClima();
                 r.sinTsm = document.querySelectorAll('#clima-paneles .pendiente').length === 1;
                 D.tsm = guardado; pintarClima(); graficosClima();
                 return r; }""")
-            revisar(rc == {"paneles": 7, "detalle": 4, "radar": True, "lluvia": 3, "nino": True, "estado": True, "top5": True, "circulos": True,
+            revisar(rc == {"paneles": 7, "detalle": 5, "radar": True, "lluvia": 3, "nino": True, "estado": True, "top5": True, "circulos": True,
                            "imerg": True, "clases": [-1, 0, 3, 4], "sinTsm": True, "temp": True,
                            "titulos": ["El mar frente a Paita está cerca de lo normal", "El mar frente a Paita está 8,0 °C más caliente que lo normal",
                                        "El mar frente a Paita está 1,2 °C más frío que lo normal"]}, f"pestaña Clima: {rc}")

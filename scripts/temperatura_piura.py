@@ -1,31 +1,40 @@
 """
-Temperatura máxima del aire en la ciudad de Piura (pestaña Clima), del reanálisis ERA5-Land vía Open-Meteo (sin clave).
+Temperatura máxima del aire en la ciudad de Piura (pestaña Clima), con datos de Open-Meteo (sin clave).
 
-No es una estación: es un reanálisis (Copernicus/ECMWF) en una celda de unos 10 km sobre la ciudad. Se eligió porque la estación
-convencional de la ciudad (San Miguel, Senamhi) publica pocos días y no tiene normales en línea. Un solo modelo para todo (el
-último día, la normal 1991-2020 y las mismas fechas de 1997 y 2016) evita saltos entre fuentes; el costo es que ERA5-Land llega
-con unos 7 días de retraso, y la página lo dice.
+Dos tramos (ronda 19):
+- Reanálisis ERA5-Land (Copernicus/ECMWF), en una celda de unos 10 km sobre la ciudad: la normal 1991-2020, 1997, 2016 y la
+  serie actual hasta su último día (llega con unos 7 días de retraso).
+- Los días siguientes, hasta ayer, del modelo de pronóstico de Open-Meteo (past_days), corregidos con la diferencia media con
+  ERA5-Land en los últimos 30 días que tienen los dos (en noviembre de 2026, el pronóstico marca unos 0,5 a 0,7 °C menos). Se
+  marcan como estimación.
+No es una estación: la estación convencional de la ciudad (San Miguel, Senamhi) publica pocos días y no tiene normales en línea.
 
-Normal de cada fecha: promedio 1991-2020 de ese día del año, suavizado con una media móvil centrada de 15 días.
-Anomalía: promedio de los últimos 7 días con dato frente a la normal de esos días (la máxima de un día varía 2 a 3 °C).
+Una sola métrica: el promedio de las máximas de los 7 días que terminan en cada fecha. Lo normal es la mediana de ese promedio en
+1991-2020 (juntando los 30 años y ±7 días alrededor de la fecha, unas 450 semanas); la franja va del percentil 10 al 90.
+Anomalía = promedio de los últimos 7 días − mediana de la fecha.
 
 Resultado: docs/data/temperatura_piura.json. Uso: python3 scripts/temperatura_piura.py
 """
 import json
+import statistics
 import sys
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 from comun import abrir, guardar
 
 LAT, LON = -5.19, -80.63  # ciudad de Piura
-URL = ("https://archive-api.open-meteo.com/v1/archive?latitude={lat}&longitude={lon}&start_date={ini}&end_date={fin}"
-       "&daily=temperature_2m_max&timezone=America%2FLima&models=era5_land")
+ARCHIVO = ("https://archive-api.open-meteo.com/v1/archive?latitude={lat}&longitude={lon}&start_date={ini}&end_date={fin}"
+           "&daily=temperature_2m_max&timezone=America%2FLima&models=era5_land")
+PRONOSTICO = ("https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&daily=temperature_2m_max&past_days=92"
+              "&forecast_days=1&timezone=America%2FLima")
 PAGINA = "https://open-meteo.com/en/docs/historical-weather-api"
 NORMAL = (1991, 2020)
-VENTANA = 15  # días de la media móvil de la normal
 DIAS = 90  # días del gráfico
-ANOM = 7  # días del promedio de la anomalía
+SEMANA = 7  # días del promedio móvil
+AMPLIO = 7  # ±días alrededor de la fecha que se juntan para la franja normal
+COMUNES = 30  # días comunes con los que se mide la diferencia entre el pronóstico y ERA5-Land
 REFERENCIAS = [1997, 2016]  # Niño 1997-98; antes del Niño costero 2017
+PERU = timezone(timedelta(hours=-5))
 
 
 def md(f):
@@ -33,70 +42,101 @@ def md(f):
     return (f.month, 28) if (f.month, f.day) == (2, 29) else (f.month, f.day)
 
 
-def normal_suavizada(serie):
-    """Normal 1991-2020 por día del año, con media móvil circular de VENTANA días."""
-    dias = [date(2001, 1, 1) + timedelta(d) for d in range(365)]  # año no bisiesto
-    suma = {md(d): [0.0, 0] for d in dias}
-    for f, v in serie.items():
-        if NORMAL[0] <= f.year <= NORMAL[1] and v is not None:
-            s = suma[md(f)]
-            s[0] += v
-            s[1] += 1
-    cruda = [suma[md(d)][0] / suma[md(d)][1] for d in dias]
-    m = VENTANA // 2
-    suave = [sum(cruda[(j + k) % 365] for k in range(-m, m + 1)) / VENTANA for j in range(365)]
-    return {md(d): v for d, v in zip(dias, suave)}
-
-
-def en_anio(serie, f, anio):
-    """Valor de la misma fecha en otro año (el 29 de febrero, el 28)."""
+def en_anio(f, anio):
     m, d = md(f)
-    return serie.get(date(anio, m, d))
+    return date(anio, m, d)
 
 
-def calcular(serie):
-    """Filas del gráfico y anomalías, a partir de {fecha: máxima} (None = sin dato)."""
-    con = sorted(f for f, v in serie.items() if v is not None)
-    if not con:
-        sys.exit("Open-Meteo no devolvió ningún valor: no se guarda nada")
-    ultimo = con[-1]
-    normal = normal_suavizada(serie)
-    dias = [ultimo - timedelta(d) for d in range(DIAS - 1, -1, -1)]
+def media7(serie, f):
+    """Promedio de las máximas de los 7 días que terminan en f (con al menos 6 con dato)."""
+    vs = [serie.get(f - timedelta(k)) for k in range(SEMANA)]
+    vs = [v for v in vs if v is not None]
+    return sum(vs) / len(vs) if len(vs) >= SEMANA - 1 else None
+
+
+def franja_normal(serie):
+    """Por día del año: percentiles 10, 50 y 90 del promedio de 7 días en 1991-2020, juntando ±AMPLIO días."""
+    dias = [date(2001, 1, 1) + timedelta(d) for d in range(365)]  # año no bisiesto
+    indice = {md(d): j for j, d in enumerate(dias)}
+    por_dia = [[] for _ in range(365)]
+    f = date(NORMAL[0], 1, SEMANA)
+    while f.year <= NORMAL[1]:
+        v = media7(serie, f)
+        if v is not None:
+            por_dia[indice[md(f)]].append(v)
+        f += timedelta(1)
+    out = {}
+    for j, d in enumerate(dias):
+        vals = [v for k in range(-AMPLIO, AMPLIO + 1) for v in por_dia[(j + k) % 365]]
+        q = statistics.quantiles(vals, n=10)
+        out[md(d)] = (q[0], q[4], q[8])
+    return out
+
+
+def unir(era5, pron, ayer):
+    """Serie actual: ERA5-Land hasta su último día; después, el pronóstico corregido con la diferencia media de los últimos
+    COMUNES días que tienen los dos. Devuelve la serie, las fechas estimadas, la corrección y el último día de ERA5-Land."""
+    ult_era5 = max(f for f, v in era5.items() if v is not None)
+    comunes = sorted(f for f in pron if pron[f] is not None and era5.get(f) is not None)[-COMUNES:]
+    if len(comunes) < 20:
+        sys.exit(f"Solo {len(comunes)} días comunes entre el pronóstico y ERA5-Land: no se puede corregir")
+    correccion = statistics.mean(era5[f] - pron[f] for f in comunes)
+    serie, estimados = dict(era5), set()
+    for f, v in pron.items():
+        if ult_era5 < f <= ayer and v is not None:
+            serie[f] = v + correccion
+            estimados.add(f)
+    return serie, estimados, round(correccion, 2), ult_era5
+
+
+def calcular(serie, estimados, ultimo, franja):
+    """Filas del gráfico ([fecha, máxima, promedio de 7 días, p10, mediana, p90, 1997, 2016, estimado]) y anomalías."""
     r1 = lambda v: None if v is None else round(v, 1)
-    filas = [[f.isoformat(), r1(serie.get(f)), r1(normal[md(f)])] + [r1(en_anio(serie, f, a)) for a in REFERENCIAS] for f in dias]
-    ult7 = dias[-ANOM:]
-
-    def anomalia(valores):
-        pares = [(v, normal[md(f)]) for f, v in zip(ult7, valores) if v is not None]
-        return round(sum(v - n for v, n in pares) / len(pares), 1) if len(pares) >= ANOM - 1 else None
-
-    anom = {"actual": anomalia([serie.get(f) for f in ult7])}
+    dias = [ultimo - timedelta(d) for d in range(DIAS - 1, -1, -1)]
+    filas = []
+    for f in dias:
+        p10, p50, p90 = franja[md(f)]
+        filas.append([f.isoformat(), r1(serie.get(f)), r1(media7(serie, f)), r1(p10), r1(p50), r1(p90)]
+                     + [r1(media7(serie, en_anio(f, a))) for a in REFERENCIAS] + [int(f in estimados)])
+    mediana = franja[md(ultimo)][1]
+    anom = {"actual": r1(media7(serie, ultimo) - mediana)}
     for a in REFERENCIAS:
-        anom[str(a)] = anomalia([en_anio(serie, f, a) for f in ult7])
-    return ultimo, filas, anom
+        v = media7(serie, en_anio(ultimo, a))
+        anom[str(a)] = None if v is None else r1(v - mediana)
+    return filas, anom
+
+
+def leer_json(url):
+    with abrir(url, timeout=120) as r:
+        return json.load(r)
 
 
 def main():
-    hoy = date.today()
-    with abrir(URL.format(lat=LAT, lon=LON, ini=f"{NORMAL[0]}-01-01", fin=hoy.isoformat()), timeout=120) as r:
-        d = json.load(r)
-    if "daily" not in d:
-        sys.exit(f"Open-Meteo respondió sin datos diarios: {str(d)[:200]}")
-    serie = {date.fromisoformat(f): v for f, v in zip(d["daily"]["time"], d["daily"]["temperature_2m_max"])}
-    ultimo, filas, anom = calcular(serie)
-    # comprobaciones: 90 días, normales plausibles para Piura, y la normal cubre los 30 años
-    assert len(filas) == DIAS and all(20 <= x[2] <= 40 for x in filas), "normal fuera de rango"
-    assert sum(1 for f in serie if NORMAL[0] <= f.year <= NORMAL[1] and serie[f] is not None) > 0.95 * 365 * 30, "faltan años de la normal"
-    retraso = (hoy - ultimo).days
-    print(f"ERA5-Land en ({d['latitude']}, {d['longitude']}): último día {ultimo} ({retraso} días de retraso), máxima {serie[ultimo]} °C; "
-          f"anomalía de 7 días {anom}")
+    hoy = datetime.now(PERU).date()
+    ayer = hoy - timedelta(1)  # el máximo de hoy aún no se completa
+    d = leer_json(ARCHIVO.format(lat=LAT, lon=LON, ini=f"{NORMAL[0]}-01-01", fin=hoy.isoformat()))
+    p = leer_json(PRONOSTICO.format(lat=LAT, lon=LON))
+    if "daily" not in d or "daily" not in p:
+        sys.exit(f"Open-Meteo respondió sin datos diarios: {str(d)[:150]} {str(p)[:150]}")
+    era5 = {date.fromisoformat(f): v for f, v in zip(d["daily"]["time"], d["daily"]["temperature_2m_max"])}
+    pron = {date.fromisoformat(f): v for f, v in zip(p["daily"]["time"], p["daily"]["temperature_2m_max"])}
+    assert sum(1 for f, v in era5.items() if NORMAL[0] <= f.year <= NORMAL[1] and v is not None) > 0.95 * 365 * 30, "faltan años de la normal"
+    serie, estimados, correccion, ult_era5 = unir(era5, pron, ayer)
+    ultimo = max(f for f, v in serie.items() if v is not None)
+    filas, anom = calcular(serie, estimados, ultimo, franja_normal(era5))
+    assert len(filas) == DIAS and all(20 <= x[4] <= 40 and x[3] <= x[4] <= x[5] for x in filas), "franja normal fuera de rango"
+    print(f"ERA5-Land hasta {ult_era5}; pronóstico corregido ({correccion:+} °C) hasta {ultimo}: {len(estimados)} días estimados. "
+          f"Promedio de 7 días al {ultimo}: {filas[-1][2]} °C; mediana normal {filas[-1][4]} °C; anomalías {anom}")
     guardar("temperatura_piura.json", {
-        "fuente": "Reanálisis ERA5-Land (Copernicus/ECMWF), vía Open-Meteo (CC BY 4.0)",
+        "fuente": "Open-Meteo: reanálisis ERA5-Land (Copernicus/ECMWF) y, en los últimos días, su modelo de pronóstico corregido (CC BY 4.0)",
         "url": PAGINA,
         "fecha_corte": ultimo.isoformat(),
+        "ultimo_era5": ult_era5.isoformat(),
+        "correccion": correccion,
+        "dias_comunes": COMUNES,
         "celda": [d["latitude"], d["longitude"]],
-        "normal": f"{NORMAL[0]}-{NORMAL[1]}, media móvil de {VENTANA} días",
-        "columnas": ["fecha", "maxima", "normal"] + [str(a) for a in REFERENCIAS],
+        "normal": f"{NORMAL[0]}-{NORMAL[1]}: mediana y percentiles 10 y 90 del promedio de {SEMANA} días (±{AMPLIO} días)",
+        "columnas": ["fecha", "maxima", "media7", "p10", "mediana", "p90"] + [str(a) for a in REFERENCIAS] + ["estimado"],
         "filas": filas,
         "anomalia_7d": anom,
     })

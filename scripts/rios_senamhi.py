@@ -6,8 +6,9 @@ Por qué acumular: la ventana de cada estación automática del mapa del Senamhi
 minutos) y la tabla histórica tiene captcha. Guardando un valor por hora cada día, la serie de 7 a 30 días existirá cuando
 empiecen las lluvias. No es una descarga oficial: se leen los arreglos del gráfico, como en lluvia_senamhi.py.
 
-Estado de alerta: el mapa de monitoreo hidrológico del Senamhi (PHISIS) trae, por estación, un nivel de alerta (0 = normal),
-sin valores ni umbrales numéricos.
+Semáforo oficial (ronda 19): la lista pública de avisos hidrológicos del Senamhi (número, fechas y nivel en palabras:
+AMARILLO, NARANJA o ROJO). Se guardan los avisos de los últimos 30 días de los ríos de las cuencas del Piura y del Chira en
+el departamento (con sus afluentes). El estado numérico de PHISIS también se guarda, pero no dice qué color es cada número.
 
 Resultado: docs/data/rios_piura.json (se agrega a lo que ya había; se guardan los últimos 60 días). Uso: python3 scripts/rios_senamhi.py
 """
@@ -22,6 +23,10 @@ ESTACION = ("https://www.senamhi.gob.pe/mapas/mapa-estaciones-2/map_red_graf.php
             "&cate=EHA&cod_old=")
 MONITOREO = "https://www.senamhi.gob.pe/mapas/mapa-monitoreohidro/mapa-monitoreo.php"
 PAGINA = "https://www.senamhi.gob.pe/?&p=monitoreo-hidrologico"
+AVISOS = "https://www.senamhi.gob.pe/?p=avisos-hidrologicos"
+# Cuenca de cada río con avisos posibles en el departamento (el río principal y sus afluentes)
+CUENCAS = {"PIURA": "Piura", "CHARANAL": "Piura", "BIGOTE": "Piura", "CORRAL DEL MEDIO": "Piura", "YAPATERA": "Piura", "SAN FRANCISCO": "Piura",
+           "CHIRA": "Chira", "ALAMOR": "Chira", "MACARA": "Chira", "MACARÁ": "Chira", "QUIROZ": "Chira", "CHIPILLICO": "Chira"}
 # Río Piura: Puente Ñácara (Chulucanas, aguas arriba de la ciudad); Tambo Grande no envía datos (noviembre de 2026).
 # Río Chira: La Ardilla.
 ESTACIONES = {"47E0415A": ("Puente Ñácara", "Piura"), "47E09732": ("La Ardilla", "Chira")}
@@ -60,6 +65,23 @@ def alertas(html):
             if o.get("codEstacion")}
 
 
+def avisos(html):
+    """Filas de la lista de avisos hidrológicos de las cuencas del Piura y del Chira: número, fechas, horas, nivel, río y estación."""
+    filas = []
+    for tr in re.findall(r"<tr>(.*?)</tr>", html, re.S):
+        tds = [re.sub(r"<[^>]+>", "", x).strip() for x in re.findall(r"<td[^>]*>(.*?)</td>", tr, re.S)]
+        if len(tds) != 6 or tds[5] not in ("AMARILLO", "NARANJA", "ROJO"):
+            continue
+        m = re.search(r"RÍO (.+?) - ESTACIÓN (.+)$", tds[0])
+        if not m or m.group(1) not in CUENCAS:
+            continue
+        ce = re.search(r"ce=([0-9A-Za-z]+)", tr)
+        filas.append({"numero": int(re.sub(r"\D", "", tds[1])), "titulo": tds[0], "rio": m.group(1), "estacion": m.group(2),
+                      "cuenca": CUENCAS[m.group(1)], "inicio": tds[2], "fin": tds[3], "horas": int(tds[4]), "nivel": tds[5],
+                      "vigente": "vigente" in tds[1], "codigo": ce.group(1) if ce else None})
+    return filas
+
+
 def main():
     ahora = datetime.now(PERU)
     previo = DATOS / "rios_piura.json"
@@ -69,6 +91,17 @@ def main():
     except (OSError, ValueError) as e:
         print("  Aviso: no se leyó el estado de alerta de PHISIS:", e)
         alerta = {}
+    try:
+        nuevos_av = avisos(leer(AVISOS))
+    except (OSError, ValueError) as e:
+        print("  Aviso: no se leyó la lista de avisos hidrológicos:", e)
+        nuevos_av = None
+    if nuevos_av is not None:  # se suman a los anteriores (la lista del Senamhi es corta) y se guardan 30 días
+        lim = (ahora - timedelta(days=30)).date().isoformat()
+        todos = {a["numero"]: a for a in datos.get("avisos", []) + nuevos_av}
+        datos["avisos"] = sorted((a for a in todos.values() if a["fin"] >= lim), key=lambda a: -a["numero"])
+        print(f"Avisos del Senamhi en las cuencas del Piura y del Chira (30 días): {len(datos['avisos'])}; "
+              f"{[(a['numero'], a['rio'], a['nivel'], a['fin']) for a in datos['avisos'][:4]]}")
     leidas = 0
     corte = (ahora - timedelta(days=DIAS)).strftime("%Y-%m-%dT%H:%M")
     for cod, (nombre, rio) in ESTACIONES.items():
@@ -88,10 +121,13 @@ def main():
     if not leidas:
         sys.exit("No se leyó ninguna estación: no se guarda nada")
     guardar("rios_piura.json", {
-        "fuente": "Senamhi, estaciones hidrológicas automáticas (nivel) y monitoreo hidrológico PHISIS (estado de alerta)",
+        "fuente": "Senamhi, estaciones hidrológicas automáticas (nivel) y avisos hidrológicos",
         "url": PAGINA,
         "fecha_corte": ahora.date().isoformat(),
         "nota": "Nivel en metros (no caudal), un valor por hora; acumulado por el observatorio porque el Senamhi publica solo 24 h",
+        "desde": datos.get("desde") or ahora.date().isoformat(),
+        "avisos": datos.get("avisos", []),
+        "url_avisos": AVISOS,
         "estaciones": datos["estaciones"],
     })
 
