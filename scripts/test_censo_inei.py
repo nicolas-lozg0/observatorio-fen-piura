@@ -18,12 +18,13 @@ assert ks == list("abcdefghi"), ks
 for nombre in ("censo_piura.json", "censo_hex10.json", "censo_manzanas.json"):
     assert (DATOS / nombre).stat().st_size < 3 * 2**20, f"{nombre} debe pesar menos de 3 MB"
 assert RUTA.stat().st_size < 0.5 * 2**20, "la base (se carga al abrir la pestaña) debe ser liviana"
-# 5 clases: 4 cortes crecientes entre 0 y 100, por familia de indicadores (ronda 16)
+# 5 clases: 4 cortes fijos crecientes entre 0 y 100 (ronda 17: una escala en palabras para servicios y vivienda)
 cortes = {i["k"]: i["cortes"] for i in d["indicadores"]}
 for k, c in cortes.items():
     assert len(c) == 4 and all(0 < a < b < 100 for a, b in zip(c, c[1:])), (k, c)
-assert cortes["a"] == cortes["b"] == [2, 10, 40, 80] and cortes["c"] == cortes["h"] == cortes["i"] == [5, 10, 20, 40]
-assert cortes["d"] == [25, 50, 75, 90] and cortes["e"] == [15, 20, 25, 30] and cortes["f"] == [4, 8, 12, 16] and cortes["g"] == [30, 50, 65, 80]
+assert all(cortes[k] == [5, 20, 50, 80] for k in "abcdhi")
+assert [len(i.get("palabras", [])) for i in d["indicadores"]] == [5, 5, 5, 5, 0, 0, 0, 5, 5]
+assert cortes["e"] == [15, 20, 25, 30] and cortes["f"] == [4, 8, 12, 16] and cortes["g"] == [30, 50, 65, 80]
 assert "adobe" in [i for i in d["indicadores"] if i["k"] == "h"][0]["numerador"] and "no incluye adobe" in [i for i in d["indicadores"] if i["k"] == "h"][0]["numerador"]
 # Localidades: Piura metropolitana primero y luego los centros poblados de 2000 viviendas o más, cada uno con su archivo
 locs = d["localidades"]
@@ -35,7 +36,8 @@ for x in locs:
     assert x["v"] >= 2000 and (DATOS / x["archivo"]).stat().st_size < 1 * 2**20, (x["id"], x["v"])
     f = json.loads((DATOS / x["archivo"]).read_text(encoding="utf-8"))
     mzl = [m["properties"] for m in f["manzanas"]["features"] if "km2" not in m["properties"]]
-    for nivel in ("hexagonos", "hex10"):  # los hexágonos de cada localidad suman lo mismo que sus manzanas
+    assert "hex10" not in f  # ronda 17: las localidades van de 350 m a manzanas
+    for nivel in ("hexagonos",):  # los hexágonos de cada localidad suman lo mismo que sus manzanas
         for k in ks:
             assert sum(h["properties"][k][1] for h in f[nivel]["features"]) == sum(m[k][1] for m in mzl), (x["id"], nivel, k)
     # el total de la localidad (con sus dispersas) es la suma de sus manzanas con polígono más las dispersas
@@ -108,3 +110,14 @@ for u, x in d["distritos"].items():
     assert x["p"] == suma[u]["e"][1] + x["dispersas"]["p"], u
     assert x["b"][0] >= suma[u]["b"][0] and x["e"][0] >= suma[u]["e"][0], u
 print(f"OK: {len(ids)} manzanas, {len(ks)} indicadores, coincidencia {100 * c['tasa']:.2f} %, {RUTA.stat().st_size / 2**20:.2f} MB")
+
+# Vista de número (ronda 17): densidad por hectárea de manzana. Cada sector trae el área de sus manzanas, que suma la de ellas,
+# y los cortes de densidad son fijos por grupo de indicadores
+dens = {i["k"]: i["densidad"] for i in d["indicadores"]}
+assert all(dens[k] == [5, 10, 20, 40] for k in "abcdhif") and dens["e"] == [10, 20, 40, 80] and dens["g"] == [25, 50, 100, 200]
+assert all(h["properties"]["ha"] > 0 for h in d["hexagonos"]["features"] + h10["features"])
+assert all("ha" in f["properties"] for f in d["features"])
+area_mz = sum(f["properties"]["ha"] for f in d["features"] if "km2" not in f["properties"])
+area_hex = sum(h["properties"]["ha"] for h in d["hexagonos"]["features"])
+assert abs(area_mz - area_hex) / area_mz < 0.01, (area_mz, area_hex)
+print(f"Densidad: {area_hex:.0f} ha de manzanas en los sectores de Piura metropolitana (manzanas: {area_mz:.0f} ha)")

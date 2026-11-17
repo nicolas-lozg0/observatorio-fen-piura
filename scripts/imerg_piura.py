@@ -1,8 +1,9 @@
 """
 Lluvia de 24 h estimada por satélite (NASA GPM IMERG Early, V07) sobre el departamento de Piura (pestaña Clima).
 
-Suma las 48 medias horas de 12:00 UTC del día anterior a 12:00 UTC de hoy, que es de 7:00 a 7:00 en Lima, la misma
-ventana que se asume para las estaciones del Senamhi. IMERG Early sale unas 4 horas después de cada media hora: por eso
+Suma las 48 medias horas de 00:00 UTC de anteayer a 00:00 UTC de hoy, que es de 19:00 a 19:00 en Lima: la misma ventana
+que el día de las estaciones convencionales del Senamhi (lecturas de 7:00 y 19:00; deducido en la ronda 17 porque la lluvia
+del día D aparece la noche de D, por confirmar con el Senamhi). El resultado se rotula con el día D, como las estaciones. IMERG Early sale unas 4 horas después de cada media hora: por eso
 este script corre en su propio workflow a las 12:30 de Lima (imerg.yml).
 
 Datos: servidor OPeNDAP de GES DISC (NASA), recortado a una caja alrededor de Piura (rejilla de 0,1°). La lista de archivos
@@ -98,10 +99,10 @@ def main():
     token = os.environ.get("EARTHDATA_TOKEN", "").strip()
     if not token:
         sys.exit("Falta la variable de entorno EARTHDATA_TOKEN (secreto de GitHub): no se guarda nada")
-    # Ventana de 7:00 a 7:00 de Lima (12:00 UTC). Si la del día aún no está completa en la lista (latencia de IMERG Early),
+    # Ventana de 19:00 a 19:00 de Lima (00:00 UTC). Si la del día aún no está completa en la lista (latencia de IMERG Early),
     # se usa la última completa, de hasta 3 días antes; el mapa dice de qué fechas es.
     ahora = datetime.now(timezone.utc)
-    fin = ahora.replace(hour=12, minute=0, second=0, microsecond=0)
+    fin = ahora.replace(hour=0, minute=0, second=0, microsecond=0)
     if ahora < fin + LATENCIA:
         fin -= timedelta(days=1)
     listas = {}

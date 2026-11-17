@@ -223,11 +223,14 @@ def indicadores(dp, dv, P, V):
 NIVELES = {9: 30, 10: 20}
 # API pública de OpenStreetMap y un espejo de la lista del wiki de OSM, por si el principal está cargado
 OVERPASS_ESPEJOS = ["https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter"]
-# Cortes de las 5 clases (en %), por familia de indicadores (ronda 16). Los servicios por red se separan porque en un
-# barrio casi todo o casi nada está conectado: con los cortes de la familia, tres clases quedaban con menos del 5 %.
-CORTES = {"a": [2, 10, 40, 80], "b": [2, 10, 40, 80],                    # servicios por red pública
-          "c": [5, 10, 20, 40], "h": [5, 10, 20, 40], "i": [5, 10, 20, 40],  # agua diaria y vivienda
-          "d": [25, 50, 75, 90], "e": [15, 20, 25, 30], "f": [4, 8, 12, 16], "g": [30, 50, 65, 80]}
+# Cortes de las 5 clases (en %), fijos a propósito (ronda 17): una sola escala en palabras para servicios y vivienda, y
+# los cortes de la ronda 16 para los demográficos. No se mueven aunque una clase quede casi vacía: así se compara entre localidades.
+ESCALA = [5, 20, 50, 80]
+PALABRAS = ["Casi ninguna", "Pocas", "Menos de la mitad", "Más de la mitad", "Casi todas"]
+CORTES = {**{k: ESCALA for k in "abcdhi"}, "e": [15, 20, 25, 30], "f": [4, 8, 12, 16], "g": [30, 50, 65, 80]}
+# Clases de la vista de número: afectados por hectárea de manzana (densidad neta, sin calles ni terreno vacío, para que
+# no cambie entre niveles). Viviendas y mayores de 65 comparten escala; menores de 15 y sin seguro son muchas más personas.
+DENSIDAD = {**{k: [5, 10, 20, 40] for k in "abcdhif"}, "e": [10, 20, 40, 80], "g": [25, 50, 100, 200]}
 NOTAS = {"e": "Más alto = más población dependiente (no es una carencia).",
          "f": "Más alto = más población dependiente (no es una carencia)."}
 # Localidades además de Piura metropolitana: centros poblados de los otros distritos de la provincia con al menos estas
@@ -249,14 +252,14 @@ def hexagonos(unidos, claves, res):
     filas = unidos[~unidos["extensa"]].copy()
     cen = filas["geometry"].map(lambda g: g.centroid)
     filas["hex"] = [h3.latlng_to_cell(c.y, c.x, res) for c in cen]
-    cols = ["p", "v", "g_max"] + [k + s for k in claves for s in ("_n", "_d")]
+    cols = ["p", "v", "g_max", "km2"] + [k + s for k in claves for s in ("_n", "_d")]
     suma = filas.groupby("hex")[cols].sum()
     suma["m"] = filas.groupby("hex").size()
     suma["u"] = filas.groupby("hex")["ubigeo"].agg(lambda s: s.value_counts().index[0])  # distrito con más manzanas
     feats = []
     for cell, r in suma.iterrows():
         anillo = [[round(lng, DECIMALES), round(lat, DECIMALES)] for lat, lng in h3.cell_to_boundary(cell)]
-        props = {"u": r["u"], "m": int(r["m"]), "p": int(r["p"]), "v": int(r["v"])}
+        props = {"u": r["u"], "m": int(r["m"]), "p": int(r["p"]), "v": int(r["v"]), "ha": round(float(r["km2"]) * 100, 2)}  # ha de manzanas
         for k in claves:
             props[k] = [int(r[k + "_n"]), int(r[k + "_d"])] + ([int(r["g_max"])] if k == "g" else [])
         lat, lng = h3.cell_to_latlng(cell)
@@ -443,7 +446,7 @@ def main():
 
     claves = [k for k, *_ in INDICADORES]
     unidos["feat"] = [{"type": "Feature", "id": r["codigo"],
-                       "properties": {"u": r["ubigeo"], "p": int(r["p"]), "v": int(r["v"]),
+                       "properties": {"u": r["ubigeo"], "p": int(r["p"]), "v": int(r["v"]), "ha": round(float(r["km2"]) * 100, 3),
                                       **({"km2": round(float(r["km2"]), 3)} if r["extensa"] else {}),  # solo en las extensas
                                       **{k: [int(r[k + "_n"]), int(r[k + "_d"])] + ([int(r["g_max"])] if k == "g" else []) for k in claves}},
                        "geometry": (lambda g: {"type": g["type"], "coordinates": redondear(g["coordinates"])})(mapping(geo))}
@@ -479,8 +482,8 @@ def main():
             archivos += ["censo_hex10.json", "censo_manzanas.json"]
         else:
             fila["archivo"] = f"censo_loc_{loc}.json"
+            # sin el nivel de 130 m (ronda 17): en pueblos menos densos ocultaba hasta el 42 % de las viviendas
             guardar(fila["archivo"], {"hexagonos": {"resolucion": 9, "minimo": NIVELES[9], "features": hexs},
-                                      "hex10": {"resolucion": 10, "minimo": NIVELES[10], "features": hexs10},
                                       "manzanas": {"type": "FeatureCollection", "features": u["feat"].tolist()}})
             archivos.append(fila["archivo"])
         localidades.append(fila)
@@ -496,7 +499,8 @@ def main():
                   f"urbanos de {LOCALIDAD_MIN} viviendas o más de los otros distritos",
         "minimo": MINIMO,
         "indicadores": [{"k": k, "rotulo": rot, "tipo": t, "numerador": n, "denominador": d, "frase": FRASES[k],
-                         "cortes": CORTES[k], **({"nota": NOTAS[k]} if k in NOTAS else {})} for k, rot, t, n, d in INDICADORES],
+                         "cortes": CORTES[k], "densidad": DENSIDAD[k], **({"palabras": PALABRAS} if CORTES[k] is ESCALA else {}),
+                         **({"nota": NOTAS[k]} if k in NOTAS else {})} for k, rot, t, n, d in INDICADORES],
         "hexagonos": {"resolucion": 9, "minimo": NIVELES[9], "nombres": "© colaboradores de OpenStreetMap (ODbL)", "features": metro_hex},
         "validaciones": validaciones,
         "coincidencia": {"tabuladas": len(tab), "con_poligono": len(tab) - len(sin_poligono), "tasa": round(tasa, 4),

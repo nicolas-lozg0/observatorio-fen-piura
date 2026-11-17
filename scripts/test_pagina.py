@@ -126,7 +126,7 @@ def main():
                 # Todo var(--token) usado en la página (estilos y SVG generados) debe estar definido
                 sin_definir = pg.evaluate("""() => { const css = getComputedStyle(document.documentElement);
                     const usados = new Set([...document.documentElement.outerHTML.matchAll(/var\\((--[\\w-]+)[),]/g)].map(m => m[1]));
-                    return [...usados].filter(v => !['--c', '--x', '--p', '--n'].includes(v) && !css.getPropertyValue(v).trim()); }""")
+                    return [...usados].filter(v => !['--c', '--x', '--p', '--n', '--prom'].includes(v) && !css.getPropertyValue(v).trim()); }""")
                 revisar(not sin_definir, f"{ancho}px: tokens sin definir: {sin_definir}")
                 revisar(not errores, f"{ancho}px: errores en la consola: {errores[:3]}")
                 pg.close()
@@ -234,8 +234,41 @@ def main():
                            "imerg": True, "clases": [-1, 0, 3, 4], "sinTsm": True,
                            "titulos": ["El mar frente a Paita está cerca de lo normal", "El mar frente a Paita está 8,0 °C más caliente que lo normal",
                                        "El mar frente a Paita está 1,2 °C más frío que lo normal"]}, f"pestaña Clima: {rc}")
+            # Lluvia, una sola fecha (ronda 17): para cada estación, la última barra de su serie (globo) tiene el mismo día y los
+            # mismos mm que su círculo en el mapa diario; 0 mm lleva marca; la escala común se corta en 60 mm con el valor encima;
+            # fechas cada 7 días; un selector con todas las estaciones en cada gráfico
+            pg.wait_for_function("document.querySelector('#mapa-lluvia .leaflet-interactive')", timeout=20000)
+            rl = pg.evaluate("""async () => {
+                const l = D.lluvia, m = await mapaLluviaP, enMapa = {}, dia = diaLluvia(l.fecha_corte), malas = [];
+                m.eachLayer(c => { if (c instanceof L.CircleMarker && c.getTooltip()) { const t = c.getTooltip().getContent();
+                  enMapa[t.match(/<strong>(.*?)<\\/strong>/)[1]] = t.split('Medido en estación: ')[1]; } });
+                for (const x of l.estaciones) {
+                  seriesLluvia[0] = x.cod; graficosLluvia();
+                  const g = document.querySelector('#g-lluvia .grafico'), zona = g.querySelector('.zona'), z = zona.getBoundingClientRect();
+                  zona.dispatchEvent(new PointerEvent('pointermove', { clientX: z.right - 1, clientY: z.top + 5, bubbles: true }));
+                  const globo = g.querySelector('.globo').textContent, mapa = enMapa[esc(lugar(x.nombre))];
+                  if (!mapa || !globo.startsWith(dia) || !globo.endsWith(mapa)) malas.push(`${x.nombre}: serie «${globo}», mapa «${mapa}»`);
+                }
+                seriesLluvia = [...l.series]; graficosLluvia();
+                const ceros = [...document.querySelectorAll('#g-lluvia .grafico')].every((g, j) => {
+                  const x = l.estaciones.find(e => e.cod === seriesLluvia[j]);
+                  return g.querySelectorAll('rect[height="2"]').length === diasLluvia(l).filter(d => lluviaDia(x, d) === 0).length; });
+                const div = document.createElement('div'); div.style.width = '300px'; document.body.append(div);
+                graficoMeses(div, diasLluvia(l), [{ nombre: 'Lluvia', color: 'red', v: Array(29).fill(1).concat(100) }], 'barras',
+                  { dias: true, cada: 7, hi: 60, recorte: true, alto: 170, fmt: mm });
+                const r = { malas, ceros, sub: document.querySelector('#clima-paneles .clima-lluvia').textContent.includes('Lluvia del ' + dia),
+                  tope: div.querySelector('text.rotulo')?.textContent === '100',
+                  fechas: [...div.querySelectorAll('text')].filter(e => /^\\d\\d\\/\\d\\d$/.test(e.textContent)).length,
+                  selectores: [...document.querySelectorAll('#g-lluvia select')].map(s => s.options.length),
+                  totales: document.querySelectorAll('#g-lluvia .total-ll b').length };
+                div.remove();
+                return r; }""")
+            n_est = pg.evaluate("D.lluvia.estaciones.length")
+            revisar(rl == {"malas": [], "ceros": True, "sub": True, "tope": True, "fechas": 5, "selectores": [n_est] * 3, "totales": 3},
+                    f"lluvia, serie y mapa con la misma fecha: {rl}")
             # Vulnerabilidad: la base se carga al abrir la pestaña (hexágonos de 350 m); los de 130 m al zoom 15 y las manzanas al 16.
-            # 7 clases con los cortes de cada indicador; el total de la tabla suma numeradores y denominadores (no promedia)
+            # 5 clases fijas (servicios y vivienda en palabras); el total de la tabla suma numeradores y denominadores (no promedia);
+            # la barra y su frase cubren toda la localidad; la comparación va ordenada, con el promedio de las zonas urbanas
             pg.evaluate("location.hash = '#vulnerabilidad'")
             pg.wait_for_function("document.querySelector('#mapa-vul canvas, #mapa-vul .sin-datos, #vulnerabilidad .pendiente')", timeout=30000)
             rv = pg.evaluate("""async () => {
@@ -246,9 +279,15 @@ def main():
                   barra: Math.round([...document.querySelectorAll('#vul-leyenda .barra-clases span')].reduce((s, x) => s + +x.style.getPropertyValue('--p'), 0)),
                   sinManzanas: !vulDatos.metro.mz && !vulDatos.metro.h10,  // no se descargan hasta acercar el mapa
                   filas: filas.length, total: total === (num(t[0]) + 'de' + num(t[1])).replace(/\\s/g, ''),
-                  // sin desagüe, cortes 2, 10, 40, 80: 1,9 % en la 1.ª clase, 2 % en la 2.ª, 40 % en la 4.ª, 100 % en la 5.ª
-                  clases: [[1.9, 100], [2, 100], [40, 100], [100, 100]].map(a => [...TONOS_V.map(token)].indexOf(hexEstilo(conA(a)).fillColor)),
-                  rotulos: [rotulosPct([2, 10, 40, 80]).at(-1), rotulosPct([4, 8, 12, 16]).at(-1), rotulosPct([2, 10, 40, 80])[0]],
+                  // sin desagüe, escala fija 5, 20, 50, 80: 4,9 % en la 1.ª clase, 5 % en la 2.ª, 50 % en la 4.ª, 100 % en la 5.ª
+                  clases: [[4.9, 100], [5, 100], [50, 100], [100, 100]].map(a => [...TONOS_V.map(token)].indexOf(hexEstilo(conA(a)).fillColor)),
+                  rotulos: [rotulosVul(i).at(-1), rotulosVul(i)[0], rotulosPct([4, 8, 12, 16]).at(-1)],
+                  fraseBarra: document.querySelector('#vul-leyenda .frase-barra').textContent.startsWith('De cada 100 viviendas de Piura metropolitana, '),
+                  comparacion: (() => { const fs = [...document.querySelectorAll('#vul-localidades .fila-loc')], ps = fs.map(f => +f.querySelector('.barra').style.getPropertyValue('--p'));
+                    const ls = D.censo.localidades, prom = pct(ls.reduce((s, x) => s + x.a[0], 0), ls.reduce((s, x) => s + x.a[1], 0));
+                    return fs.length === ls.length && ps.every((p, j) => !j || ps[j - 1] >= p) && fs.filter(f => f.classList.contains('sel')).length === 1
+                      && Math.abs($('vul-localidades').style.getPropertyValue('--prom') - prom) < 1e-9
+                      && /en número, la mayoría está en Piura metropolitana/.test($('vul-comp-titular').textContent); })(),
                   borde: hexEstilo(conA([0, 100])).weight > 0 && hexEstilo(conA([0, 100])).fillOpacity === 1,
                   multiplicar: getComputedStyle(document.querySelector('#mapa-vul .leaflet-tile-pane')).mixBlendMode,
                   hex30: hexVisibles().features.every(x => x.properties[vulInd().k][1] >= 30),
@@ -259,11 +298,11 @@ def main():
                   proporcion: [proporcion(26.7), proporcion(62), proporcion(97)].map(x => x.join('|')) };
             }""")
             revisar(rv == {"canvas": True, "leyenda": 5, "barra": 100, "sinManzanas": True, "filas": 4, "total": True, "clases": [0, 1, 3, 4],
-                           "rotulos": ["80 a 100 %", "16 % o más", "0 a 2 %"], "borde": True, "multiplicar": "multiply",
+                           "rotulos": ["Casi todas (80–100 %)", "Casi ninguna (0–5 %)", "16 % o más"], "fraseBarra": True, "comparacion": True, "borde": True, "multiplicar": "multiply",
                            "hex30": True, "frases": 3, "criticos": True, "proporcion": ["1 de cada 4|false", "6 de cada 10|true", "casi todas las|true"]},
                     f"pestaña Vulnerabilidad: {rv}")
             # Zoom 15: hexágonos de 130 m (mínimo 20); zoom 16: manzanas (denominador 0 no se dibuja, extensas sin relleno, gris con
-            # pocos casos); vista de número: siempre los de 350 m
+            # pocos casos); vista de número: densidad por hectárea de manzana en el mismo nivel; localidades sin el nivel de 130 m
             rz = pg.evaluate("""async () => { const m = await vulP, espera = ms => new Promise(r => setTimeout(r, ms));
                 m.setZoom(15); await espera(300); await vulNivel(m);
                 const h10 = m.hasLayer(vulCapas.h10) && !m.hasLayer(vulCapas.h9) && visibles('h10').features.every(x => x.properties[vulInd().k][1] >= 20);
@@ -274,17 +313,21 @@ def main():
                   extensa: vulEstilo(f.find(x => x.properties.km2)).fill === false, gris: vulEstilo(gris).fillColor === token('--neutro'),
                   globo: vulGlobo({ ...gris, id: 'X' }).includes('pocos casos') && !vulGlobo({ ...gris, id: 'X' }).includes('%') };
                 $('f-vista-vul').value = 'num'; $('f-vista-vul').dispatchEvent(new Event('change')); await espera(300); await vulNivel(m);
-                r.num = m.hasLayer(vulCapas.h9) && !m.hasLayer(vulCapas.mz);
+                r.num = m.hasLayer(vulCapas.mz) && !m.hasLayer(vulCapas.h9) && vulGlobo(g).includes('por hectárea de manzana');
                 $('f-vista-vul').value = 'pct'; $('f-vista-vul').dispatchEvent(new Event('change'));
-                r.claseNum = [claseNum({ tipo: 'viv' }, 24), claseNum({ tipo: 'viv' }, 25), claseNum({ tipo: 'viv' }, 250)];
+                const conHa = (n, ha) => ({ properties: { a: [n, 100], ha } }), ia = { k: 'a', densidad: [5, 10, 20, 40] };
+                r.claseNum = [claseNum(ia, conHa(4.9, 1)), claseNum(ia, conHa(10, 2)), claseNum(ia, conHa(400, 2)), claseNum(ia, conHa(5, 0))];
                 // Otra localidad: se carga su archivo, la tabla la marca, las frases la nombran y se ve un solo nivel
                 $('f-loc').value = 'catacaos'; await cambiarLoc(); await espera(300);
-                r.loc = !!vulDatos.catacaos?.h9 && document.querySelector('#vul-localidades tr.total')?.textContent.includes('Catacaos')
+                r.loc = !!vulDatos.catacaos?.h9 && document.querySelector('#vul-localidades .fila-loc.sel')?.textContent.includes('Catacaos')
                   && document.querySelector('#vul-frases p').textContent.startsWith('En Catacaos')
+                  && document.querySelector('#vul-leyenda .frase-barra').textContent.includes('de Catacaos')
                   && ['h9', 'h10', 'mz'].filter(n => vulCapas[n] && m.hasLayer(vulCapas[n])).length === 1;
+                m.setZoom(15); await espera(300); await vulNivel(m);
+                r.sin130 = m.hasLayer(vulCapas.mz) && !vulCapas.h10 && !vulDatos.catacaos.h10;
                 $('f-loc').value = 'metro'; await cambiarLoc();
                 return r; }""")
-            revisar(rz == {"h10": True, "mz": True, "sinCero": True, "extensa": True, "gris": True, "globo": True, "num": True, "claseNum": [0, 1, 4], "loc": True},
+            revisar(rz == {"h10": True, "mz": True, "sinCero": True, "extensa": True, "gris": True, "globo": True, "num": True, "claseNum": [0, 1, 4, 0], "loc": True, "sin130": True},
                     f"vulnerabilidad, zoom y vista: {rz}")
             revisar(r["sal"] == r["esperado"] and r["regla"] and r["desfasada"],
                     f"título de salud «{r['sal']}», esperado «{r['esperado']}», regla {r['regla']}, serie desfasada {r['desfasada']}")
