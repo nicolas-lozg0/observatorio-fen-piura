@@ -3060,7 +3060,7 @@ function pintarFuentes() {
     ["Avance físico y financiero acumulado de proyectos", D.invMeta, "Diaria", "inv"],
     ["Obras en ejecución y paralizadas", D.obras, "Mensual, a mano (archivo sin avances desde marzo de 2026)", "obras"],
     ["Obras activas por departamento (todo el país)", D.deps, "Mensual, a mano (con el de Piura)"],
-    [`Dengue ${anioD()}: casos, graves, fallecidos, hospitalizados`, D.d26 && { ...D.d26, fecha_corte: `${fecha(D.d26.fecha_corte)} (semana ${D.d26.se})` }, "Semanal (viernes)", "d26"],
+    [`Dengue ${anioD()}: casos, graves, fallecidos, hospitalizados`, D.d26 && { ...D.d26, fecha_corte: `${fecha(D.d26.fecha_corte)} (semana ${D.d26.se})` }, "Semanal (se revisa a diario)", "d26"],
     ["Dengue 2000–2025 por distrito y semana", D.dh, "Archivo fijo; se actualiza a mano"],
     ["Capacidad hospitalaria", D.camas && { ...D.camas, fecha_corte: `${fecha(D.camas.fecha_corte)} (${D.camas.periodo})` }, "Mensual, a mano", "camas"],
     ["Ocupación de camas, últimos 24 meses", D.camasSerie && { ...D.camasSerie, fecha_corte: `${fecha(D.camasSerie.fecha_corte)} (${mesTxt(D.camasSerie.serie.at(-1).mes)})` }, "Mensual, a mano (recalcula los 24 meses)"],

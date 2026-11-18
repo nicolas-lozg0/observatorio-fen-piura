@@ -7,7 +7,7 @@ Dos fuentes no se pueden actualizar desde GitHub y hay que hacerlo desde una com
 - **Ambos sitios no responden a los servidores de GitHub.** Fallaron con tiempo agotado en todas las ejecuciones del workflow diario desde que se creó (30/10/2026), y también con 3 reintentos y 3 minutos de espera.
 - **Desde una computadora en Perú responden en segundos.** Infobras tarda unos 5 minutos en total, sobre todo por leer su Excel de 57 MB; SUSALUD tarda unos 5 segundos.
 - **Probable causa:** que bloqueen o no atiendan conexiones desde el extranjero o desde centros de datos. No está confirmado con la Contraloría ni con SUSALUD.
-- **El resto sigue automático:** MEF (gasto, emergencia FEN, avance de proyectos) e IPC, a diario con `.github/workflows/actualizar.yml`; dengue 2026, cada viernes con `.github/workflows/dengue.yml`.
+- **El resto sigue automático:** MEF (gasto, emergencia FEN, avance de proyectos) e IPC, a diario con `.github/workflows/actualizar.yml`; dengue 2026, también a diario (la sala es semanal) con `.github/workflows/dengue.yml`.
 
 ## Cuándo usarlo
 

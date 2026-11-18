@@ -1,10 +1,11 @@
 # Dengue 2026: lee cada semana la sala situacional de la DIRESA Piura (PDF) y guarda docs/data/dengue_2026.json.
-# La DIRESA suele publicar la sala los jueves; si aún no hay una nueva, el script no cambia nada.
+# La DIRESA publica la sala entre el lunes y el viernes, sin día fijo: se revisa a diario (unos 20 s); si no hay una nueva,
+# el script no cambia nada.
 name: Actualizar dengue
 
 on:
   schedule:
-    - cron: "0 16 * * 5"  # viernes, 11:00 hora de Perú
+    - cron: "0 16 * * *"  # todos los días, 11:00 hora de Perú
   workflow_dispatch:
 
 permissions:
