@@ -10,7 +10,7 @@ Revisa, en escritorio (1280 px) y celular (375 px):
   - que el año de la pestaña Dengue sea el de la sala de la DIRESA;
   - que los rótulos del gráfico semanal de dengue no se encimen ni se salgan del gráfico;
   - que las pestañas midan al menos 44 px de alto, y que estén el botón de compartir y los enlaces "Siguiente";
-  - que los 5 títulos de la portada tengan texto y que el de salud cuadre con el mes de su cifra y su comparación;
+  - que los 6 títulos de la portada tengan texto (ronda 20: tarjeta de El Niño, Vulnerabilidad y orden de la grilla) y que el de salud cuadre con el mes de su cifra y su comparación;
   - que el título del dengue siga la regla de semanas completas (las preliminares no cuentan) y que el semáforo del
     presupuesto cambie en 5 y 15 puntos;
   - que los mapas de Obras y Salud (Leaflet) se dibujen, o digan claramente que no cargaron;
@@ -143,24 +143,35 @@ def main():
                 // con la serie desfasada un mes, el título vuelve a la pregunta
                 D.camas = { ...D.camas, periodo: 'agosto de 1999' };
                 const desfasada = ocupacionSerie() === null;
-                // ronda 19: franja de El Niño con el estado del ENFEN y el mar; tarjeta de Vulnerabilidad con sus 10 casas
-                const fr = document.querySelector('#hoy .franja-nino');
-                const franja = !!fr && fr.querySelector('.etiqueta-estado')?.textContent === D.enfen.estado && /Mar frente a Paita/.test(fr.textContent)
-                  && !!fr.querySelector('a[href="#clima"]');
+                // ronda 20: tarjeta de El Niño (estado, mar y aire en 3 columnas, línea de ríos, enlace y pie con fuentes)
+                const np = document.querySelector('#hoy .nino-portada'), cifras = np ? [...np.querySelectorAll('.nino-col .cifra')].map(c => c.textContent.replace(/\\s/g, ' ')) : [];
+                const franja = !!np && np.querySelector('.etiqueta-estado')?.textContent === D.enfen.estado && np.querySelectorAll('.nino-col').length === 3
+                  && cifras[0] === conSigno(anomMar()[2]) + ' °C' && cifras[1] === conSigno(D.temp.anomalia_7d.actual) + ' °C'
+                  && !!np.querySelector('a[href="#clima"]') && /ENFEN[^]*NOAA[^]*Open-Meteo[^]*Senamhi/.test(np.querySelector('.pie').textContent)
+                  && RIOS.every(x => np.querySelector('.rios-nino').innerHTML.includes(fraseRio(x).corto));
+                // Vulnerabilidad: tarjeta normal con la proporción en el titular, la cifra, 10 casas y el distrito con el mayor %
                 const vp = document.querySelector('#resumen-paneles .vul-portada');
-                const vul = !!vp && vp.querySelectorAll('svg.casas g path').length === 10 && /^39\\.607 viviendas de la ciudad de Piura sin desagüe por red pública \\(26,7 %\\)$/.test(vp.querySelector('h3').textContent)
-                  && !!vp.querySelector('a[href="#vulnerabilidad"]');
-                // ríos: solo un aviso naranja o rojo de los últimos 2 días entra en la franja (hoy, si lo hay, puede ser amarillo)
+                const fracciones = [26.7, 33.3, 31, 60, 12.5, 50].map(fraccionTxt).join('|');
+                const vul = !!vp && vp.querySelectorAll('svg.casas g path').length === 10
+                  && vp.querySelector('h3').textContent === 'Más de 1 de cada 4 viviendas de la ciudad de Piura no tiene desagüe'
+                  && vp.querySelector('.cifra').textContent === '39.607' && /En Castilla llega a 31,9/.test(vp.textContent)
+                  && !!vp.querySelector('a[href="#vulnerabilidad"]')
+                  && fracciones === 'Más de 1 de cada 4|1 de cada 3|Casi 1 de cada 3|6 de cada 10|1 de cada 8|1 de cada 2';
+                // orden de la grilla: lo que pesa en una emergencia primero
+                const orden = [...document.querySelectorAll('#resumen-paneles .panel > a.ver-mas')].map(a => a.getAttribute('href')).join(',');
+                const ordenOk = orden === '#dengue,#salud,#vulnerabilidad,#gasto,#obras,#precios';
+                // ríos: un aviso naranja o rojo vuelve la línea una alerta destacada; uno amarillo, no
                 const guardado = D.rios.avisos, hoyIso = new Date(Date.now() - 5 * 36e5).toISOString().slice(0, 10);
-                const av = n => ({ numero: 9999, titulo: 'INCREMENTO DEL CAUDAL DEL RÍO PIURA - ESTACIÓN PUENTE ÑACARA', rio: 'PIURA',
-                  estacion: 'PUENTE ÑACARA', cuenca: 'Piura', inicio: hoyIso, fin: hoyIso, horas: 2, nivel: n, vigente: true });
-                D.rios.avisos = [av('AMARILLO')]; const conAmarillo = /aviso-franja/.test(franjaNino());
-                D.rios.avisos = [av('NARANJA')]; const conNaranja = /Aviso\\s+naranja[^]*río Piura, estación Puente Ñacara/.test(franjaNino());
+                const av = n => ({ numero: 9999, titulo: 'INCREMENTO DEL CAUDAL DEL RÍO ALAMOR - ESTACIÓN ALAMOR', rio: 'ALAMOR',
+                  estacion: 'ALAMOR', cuenca: 'Chira', inicio: hoyIso, fin: hoyIso, horas: 2, nivel: n, vigente: true });
+                D.rios.avisos = [av('AMARILLO')]; const conAmarillo = /alerta-rios/.test(tarjetaNino());
+                D.rios.avisos = [av('NARANJA')]; const conNaranja = /alerta-rios naranja[^]*<strong>[^]*aviso naranja por el río Alamor/.test(tarjetaNino())
+                  && /frase-rio grave[^]*está creciendo el río Alamor, que desemboca en el Chira/.test(fraseRio(RIOS[1]).html);
                 D.rios.avisos = guardado;
-                const rios = !conAmarillo && conNaranja;
+                const rios = !conAmarillo && conNaranja && ordenOk;
                 return { t, sal, esperado, regla, desfasada, franja, vul, rios };
             }""")
-            revisar(r["franja"] and r["vul"] and r["rios"], f"portada: franja de El Niño {r['franja']}, tarjeta de Vulnerabilidad {r['vul']}, aviso de ríos {r['rios']}")
+            revisar(r["franja"] and r["vul"] and r["rios"], f"portada: tarjeta de El Niño {r['franja']}, tarjeta de Vulnerabilidad {r['vul']}, ríos y orden {r['rios']}")
             revisar(len(r["t"]) == 6 and all(r["t"]), f"títulos de la portada: {r['t']}")
             # Dengue: tendencia de las 4 últimas semanas completas; cambiar una semana preliminar no la mueve
             r2 = pg.evaluate("""() => {
@@ -189,7 +200,7 @@ def main():
                 diasMes("febrero de 2028")]""")
             revisar(r4 == [True, False, 29], f"datos de camas a revisar: {r4}")
             # Obras revisadas a mano: las reactivadas se señalan en la lista, sin cambiar la cifra de paralizadas
-            r5 = pg.evaluate("""() => { const t = document.querySelectorAll('#resumen-paneles .panel')[2].querySelector('.cifra').textContent;
+            r5 = pg.evaluate("""() => { const t = document.querySelector('#resumen-paneles a[href="#obras"]').closest('.panel').querySelector('.cifra').textContent;
                 const act = D.obras.obras.filter(x => !APARTE[x.codigo_infobras]);
                 return { cifra: t.trim() === String(act.filter(x => x.estado === "Paralizada").length),
                   reactivadas: act.filter(reactivada).map(x => x.codigo_infobras).sort() }; }""")
@@ -197,7 +208,7 @@ def main():
             # Obras frente al país: título y color siguen la regla de 1 punto; cada causa de Piura tiene definición
             r3 = pg.evaluate("""() => {
                 const act = D.obras.obras.filter(x => !APARTE[x.codigo_infobras]), par = act.filter(x => x.estado === "Paralizada");
-                const c = obrasPais(act, par), tarjeta = document.querySelectorAll('#resumen-paneles .panel')[2];
+                const c = obrasPais(act, par), tarjeta = document.querySelector('#resumen-paneles a[href="#obras"]').closest('.panel');
                 const sube = obrasPais(act, [...par, ...act.filter(x => x.estado !== "Paralizada").slice(0, Math.ceil(act.length * .02))]);
                 const titulos = [tituloPais({ comp: "similar", costoAlto: true }),
                   tituloPais({ ...c, costoAlto: c.cP >= COSTO_ALTO * (c.cP + 1) })];
@@ -246,17 +257,31 @@ def main():
                   temp: (() => { const cl = ps.map(p => [...p.classList].find(c => c.startsWith('clima-')));
                     return cl.indexOf('clima-temp') === cl.indexOf('clima-mar') + 1 && cl.indexOf('clima-rios') < cl.indexOf('clima-radar')
                       && document.querySelectorAll('#g-temp polyline').length === 4
-                      && /No es una estación/.test(document.querySelector('.clima-temp').textContent) && !!document.querySelector('#g-temp polygon')
+                      && !!document.querySelector('#g-temp polygon[fill="var(--calor)"]')
                       && document.querySelector('.clima-temp .cifra').textContent.trim() === conSigno(D.temp.anomalia_7d.actual) + ' °C'
-                      && document.querySelector('.clima-temp h3').textContent.includes(num(Math.abs(D.temp.anomalia_7d.actual), 1) + ' °C')
+                      && document.querySelector('.clima-temp h3').textContent === tituloTemp(D.temp.anomalia_7d.actual)
+                      && /para esta época/.test(tituloTemp(D.temp.anomalia_7d.actual)) && !/1997|2016/.test(document.querySelector('.clima-temp h3').textContent)
+                      && /lo normal es/.test(document.querySelector('.clima-temp .ud').textContent)
+                      && /^Fuente: reanálisis ERA5-Land y modelo de pronóstico/.test(document.querySelector('.clima-temp .pie').textContent.trim())
+                      && document.querySelectorAll('#g-temp .rotulo').length === 1
                       && document.querySelectorAll('.clima-rios .rio').length === 2 && document.querySelectorAll('.clima-rios .aviso').length === 2
-                      && /a esta fecha de 1997 estaba/.test(document.querySelector('.clima-temp h3').textContent); })() };
+                      && document.querySelectorAll('.clima-rios .grafico polygon').length === 2; })(),
+                  // ríos (ronda 20): la frase de Clima es la misma que resume el Resumen; nada técnico en el cuerpo
+                  riosIgual: RIOS.every(x => document.querySelector(`#g-rio-${x.cod}`).closest('.rio').querySelector('.frase-rio').outerHTML === fraseRio(x).html),
+                  riosCuerpo: !/no caudal|COER|1100/.test([...document.querySelector('.clima-rios').children].filter(c => !c.matches('.calculo')).map(c => c.textContent).join(' ')),
+                  // mismas cifras en Clima y Resumen: aire (anomalía de 7 días) y mar (anomalía del último día)
+                  igual: document.querySelector('.clima-temp .cifra').textContent.trim().replace(/\\s/g, ' ') === document.querySelectorAll('.nino-portada .nino-col .cifra')[1].textContent.replace(/\\s/g, ' ')
+                      && document.querySelector('.clima-mar .ud').textContent.replace(/\\s/g, ' ').includes(document.querySelectorAll('.nino-portada .nino-col .cifra')[0].textContent.replace(/\\s/g, ' ')),
+                  tendencias: (() => { const s = (vs, h0 = 0) => vs.map((v, i) => [`2026-11-17T${String(h0 + i).padStart(2, '0')}:00`, v]);
+                    return [tendenciaRio(s([1, 1, 1, 1, 1, 1, 1.1])), tendenciaRio(s([1, 1, 1, 1, 1, 1, 0.9])), tendenciaRio(s([1, 1, 1, 1, 1, 1, 1.03])),
+                      tendenciaRio(s([1, 1.1, 1.3, 1.2, 1.1, 1, 1], 2)), tendenciaRio(s([1, 1, 1]))].map(x => x ? x.txt : null).join('|'); })() };
                 const guardado = D.tsm; D.tsm = null; pintarClima();
                 r.sinTsm = document.querySelectorAll('#clima-paneles .pendiente').length === 1;
                 D.tsm = guardado; pintarClima(); graficosClima();
                 return r; }""")
-            revisar(rc == {"paneles": 7, "detalle": 5, "radar": True, "lluvia": 3, "nino": True, "estado": True, "top5": True, "circulos": True,
-                           "imerg": True, "clases": [-1, 0, 3, 4], "sinTsm": True, "temp": True,
+            revisar(rc == {"paneles": 7, "detalle": 4, "radar": True, "lluvia": 3, "nino": True, "estado": True, "top5": True, "circulos": True,
+                           "imerg": True, "clases": [-1, 0, 3, 4], "sinTsm": True, "temp": True, "riosIgual": True, "riosCuerpo": True, "igual": True,
+                           "tendencias": "está subiendo|viene bajando|está estable|subió de madrugada y ya está bajando|",
                            "titulos": ["El mar frente a Paita está cerca de lo normal", "El mar frente a Paita está 8,0 °C más caliente que lo normal",
                                        "El mar frente a Paita está 1,2 °C más frío que lo normal"]}, f"pestaña Clima: {rc}")
             # Lluvia, una sola fecha (ronda 17): para cada estación, la última barra de su serie (globo) tiene el mismo día y los

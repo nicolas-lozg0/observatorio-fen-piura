@@ -342,6 +342,16 @@ def redondear(c):
     return [redondear(x) for x in c] if isinstance(c[0], (list, tuple)) else [round(c[0], DECIMALES), round(c[1], DECIMALES)]
 
 
+def resumen(localidades, distritos):
+    """Resumen mínimo para la portada (ronda 19): así la portada no carga el censo entero. La ciudad de Piura y, por distrito
+    (ronda 20), las viviendas sin desagüe por red pública: [nombre, sin desagüe, viviendas]."""
+    m = localidades[0]
+    return {"fuente": "INEI, Censos Nacionales 2025, tabulados por manzana entregados el 13/11/2026",
+            "url": "https://www.inei.gob.pe/", "fecha_corte": "2026-11-13", "nombre": m["nombre"],
+            "viviendas": m["v"], "sin_desague": m["a"],
+            "distritos_sin_desague": [[d["nombre"], *d["a"]] for d in distritos.values()]}
+
+
 def main():
     verificar_espacio()
     import geopandas  # falla aquí, con un mensaje claro, si faltan las librerías locales
@@ -527,11 +537,7 @@ def main():
         "localidades": localidades,
         "limites": limites,
     })
-    # Resumen mínimo para la portada (ronda 19): así la portada no carga el censo entero (0,3 MB)
-    m = localidades[0]
-    guardar("censo_resumen.json", {"fuente": "INEI, Censos Nacionales 2025, tabulados por manzana entregados el 13/11/2026",
-                                   "url": "https://www.inei.gob.pe/", "fecha_corte": "2026-11-13", "nombre": m["nombre"],
-                                   "viviendas": m["v"], "sin_desague": m["a"]})
+    guardar("censo_resumen.json", resumen(localidades, distritos))
     for nombre in ["censo_piura.json"] + archivos:
         tam_mb = (DATOS / nombre).stat().st_size / 2**20
         print(f"Tamaño de {nombre}: {tam_mb:.2f} MB" + (" (pasa de 3 MB)" if tam_mb > 3 else ""))

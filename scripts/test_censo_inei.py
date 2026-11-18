@@ -128,3 +128,9 @@ nombres = [h["properties"]["n"] for h in d["hexagonos"]["features"]]
 assert all(n == "" or n.startswith("Sector ") for n in nombres), [n for n in nombres if n and not n.startswith("Sector ")][:5]
 assert not [n for n in nombres if _re.search(r"(?i)asentamiento humano|AA\.?HH|  ", n)], [n for n in nombres if _re.search(r"(?i)asentamiento humano|AA\.?HH|  ", n)][:5]
 assert "Piura metropolitana" not in RUTA.read_text(encoding="utf-8")
+
+# Resumen de la portada (rondas 19 y 20): la ciudad y cada distrito, sin desagüe por red pública, iguales al archivo completo
+res = json.loads((RUTA.parent / "censo_resumen.json").read_text(encoding="utf-8"))
+assert res["sin_desague"] == locs[0]["a"], res["sin_desague"]
+assert res["distritos_sin_desague"] == [[x["nombre"], *x["a"]] for x in d["distritos"].values()], res["distritos_sin_desague"]
+assert sum(x[1] for x in res["distritos_sin_desague"]) == res["sin_desague"][0]

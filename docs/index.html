@@ -31,6 +31,8 @@
     --q1: #cde2fb; --q2: #9ec5f4; --q3: #6da7ec; --q4: #2a78d6; --q5: #184f95;
     --neutro: #e4e9f0;  /* datos: cero casos y fondo de zonas sin dato; en Vulnerabilidad, «Pocos casos» */
     --gris-ref: #aab4c0;  /* líneas de referencia que no deben competir (temperatura de 1997 y 2016) */
+    --gris-ref-claro: #ccd3dc;  /* referencia secundaria (temperatura de 2016) */
+    --calor: #f08c2a;  /* sombreado de la temperatura sobre lo normal (con opacidad) */
     --aviso-amarillo: #f6cd3d; --aviso-naranja: #f08c2a; --aviso-rojo: #c62828;  /* avisos oficiales del Senamhi (siempre con su nombre) */
     /* Vulnerabilidad (sectores y manzanas, 5 clases): crema casi neutra → rojo oscuro, claridad pareja en OKLCH (0,96 a
        0,30). Validada con dataviz tal como se ve (multiplicada por el fondo del mapa): claridad monótona, saltos ≥ 0,06,
@@ -62,7 +64,7 @@
     :root:not([data-theme="light"]) {
       color-scheme: dark;
       --fondo: #121211; --superficie: #1a1a19; --linea: #33332f; --esqueleto: #2a2a27;
-      --texto: #f0efec; --texto-2: #c3c2b7; --texto-3: #9a998f; --gris-ref: #5f6772; --titulo: #9ec5f4;
+      --texto: #f0efec; --texto-2: #c3c2b7; --texto-3: #9a998f; --gris-ref: #5f6772; --gris-ref-claro: #474d56; --calor: #f59e0b; --titulo: #9ec5f4;
       --acento: #3987e5; --acento-suave: #23364d; --pista: #23364d; --alerta: #f59e0b; --alerta-suave: #2a2a27; --neutro: #2a2a27;
       --comp1: #916a18; --comp2: #914766; --comp3: #5da16d;  /* oscuro: ΔE 11,0 / 15,2; rosa 2,7:1, con rótulo visible */
       --o1: #f2f7fe; --o2: #a9ccf6; --o3: #5e9be6; --o4: #2d68b8; --o5: #1f4170; --o-resto: #8a8a82;
@@ -72,7 +74,7 @@
   :root[data-theme="dark"] {
     color-scheme: dark;
     --fondo: #121211; --superficie: #1a1a19; --linea: #33332f; --esqueleto: #2a2a27;
-    --texto: #f0efec; --texto-2: #c3c2b7; --texto-3: #9a998f; --gris-ref: #5f6772; --titulo: #9ec5f4;
+    --texto: #f0efec; --texto-2: #c3c2b7; --texto-3: #9a998f; --gris-ref: #5f6772; --gris-ref-claro: #474d56; --calor: #f59e0b; --titulo: #9ec5f4;
     --acento: #3987e5; --acento-suave: #23364d; --pista: #23364d; --alerta: #f59e0b; --alerta-suave: #2a2a27; --neutro: #2a2a27;
     --comp1: #916a18; --comp2: #914766; --comp3: #5da16d;
     --o1: #f2f7fe; --o2: #a9ccf6; --o3: #5e9be6; --o4: #2d68b8; --o5: #1f4170; --o-resto: #8a8a82;
@@ -200,36 +202,32 @@
   .hoy { margin-bottom: var(--e5); }
   .hoy .pregunta { font-size: clamp(1.75rem, 4.2vw, 2.5rem); line-height: 1.1; margin: 0; text-align: left; text-wrap: balance; }
   @media (min-width: 1000px) { .hoy .pregunta { white-space: nowrap; } }  /* una sola línea en escritorio */
-  /* Portada: el hallazgo más urgente (dengue) destacado y los otros 4 compactos en 2 x 2, todos de igual alto */
-  .resumen .paneles { grid-template-columns: minmax(0, 6fr) repeat(2, minmax(0, 4fr)); grid-auto-rows: 1fr; }
-  /* 2 filas iguales (dengue y los 4 compactos) y una 3.ª, a la medida, para Vulnerabilidad a todo el ancho */
-  @media (min-width: 1001px) { .resumen .paneles { grid-template-rows: 1fr 1fr auto; } }
-  .resumen .panel.destacado { grid-row: span 2; }
-  .resumen .panel.vul-portada { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: var(--e5); align-items: center; }
-  .resumen .panel.vul-portada > * { grid-column: 1; }
-  .resumen .panel.vul-portada > .casas, .resumen .panel.vul-portada > .chispa-casas { grid-column: 2; grid-row: 1 / span 3; }
-  @media (max-width: 600px) { .resumen .panel.vul-portada { display: flex; } }
-  .vul-portada .casas { width: min(236px, 100%); height: auto; display: block; margin-top: var(--e2); }
-  /* Franja de El Niño: estado del ENFEN, magnitud, mar y enlace en una línea (se parte en el celular) */
-  .franja-nino { margin-top: var(--e3); padding: var(--e3) var(--e4); border-radius: var(--r-panel); background: var(--superficie);
-    border-left: 4px solid var(--marino); }
-  .franja-nino p { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: var(--e1) var(--e3); }
-  .franja-nino .etiqueta-estado { margin: 0; }
-  .franja-nino .sep { color: var(--texto-3); }
-  @media (max-width: 600px) { .franja-nino .sep { display: none; } .franja-nino p { flex-direction: column; align-items: flex-start; } }
-  .franja-nino .aviso-franja { margin-top: var(--e2); }
-  @media (max-width: 1000px) { .resumen .paneles { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: auto; }
-    .resumen .panel.destacado { grid-column: 1 / -1; grid-row: auto; }
-    .resumen .panel.vul-portada { grid-column: 1 / -1; } }
+  /* Portada (ronda 20): 6 tarjetas iguales, 3 × 2 en la computadora, 2 × 3 en la tablet y una columna en el celular (sin filas huérfanas) */
+  .resumen .paneles { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-rows: auto; }  /* cada fila, a la medida de su contenido */
+  @media (max-width: 1000px) { .resumen .paneles { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: auto; } }
   @media (max-width: 600px) { .resumen .paneles { grid-template-columns: minmax(0, 1fr); } }
+  .vul-portada .casas { width: min(264px, 100%); height: auto; display: block; margin: var(--e2) 0; }  /* casas de unos 22 px */
+  /* Tarjeta de El Niño: 3 columnas (estado, mar, aire) y una línea con los ríos; se apilan en el celular */
+  .nino-portada { margin-top: var(--e3); }
+  .nino-cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--e3) var(--e5); margin: var(--e3) 0; }
+  .nino-col { min-width: 0; }
+  .nino-col + .nino-col { border-left: 1px solid var(--linea); padding-left: var(--e5); }
+  .nino-col h4 { margin: 0 0 var(--e1); font-size: var(--t-sm); color: var(--texto-2); font-weight: 600; }
+  .nino-col .etiqueta-estado { margin: var(--e1) 0; }
+  .nino-col .ud { margin: var(--e1) 0 0; }
+  .rios-nino { margin: 0 0 var(--e2); padding-top: var(--e3); border-top: 1px solid var(--linea); }
+  .rios-nino.alerta-rios { padding: var(--e2) var(--e3); border: 0; border-left: 6px solid var(--aviso-naranja); background: var(--alerta-suave); border-radius: var(--r-pastilla); }
+  .rios-nino.alerta-rios.rojo { border-left-color: var(--aviso-rojo); }
+  @media (max-width: 760px) { .nino-cols { grid-template-columns: minmax(0, 1fr); gap: var(--e2); }
+    .nino-col + .nino-col { border-left: 0; padding-left: 0; border-top: 1px solid var(--linea); padding-top: var(--e2); }
+    .nino-col .cifra { font-size: var(--t-xl); } }
   .resumen .panel h3 { font-size: var(--t-md); color: var(--titulo); }
   .resumen .panel.compacto { padding: var(--e4) var(--e5); }
   .resumen .panel.compacto h3 { font-size: var(--t-base); }
   .resumen .panel.compacto .cifra { font-size: var(--t-xl); }
   .resumen .panel.compacto .chispa { height: 40px; }
-  .resumen .panel.destacado h3 { font-size: var(--t-lg); }
-  .resumen .panel.destacado .cifra { font-size: clamp(var(--t-2xl), 6vw, 3.5rem); }
-  .resumen .panel.destacado .chispa { height: 110px; }
+  /* el dengue va primero y con la cifra algo mayor, pero del mismo tamaño que las demás tarjetas (ronda 20) */
+  .resumen .panel.destacado .cifra { font-size: var(--t-2xl); }
   .resumen .panel .tema { color: var(--texto-3); font-size: var(--t-sm); font-weight: 700; margin: 0; }
   .resumen .panel .ver-mas { align-self: flex-start; margin-top: calc(-1 * var(--e2)); }
 
@@ -352,9 +350,10 @@
   .dos-rios { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--e5); }
   @media (max-width: 760px) { .dos-rios { grid-template-columns: minmax(0, 1fr); } }
   .rio h4 { margin: 0 0 var(--e1); font-size: var(--t-base); color: var(--titulo); }
-  .cifra-rio { margin: 0; color: var(--texto-2); }
-  .cifra-rio b { font: 800 var(--t-lg)/1.1 var(--f-titulo); color: var(--titulo); }
-  .aviso-rio { margin: var(--e2) 0; font-size: var(--t-sm); }
+  .frase-rio { margin: var(--e1) 0 var(--e2); }
+  .frase-rio.grave { font-weight: 700; }
+  .cifra-rio { margin: 0; color: var(--texto-2); font-size: var(--t-sm); }
+  .cifra-rio b { color: var(--texto); }
   .aviso { display: inline-block; padding: 1px var(--e2); border-radius: var(--r-pastilla); font-weight: 700; font-size: var(--t-xs); }
   .aviso.amarillo { background: var(--aviso-amarillo); color: #1d1d1d; }
   .aviso.naranja { background: var(--aviso-naranja); color: #1d1d1d; }
@@ -580,6 +579,9 @@
   .grafico svg { display: block; width: 100%; height: auto; overflow: visible; }
   .grafico text { font: var(--t-xs) var(--f-texto); fill: var(--texto-3); }
   .grafico .rotulo { font-weight: 700; fill: var(--texto); }
+  /* Temperatura: leyenda en una línea; la franja normal como caja; 1997, 2016 y la frase se ocultan bajo 640 px */
+  .leyenda .caja-normal::before { width: 14px; height: 10px; background: var(--neutro); }
+  @media (max-width: 639px) { .solo-ancho { display: none !important; } }
   .leyenda { display: flex; flex-wrap: wrap; gap: var(--e1) var(--e4); font-size: var(--t-sm); color: var(--texto-2); margin: var(--e1) 0 var(--e2); }
   .leyenda span::before { content: ""; display: inline-block; width: 14px; height: 3px; border-radius: 2px;
     background: var(--c); vertical-align: middle; margin-right: var(--e2); }
@@ -641,7 +643,7 @@
   <section class="pestana resumen" id="resumen" aria-labelledby="t-resumen">
     <h2 id="t-resumen" class="visualmente-oculto">Resumen</h2>
     <div class="hoy" id="hoy"></div>
-    <div class="paneles" id="resumen-paneles" aria-busy="true"><div class="panel esqueleto" aria-hidden="true"></div><div class="panel esqueleto" aria-hidden="true"></div><div class="panel esqueleto" aria-hidden="true"></div><div class="panel esqueleto" aria-hidden="true"></div><div class="panel esqueleto" aria-hidden="true"></div></div>
+    <div class="paneles" id="resumen-paneles" aria-busy="true"><div class="panel esqueleto" aria-hidden="true"></div><div class="panel esqueleto" aria-hidden="true"></div><div class="panel esqueleto" aria-hidden="true"></div><div class="panel esqueleto" aria-hidden="true"></div><div class="panel esqueleto" aria-hidden="true"></div><div class="panel esqueleto" aria-hidden="true"></div></div>
   </section>
 
   <!-- ===================== CLIMA ===================== -->
@@ -1121,7 +1123,7 @@ const DEFINICIONES = {
   se: ["Semana epidemiológica", "Semana de domingo a sábado con que el Minsa cuenta los casos; la semana 1 empieza a inicios de enero."],
   cp: ["Confirmados y probables", "Confirmado: con prueba de laboratorio. Probable: con síntomas compatibles, sin confirmación de laboratorio."],
   grave: ["Dengue grave", "La forma más severa: choque, sangrado grave o daño de órganos."],
-  preliminar: ["Preliminar", "Las últimas semanas aún reciben notificaciones; sus cifras suelen subir en las salas siguientes."],
+  preliminar: ["Preliminar", "Las últimas semanas aún reciben notificaciones; sus cifras suelen subir en las salas siguientes. En los gráficos van punteadas y no entran en la tendencia de 4 semanas."],
   ocupacion: ["Ocupación", "Pacientes-día del mes entre días-cama disponibles: promedio del mes, no la ocupación de hoy."],
   uci: ["Camas UCI", "Camas de unidades de cuidados intensivos."],
   paralizada: ["Obra paralizada", "Obra detenida, según lo que registra la entidad en Infobras."],
@@ -1131,8 +1133,12 @@ const DEFINICIONES = {
   doce: ["Variación en 12 meses", "Cuánto cambiaron los precios frente al mismo mes del año anterior."],
   mensual: ["Variación mensual", "Cuánto cambiaron los precios frente al mes anterior."],
   enfen: ["ENFEN", "Comisión Multisectorial encargada del Estudio Nacional del Fenómeno El Niño. Declara el estado del sistema de alerta ante El Niño y La Niña costeros (no activo, vigilancia o alerta) en sus comunicados oficiales, por lo general cada quince días. Se muestra el estado del último comunicado, tal como aparece en su encabezado."],
-  temp: ["Temperatura del aire", "Temperatura máxima diaria del aire a 2 m en la ciudad de Piura, de Open-Meteo, en una celda de unos 10 km. No es una estación: la estación convencional de la ciudad (San Miguel, Senamhi) publica pocos días y no tiene normales en línea. Dos tramos: el reanálisis ERA5-Land (Copernicus/ECMWF) hasta su último día (llega con unos 7 días de retraso) y, de ahí hasta ayer, el modelo de pronóstico de Open-Meteo corregido con su diferencia media con ERA5-Land en los últimos 30 días que tienen los dos (en noviembre de 2026, unos +0,5 °C). Una sola métrica en toda la tarjeta: el promedio de las máximas de los 7 días que terminan en cada fecha. Lo normal es la mediana de ese promedio en 1991-2020, juntando los 30 años y ±7 días alrededor de la fecha (unas 450 semanas); la franja va del percentil 10 al 90. Anomalía = promedio de los últimos 7 días − mediana; «cerca de lo normal» si no pasa de 0,5 °C. 1997 (Niño 1997-98) y 2016 (antes del Niño costero 2017), con la misma medida y del mismo reanálisis."],
-  rios: ["Nivel de los ríos", "Nivel del agua (m) de las estaciones automáticas del Senamhi Puente Ñácara (río Piura, Chulucanas) y La Ardilla (río Chira); Tambo Grande no envía datos. El Senamhi publica solo las últimas 24 horas (cada 10 minutos), así que el observatorio guarda un valor por hora cada día y arma su propia serie. El semáforo es el último aviso hidrológico del Senamhi (amarillo, naranja o rojo) para el río o sus afluentes en el departamento (Chira: Alamor, Macará, Quiroz y Chipillico), de los últimos 3 días. Los umbrales oficiales que se conocen están en caudal (m³/s), no en nivel, así que no se dibujan. No se muestra el caudal estimado por el modelo GloFAS: en la época seca daba 100 a 200 m³/s en Ñácara y hasta 1090 m³/s en La Ardilla, muy lejos de lo medido (el Chira lo regula Poechos)."],
+  temp: ["Temperatura del aire", "Temperatura máxima diaria del aire a 2 m en la ciudad de Piura, de Open-Meteo, en una celda de unos 10 km. No es una estación: la estación convencional de la ciudad (San Miguel, Senamhi) publica pocos días y no tiene normales en línea. Dos tramos: el reanálisis ERA5-Land (Copernicus/ECMWF) hasta su último día (llega con unos 7 días de retraso) y, de ahí hasta ayer, el modelo de pronóstico de Open-Meteo, que marca algo menos que el reanálisis: se le suma su diferencia media con ERA5-Land en los últimos 30 días que tienen los dos (unos +0,5 °C). Esos últimos días son una estimación. Toda la tarjeta usa una sola medida: el promedio móvil de las máximas de 7 días. Lo normal es la mediana de ese promedio en 1991-2020, juntando los 30 años y ±7 días alrededor de la fecha (unas 450 semanas); la franja gris va del percentil 10 al 90. Anomalía = promedio de los últimos 7 días − mediana; «cerca de lo normal» si no pasa de 0,5 °C. El sombreado naranja marca cuánto pasa 2026 sobre la mediana (azul si va por debajo). 1997 (Niño extraordinario 1997-98) y 2016 (meses antes del Niño costero 2017), con la misma medida y del mismo reanálisis; en el celular no se dibujan. Verificación (ronda 20): con estaciones, 2026 también está más caliente que 1997 a esta fecha (aeropuerto de Piura en 1997, según NOAA GHCN-Daily; Bernal, Senamhi, en 2026)."],
+  rios: ["Nivel de los ríos", "Nivel del agua (m) en la regla de las estaciones automáticas del Senamhi Puente Ñácara (río Piura, Chulucanas) y La Ardilla (río Chira); no es la profundidad del río ni el caudal. Tambo Grande no envía datos. El aviso es el semáforo oficial: el último aviso hidrológico del Senamhi (amarillo, naranja o rojo) para el río o sus afluentes en el departamento (Chira: Alamor, Macará, Quiroz y Chipillico), de los últimos 3 días. No se muestra el caudal estimado por el modelo GloFAS: en la época seca daba 100 a 200 m³/s en Ñácara y hasta 1090 m³/s en La Ardilla, muy lejos de lo medido (el Chira lo regula Poechos)."],
+  rios_tendencia: ["Sube, baja o estable", "Se compara el nivel de la última hora con el de 6 horas antes (o el más cercano entre 6 y 12 horas antes). Más de 5 cm de subida: «está subiendo»; más de 5 cm de bajada: «viene bajando»; si no, «está estable». Si en las últimas 12 horas hubo un pico al menos 5 cm sobre el nivel del inicio y del final, «subió … y ya está bajando». Sin lluvia, el nivel varía 1 a 3 cm por hora: 5 cm separa un cambio real de ese vaivén."],
+  rios_umbrales: ["Umbrales", "Los umbrales que se conocen están en caudal (m³/s), no en nivel, así que no se pueden dibujar. Referencia no oficial: amarillo 900, naranja 1300 y rojo 1900 m³/s en Puente Sánchez Cerro, según la prensa (mesa técnica del COER Piura del 26/08/2026); no se encontró el documento oficial. Referencia histórica: rojo 1100 m³/s en Puente Ñácara (aviso del Senamhi del 13/03/2023). La Ardilla: no se encontraron umbrales publicados."],
+  nivel_regla: ["Nivel", "Nivel del agua en la regla de la estación; no es profundidad del río."],
+  desague: ["Sin desagüe por red pública", "Viviendas cuyo servicio higiénico no está conectado a la red pública de desagüe (ni dentro ni fuera de la vivienda): pozo, letrina, río, campo abierto u otro. Ciudad de Piura: distritos de Piura, Castilla y Veintiséis de Octubre. Censos Nacionales 2025 (INEI), tabulados por manzana."],
   tsm: ["Temperatura del mar", "Temperatura de la superficie del mar estimada por satélite (NOAA OISST v2.1, diaria) en una celda de unos 25 km frente a Paita (5,125° S y 81,375° O); la celda pegada a la costa es tierra. La anomalía es la diferencia con el promedio 1991-2020 del mismo día y la misma celda (el periodo que usa el ENFEN). El satélite suele marcar algo menos que la estación costera de IMARPE. Título: «más caliente» o «más frío» si la anomalía pasa de 0,5 °C; si no, «cerca de lo normal»."],
   nino12: ["Región Niño 1+2", "Zona del océano Pacífico frente a Perú y Ecuador (0° a 10° S, 90° a 80° O) con la que el ENFEN define El Niño costero. La NOAA publica cada semana la anomalía de su temperatura superficial frente al promedio 1991-2020. Una anomalía de +0,4 °C o más, sostenida, indica condiciones cálidas."],
   tsm_costera: ["Satélite y estación costera", "El dato satelital es el promedio de una celda de unos 25 km de lado, a unos 29 km mar adentro de Paita (la celda pegada a la costa es tierra). La estación costera del IMARPE mide en el muelle, donde el agua puede estar más caliente; su dato es la anomalía mensual parcial que publica el ENFEN en su Informe Técnico. Por eso pueden diferir algo; si la diferencia pasa de 1 °C, la tarjeta lo dice."],
@@ -1635,7 +1641,9 @@ function graficoSemanas() {
     const w = anchoTexto(r.t);
     let ancla = "middle", x0 = r.x - w / 2, ty = r.y - 9;
     if (r.fin) {  // a la derecha del último punto si cabe; si no, encima y hacia la izquierda
-      [ancla, x0, ty] = r.x + 6 + w <= W - 2 ? ["start", r.x + 6, r.y + 4] : ["end", r.x - w, r.y - 10];
+      // 6 px de holgura: el ancho estimado del texto puede quedarse corto unos píxeles
+      [ancla, x0, ty] = r.x + 6 + w <= W - 8 ? ["start", r.x + 6, r.y + 4] : ["end", r.x - w, r.y + 18];  // si no cabe a la derecha, debajo y a la izquierda (arriba choca con los picos)
+      ty = Math.max(ty, 13);  // si el último punto es el máximo del gráfico, el rótulo no sale por arriba
     } else if (x0 < m.l) [ancla, x0] = ["start", m.l];
     else if (x0 + w > W - 2) [ancla, x0] = ["end", W - 2 - w];
     // hacia arriba mientras haya lugar; al tocar el borde superior, hacia abajo (sin volver a subir; máximo 8 saltos)
@@ -2753,6 +2761,25 @@ const MES_CORTO = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Set"
 // con op.soles, valores en soles en vez de porcentajes. Con op.dias, por día (fechas "aaaa-mm-dd"); op.sinCero: el eje no
 // parte de 0 (temperaturas); op.hi: tope común a varios gráficos; op.alto: alto fijo. Un null es un día sin dato: sin
 // barra, y "sin dato" en el globo.
+// Polígonos entre la serie a y la referencia b, por tramos del mismo signo (con el cruce interpolado): cálido (--calor) donde
+// a > b y frío (--acento) donde a < b, con poca opacidad para que la franja normal siga viéndose debajo
+function areasEntre(a, b, x, y) {
+  let out = "", arr = [], abj = [], signo = 0;
+  const cerrar = () => { if (arr.length > 1) out += `<polygon fill="var(${signo > 0 ? "--calor" : "--acento"})" fill-opacity="${signo > 0 ? .22 : .15}"
+    stroke="none" points="${[...arr, ...abj.reverse()].map(([px, py]) => `${px.toFixed(1)},${py.toFixed(1)}`).join(" ")}"/>`; arr = []; abj = []; };
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] == null || b[i] == null) { cerrar(); signo = 0; continue; }
+    const s = Math.sign(a[i] - b[i]);
+    if (signo && s && s !== signo && i > 0) {  // cruce: se cierra el tramo en el punto donde se cortan
+      const d0 = a[i - 1] - b[i - 1], d1 = a[i] - b[i], f = d0 / (d0 - d1), xc = x(i - 1) + f * (x(i) - x(i - 1)), vc = a[i - 1] + f * (a[i] - a[i - 1]);
+      arr.push([xc, y(vc)]); abj.push([xc, y(vc)]); cerrar(); arr.push([xc, y(vc)]); abj.push([xc, y(vc)]);
+    }
+    if (s) signo = s;
+    arr.push([x(i), y(a[i])]); abj.push([x(i), y(b[i])]);
+  }
+  cerrar();
+  return out;
+}
 function graficoMeses(el, meses, series, tipo = "lineas", op = {}) {
   const fmt0 = op.fmt || (op.soles ? v => `S/\u00a0${num(v)}` : pct2);
   const fmt = v => v == null ? "sin dato" : fmt0(v);
@@ -2775,7 +2802,7 @@ function graficoMeses(el, meses, series, tipo = "lineas", op = {}) {
   if (op.anual) meses.forEach((a, i) => { if (W >= 500 || i % 2 === 0 || i === n - 1) svg += `<text x="${x(i)}" y="${H - m.b + 15}" text-anchor="middle">${a}</text>`; });
   else if (op.dias) {  // dd/mm cada k días, contando desde el último (el más reciente siempre rotulado)
     const k = op.cada || Math.ceil(n / (W < 500 ? 3 : 6));
-    meses.forEach((f, i) => { if ((n - 1 - i) % k === 0) svg += `<line x1="${x(i)}" x2="${x(i)}" y1="${H - m.b}" y2="${H - m.b + 4}" stroke="var(--texto-3)"/>
+    meses.forEach((f, i) => { if (op.marcaEje ? op.marcaEje(f) : (n - 1 - i) % k === 0) svg += `<line x1="${x(i)}" x2="${x(i)}" y1="${H - m.b}" y2="${H - m.b + 4}" stroke="var(--texto-3)"/>
       <text x="${x(i)}" y="${H - m.b + 15}" text-anchor="${i === n - 1 && tipo === "barras" ? "end" : "middle"}">${op.ejeTxt ? op.ejeTxt(f) : `${f.slice(8, 10)}/${f.slice(5, 7)}`}</text>`; });
   } else meses.forEach((am, i) => {
     const [a, mm] = am.split("-").map(Number);
@@ -2790,6 +2817,12 @@ function graficoMeses(el, meses, series, tipo = "lineas", op = {}) {
     if (op.franja) { const [lo_, hi_] = op.franja, pts = i => `${x(i).toFixed(1)},`;
       svg += `<polygon fill="var(--neutro)" stroke="none" points="${lo_.map((v, i) => pts(i) + y(v).toFixed(1)).join(" ")} ${
         hi_.map((v, i) => pts(i) + y(v).toFixed(1)).reverse().join(" ")}"/>`; }
+    // sombreado entre una serie y su referencia (op.sombra = { v, ref }): cálido donde la serie va por encima, frío por debajo
+    if (op.sombra) svg += areasEntre(op.sombra.v, op.sombra.ref, x, y);
+    // área bajo la serie principal hasta la base del gráfico (op.area = color), p. ej. el agua bajo el nivel de un río
+    if (op.area) { const s = series.find(s => s.principal);
+      svg += `<polygon fill="${op.area}" fill-opacity=".35" stroke="none" points="${x(0).toFixed(1)},${y(lo)} ${s.v.map((v, i) =>
+        `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ")} ${x(n - 1).toFixed(1)},${y(lo)}"/>`; }
     for (const s of [...series].reverse()) {
       // la serie principal (Piura) va más gruesa y con un punto en el último mes, como el año en curso del dengue
       const ancho = s.principal ? (W < 500 ? 3 : 3.5) : (s.ancho || 2);
@@ -2800,7 +2833,7 @@ function graficoMeses(el, meses, series, tipo = "lineas", op = {}) {
       // meses marcados (op.marcas = [[índice, texto]]): punto hueco, con su explicación al pasar el cursor
       if (s.principal) for (const [i, t] of op.marcas || []) svg += `<circle cx="${x(i).toFixed(1)}" cy="${y(s.v[i]).toFixed(1)}" r="5"
         fill="var(--superficie)" stroke="${s.color}" stroke-width="2"><title>${esc(t)}</title></circle>`;
-      rot.push({ t: `${s.nombre} ${fmt(s.v.at(-1))}`, y: y(s.v.at(-1)) });
+      if (!op.soloPrincipal || s.principal) rot.push({ t: op.soloPrincipal ? `${s.nombre}: ${fmt(s.v.at(-1))}` : `${s.nombre} ${fmt(s.v.at(-1))}`, y: y(s.v.at(-1)) });
     }
     rot.sort((a, b) => b.y - a.y).forEach((r, i, arr) => { if (i && arr[i - 1].y - r.y < 13) r.y = arr[i - 1].y - 13; });
     rot.forEach(r => svg += `<text class="rotulo" x="${W - m.r + 6}" y="${r.y + 4}">${esc(r.t)}</text>`);
@@ -2908,28 +2941,49 @@ function graficosIPC() {
 }
 
 /* ---------- Resumen ---------- */
-// Franja de El Niño (portada): estado del ENFEN, magnitud prevista y el mar frente a Paita, de los mismos datos que Clima; si
-// hay un aviso naranja o rojo del Senamhi de los últimos 2 días para el río Piura, el Chira o sus afluentes, también va aquí
-function franjaNino() {
-  const e = D.enfen, t = D.tsm, partes = [];
-  if (e) partes.push(`<span class="etiqueta-estado${/^alerta/i.test(e.estado) ? " alerta" : ""}">${esc(e.estado)}</span>`,
-    `<span>Magnitud prevista: <strong>${esc(minuscula(e.magnitud))}</strong></span>`);
-  if (t) { const [f, , a] = t.filas.at(-1);
-    partes.push(`<span>Mar frente a Paita: <strong>${Math.abs(a) <= TSM_UMBRAL ? `cerca de lo normal (${conSigno(a)} °C)`
-      : `${conSigno(a)} °C ${a > 0 ? "sobre" : "bajo"} lo normal`}</strong> (${fecha(f).slice(0, 5)})</span>`); }
-  if (!partes.length) return "";
-  const avisos = ["Piura", "Chira"].map(c => avisoReciente(c, 2, ["NARANJA", "ROJO"])).filter(Boolean);
-  return `<div class="franja-nino" role="region" aria-label="El Niño hoy"><p>${partes.join('<span class="sep" aria-hidden="true">·</span>')}
-    <a href="#clima">Ver clima →</a></p>${avisos.map(av => `<p class="aviso-franja"><span class="aviso ${NIVELES_AVISO[av.nivel]}">Aviso
-      ${NIVELES_AVISO[av.nivel]}</span> del Senamhi: río ${esc(lugar(av.rio))}, estación ${esc(lugar(av.estacion))} (${fecha(av.fin).slice(0, 5)})</p>`).join("")}</div>`;
+// Tarjeta de El Niño (portada, ronda 20): estado del ENFEN, mar frente a Paita y aire en Piura en 3 columnas, y una línea con los
+// ríos. Lee los mismos datos y funciones que Clima (tituloTemp, fraseRio), así las cifras coinciden
+const anomMar = () => D.tsm?.filas.at(-1);
+function tarjetaNino() {
+  const e = D.enfen, t = anomMar(), tp = D.temp, cols = [], fechas = [];
+  if (!e && !t && !tp) return "";
+  if (e) { cols.push(`<div class="nino-col"><h4>Estado</h4><p class="etiqueta-estado${/^alerta/i.test(e.estado) ? " alerta" : ""}">${esc(e.estado)}</p>
+      <p class="ud">Magnitud prevista: <strong>${esc(minuscula(e.magnitud))}</strong>${e.horizonte ? `, ${esc(minuscula(e.horizonte.split(";")[0]))}` : ""}</p></div>`);
+    fechas.push(`ENFEN, comunicado N.° ${esc(e.numero)} (${fecha(e.fecha_corte)})`); }
+  if (t) { const [f, , a] = t;
+    cols.push(`<div class="nino-col"><h4>Mar frente a Paita</h4><div class="cifra">${conSigno(a)}\u00a0°C</div>
+      <p class="ud">${Math.abs(a) <= TSM_UMBRAL ? "cerca de lo normal" : a > 0 ? "sobre lo normal" : "bajo lo normal"} (${fecha(f).slice(0, 5)})</p></div>`);
+    fechas.push(`NOAA OISST (${fecha(f)})`); }
+  if (tp) { const a = tp.anomalia_7d.actual;
+    cols.push(`<div class="nino-col"><h4>Aire en Piura</h4><div class="cifra">${conSigno(a)}\u00a0°C</div>
+      <p class="ud">promedio de 7 días ${Math.abs(a) <= TSM_UMBRAL ? "cerca de" : a > 0 ? "sobre" : "bajo"} lo normal</p></div>`);
+    fechas.push(`ERA5-Land vía Open-Meteo (${fecha(tp.fecha_corte)})`); }
+  // titular: el mensaje (mar y aire más calientes, o el estado si no hay cifras)
+  const calido = [t && t[2] > TSM_UMBRAL && "el mar frente a Paita", tp && tp.anomalia_7d.actual > TSM_UMBRAL && "el aire en Piura"].filter(Boolean);
+  const titulo = calido.length ? `${mayus(lista(calido))} ${calido.length > 1 ? "están" : "está"} más ${calido.length > 1 ? "calientes" : "caliente"} que lo normal`
+    : e ? esc(e.estado) : "El Niño en Piura";
+  let rios = "";
+  if (D.rios) { const fr = RIOS.map(fraseRio), grave = fr.filter(x => x.grave);
+    rios = `<p class="rios-nino${grave.length ? ` alerta-rios ${NIVELES_AVISO[grave.some(x => x.av.nivel === "ROJO") ? "ROJO" : "NARANJA"]}` : ""}">${grave.length
+      ? `<strong>Ríos Piura y Chira: ${fr.map(x => x.corto).join("; ")}.</strong>` : `<b>Ríos Piura y Chira:</b> ${fr.map(x => x.corto).join("; ")}.`}</p>`;
+    fechas.push(`Senamhi (${fecha(D.rios.fecha_corte)})`); }
+  return `<div class="panel nino-portada" role="region" aria-label="El Niño hoy"><h3>${titulo}</h3>${aviso(["enfen", "tsm", "temp", "rios"])}
+    <div class="nino-cols">${cols.join("")}</div>${rios}<a class="ver-mas" href="#clima">Ver clima →</a>
+    <p class="pie">Fuentes: ${fechas.join("; ")}.</p></div>`;
+}
+// «Más de 1 de cada 4», «Casi 1 de cada 3», «1 de cada 5»; sobre el 50 %, «6 de cada 10» (como en Vulnerabilidad)
+function fraccionTxt(p) {
+  if (p > 50) return decimos(p)[0];
+  const n = [2, 3, 4, 5, 6, 7, 8, 9, 10].reduce((m, k) => Math.abs(100 / k - p) < Math.abs(100 / m - p) ? k : m, 2), d = p - 100 / n;
+  return `${d > 1 ? "Más de 1" : d < -1 ? "Casi 1" : "1"} de cada ${n}`;
 }
 function pintarResumen() {
-  const el = $("resumen-paneles"), ps = [];
+  const el = $("resumen-paneles"), ps = {};
   const d = D.d26, tend = d?.totales && tendenciaDengue(d);
   const activas = D.obras ? D.obras.obras.filter(x => !APARTE[x.codigo_infobras]) : [], par = activas.filter(x => x.estado === "Paralizada");
   const t = D.gasto && gastoDe(() => true, 1);
   const gasto = D.gasto && { p: pct(t.dev, t.pim), trans: esperadoGasto() };
-  $("hoy").innerHTML = `<h2 class="pregunta">¿Cómo está Piura frente a El&nbsp;Niño?</h2>${franjaNino()}`;
+  $("hoy").innerHTML = `<h2 class="pregunta">¿Cómo está Piura frente a El&nbsp;Niño?</h2>${tarjetaNino()}`;
   // Cada panel: título con el hallazgo (reglas en "Fuentes y método"), cifra, mini-gráfica, una frase, enlace y fuente con su fecha
   if (d?.totales) {
     const s0 = d.serie[0], s1 = d.serie.at(-1);
@@ -2939,7 +2993,7 @@ function pintarResumen() {
       anio = `En el año va ${mas.length && menos.length ? `por debajo de ${txt(mas)} y por encima de ${txt(menos)}`
         : mas.length ? `por debajo de ${txt(mas)}` : `por encima de ${txt(menos)}`} a la misma semana.`;
     }
-    ps.push(panel({ titulo: tend ? `El dengue ${tend.dir} en las últimas 4 semanas completas` : "¿Cómo está el dengue?", clase: "destacado",
+    ps.dengue = (panel({ titulo: tend ? `El dengue ${tend.dir} en las últimas 4 semanas completas` : "¿Cómo está el dengue?", clase: "destacado",
       cifra: !tend ? num(d.totales.semana) : tend.cambio == null ? `${num(tend.act)} casos`
         : `${Math.round(tend.cambio) > 0 ? "+" : Math.round(tend.cambio) < 0 ? "−" : ""}${num(Math.abs(tend.cambio), 0)}\u00a0%`,
       ud: !tend ? `casos en la semana ${d.se}, ${g("preliminar", "preliminar")}` : `${num(tend.act)} casos en las semanas ${tend.fin - 3} a ${tend.fin}${
@@ -2947,79 +3001,84 @@ function pintarResumen() {
       mini: chispa(d.serie.map(x => x[1]), `Casos por semana en ${anioD()}; las ${PRELIMINAR} últimas, preliminares (punteadas)`,
         { ini: `SE ${s0[0]}: ${num(s0[1])}`, fin: `SE ${s1[0]} (preliminar)`, periodo: `Semanas ${s0[0]} a ${s1[0]} de ${anioD()}`,
           prelim: PRELIMINAR }),
-      frase: `${tend?.prelim.length ? `${tend.prelim.length > 1 ? "Las semanas" : "La semana"} ${lista(tend.prelim.map(String))}
-        ${tend.prelim.length > 1 ? "son" : "es"} ${g("preliminar", tend.prelim.length > 1 ? "preliminares" : "preliminar")}: van punteadas y no entran en la comparación. ` : ""}${anio}`,
-      ver: ["#dengue", "Ver dengue"], calc: ["tendencia"], pie: `DIRESA Piura, semana ${d.se}, datos al ${fecha(d.fecha_corte)}` }));
-  } else ps.push(sinDatos("¿Cómo está el dengue?", "dengue de la DIRESA Piura").replace('class="panel ', 'class="panel destacado '));
+      // ronda 20: la explicación de las semanas preliminares va a «Cómo se calcula» (el gráfico ya las marca punteadas)
+      frase: anio, ver: ["#dengue", "Ver dengue"], calc: ["tendencia", "preliminar"], pie: `DIRESA Piura, semana ${d.se}, datos al ${fecha(d.fecha_corte)}` }));
+  } else ps.dengue = (sinDatos("¿Cómo está el dengue?", "dengue de la DIRESA Piura").replace('class="panel ', 'class="panel destacado '));
   if (gasto) {
     const { p, trans } = gasto, r = ritmo(p, trans), sm = semaforo(p, trans);
-    ps.push(panel({ titulo: `El gasto va ${r === "menor" ? "más lento que el" : r === "mayor" ? "más rápido que el" : "al ritmo del"} calendario`,
+    ps.gasto = (panel({ titulo: `El gasto va ${r === "menor" ? "más lento que el" : r === "mayor" ? "más rápido que el" : "al ritmo del"} calendario`,
       clase: "compacto", cifra: pctTxt(p), ud: `del presupuesto del año, gastado en Piura`, vence: "gasto",
       mini: leyendaEsperado(trans) + medidor(p, trans, sm) + ritmoTxt(sm), ver: ["#gasto", "Ver gasto"], calc: ["avance", "semaforo"], pie: `MEF, datos al ${fecha(D.gasto.fecha_corte)}` }));
   }
   if (D.obras) {
     const sh = pct(par.length, activas.length), cp = obrasPais(activas, par);
-    ps.push(panel({ titulo: cp ? tituloPais(cp) : par.length ? `El ${pctTxt(sh)} de las obras activas está paralizado` : "Ninguna obra activa está paralizada",
+    ps.obras = (panel({ titulo: cp ? tituloPais(cp) : par.length ? `El ${pctTxt(sh)} de las obras activas está paralizado` : "Ninguna obra activa está paralizada",
       clase: `compacto${cp?.comp === "mas" ? " cifra-alerta" : ""}`, cifra: num(par.length), ud: cp ? "" : "obras paralizadas", vence: "obras",
       mini: cp ? paresPais(cp) : "", ver: ["#obras", "Ver obras"], calc: cp ? ["comparacion"] : [],
       pie: cp ? piePais() : pieInfobras(D.obras) }));
-  } else ps.push(sinDatos("¿Cómo van las obras?", "obras de Infobras").replace('class="panel ', 'class="panel compacto '));
+  } else ps.obras = (sinDatos("¿Cómo van las obras?", "obras de Infobras").replace('class="panel ', 'class="panel compacto '));
   if (D.camas) {
     const rep = D.camas.establecimientos.filter(x => x.reporto), conPd = rep.every(x => x.pacientes_dia != null);
     const oc = conPd ? pct(suma(rep, "pacientes_dia"), suma(rep, "dias_cama")) : null;
     const os = ocupacionSerie();
-    ps.push(panel({ titulo: os?.dir ? `La ocupación de camas ${os.dir} frente a hace un año` : "¿Está preparada la salud?", cifra: pctTxt(oc),
+    ps.camas = (panel({ titulo: os?.dir ? `La ocupación de camas ${os.dir} frente a hace un año` : "¿Está preparada la salud?", cifra: pctTxt(oc),
       clase: "compacto", ud: `de ocupación de camas en ${esc(D.camas.periodo)} (${num(rep.length)} establecimientos)`, vence: "camas",
       mini: os ? chispa(os.s.map(os.oc), "Ocupación de camas por mes", { ini: `${mesCorto(os.s[0].mes)}: ${pctTxt(os.oc(os.s[0]))}`,
         fin: `${mesCorto(os.u.mes)}`, periodo: `${mayus(mesTxt(os.s[0].mes))} a ${mesTxt(os.u.mes)}` }) : oc == null ? "" : medidor(oc),
       ver: ["#salud", "Ver salud"], pie: `SUSALUD, ${esc(D.camas.periodo)}`, calc: ["ocupacion"] }));
-  } else ps.push(sinDatos("¿Está preparada la salud?", "camas de SUSALUD").replace('class="panel ', 'class="panel compacto '));
+  } else ps.camas = (sinDatos("¿Está preparada la salud?", "camas de SUSALUD").replace('class="panel ', 'class="panel compacto '));
   if (D.ipc?.serie?.length) {
     const s = D.ipc.serie.slice(-24), u = s.at(-1), dif = u.doce_meses - u.nacional_doce_meses;
-    ps.push(panel({ titulo: `La inflación en Piura es ${dif >= 0.1 ? "mayor que" : dif <= -0.1 ? "menor que" : "similar a"} la nacional`,
+    ps.ipc = (panel({ titulo: `La inflación en Piura es ${dif >= 0.1 ? "mayor que" : dif <= -0.1 ? "menor que" : "similar a"} la nacional`,
       clase: "compacto", cifra: pct2(u.doce_meses), ud: `de variación de precios en 12 meses, a ${mesTxt(u.mes)}. Nacional: ${pct2(u.nacional_doce_meses)}`, vence: "ipc",
       mini: chispa(s.map(x => x.doce_meses), "Variación en 12 meses, últimos 24 meses",
         { ini: `${mesCorto(s[0].mes)}: ${pct2(s[0].doce_meses)}`, fin: mesCorto(u.mes),
           periodo: `${mayus(mesTxt(s[0].mes))} a ${mesTxt(u.mes)}` }),
       ver: ["#precios", "Ver precios"], pie: `INEI, ${mesTxt(u.mes)}`, calc: ["doce"] }));
-  } else ps.push(sinDatos("¿Cómo están los precios?", "precios del INEI").replace('class="panel ', 'class="panel compacto '));
+  } else ps.ipc = (sinDatos("¿Cómo están los precios?", "precios del INEI").replace('class="panel ', 'class="panel compacto '));
   if (D.censoRes) {
-    // compacta: la frase es el título (sin repetir la cifra debajo), las 10 casas al lado y el enlace
-    const [n, d] = D.censoRes.sin_desague, p = pct(n, d), [prop] = decimos(p);
-    const frase = `${num(n)} viviendas de la ciudad de Piura sin desagüe por red pública (${pctTxt(p)})`;
-    ps.push(panel({ titulo: frase, clase: "compacto vul-portada", mini: casasSvg(p, `${frase}: ${prop}`),
-      ver: ["#vulnerabilidad", "Ver vulnerabilidad"], pie: `INEI, Censo 2025` }));
+    // tarjeta normal (ronda 20): titular con la proporción, cifra, 10 casas y el distrito con el mayor %
+    const [n, v] = D.censoRes.sin_desague, p = pct(n, v), [prop] = decimos(p);
+    const ds = (D.censoRes.distritos_sin_desague || []).map(([nom, a, b]) => [lugar(nom), pct(a, b)]).sort((a, b) => b[1] - a[1]);
+    ps.vul = panel({ titulo: `${fraccionTxt(p)} viviendas de la ciudad de Piura no tiene desagüe`, clase: "compacto vul-portada",
+      cifra: num(n), ud: `viviendas sin ${g("desague", "desagüe por red pública")} (${pctTxt(p).replace(" ", "\u00a0")})`,
+      mini: casasSvg(p, `${num(n)} viviendas sin desagüe por red pública: ${prop}`),
+      frase: ds.length ? `En ${esc(ds[0][0])} llega a ${pctTxt(ds[0][1])}.` : "",
+      ver: ["#vulnerabilidad", "Ver vulnerabilidad"], pie: "INEI, Censos Nacionales 2025", calc: ["desague"] });
   }
-  el.innerHTML = ps.join("");
+  // Orden (ronda 20): primero lo que pesa en una emergencia (dengue, camas, vivienda); después la respuesta del Estado y la economía
+  el.innerHTML = ["dengue", "camas", "vul", "gasto", "obras", "ipc"].map(k => ps[k] || "").join("");
   el.removeAttribute("aria-busy");
 }
 
 /* ---------- Clima: ENFEN, temperatura del mar, lluvia y radar ---------- */
 // Temperatura del aire: una sola métrica, el promedio de las máximas de los últimos 7 días frente a lo normal (mediana
-// 1991-2020 de esa semana). Título, cifra y frase dicen lo mismo; la máxima del último día va como dato secundario.
+// 1991-2020 de esa semana). El cuerpo dice qué pasa; los tramos de datos y la corrección van a «Cómo se calcula» (ronda 20)
+const tituloTemp = a => Math.abs(a) <= TSM_UMBRAL ? `Piura está cerca de lo normal para esta época (${conSigno(a)} °C)`
+  : `Piura está ${num(Math.abs(a), 1)} °C más ${a > 0 ? "caliente" : "fría"} que lo normal para esta época`;
 function tarjetaTemperatura() {
   const tp = D.temp;
   if (!tp) return sinDatos("Temperatura del aire en la ciudad de Piura", "Open-Meteo");
-  const u = tp.filas.at(-1), an = tp.anomalia_7d, a = an.actual, est = tp.filas.filter(f => f[8]);
-  const titulo = (Math.abs(a) <= TSM_UMBRAL ? `Piura está cerca de lo normal (${conSigno(a)} °C)`
-    : `Piura está ${num(Math.abs(a), 1)} °C más ${a > 0 ? "caliente" : "fría"} que lo normal`)
-    + (an["1997"] != null ? `; a esta fecha de 1997 estaba ${conSigno(an["1997"])} °C` : "");
-  return panel({ titulo, clase: "clima-temp", cifra: `${conSigno(a)} °C`,
-    ud: `promedio de las máximas de los 7 días al ${diaLluvia(u[0])} (${grados(u[2])}) frente a lo normal para esa semana (${grados(u[4])}).
-      Máxima del ${diaLluvia(u[0])}: ${grados(u[1])}`,
-    extra: `${an["2016"] != null ? `<p class="frase">Con la misma medida, en esas fechas de 2016 (antes del Niño costero 2017): ${conSigno(an["2016"])} °C.</p>` : ""}
-      <div class="grafico" id="g-temp"></div>
-      <p class="nota">Promedios móviles de 7 días. Franja gris: lo normal en 1991-2020 (del percentil 10 al 90), con su mediana. Líneas grises
-        finas: 1997 y 2016. No es una estación: reanálisis ERA5-Land hasta el ${diaLluvia(tp.ultimo_era5)}${est.length ? `; del ${diaLluvia(est[0][0])}
-        al ${diaLluvia(est.at(-1)[0])}, estimación del modelo de pronóstico, corregida en ${conSigno(tp.correccion)} °C` : ""}.</p>${masDetalle(tp.url, "Open-Meteo")}`,
-    pie: fuente(tp), vence: "temp", calc: ["temp"] });
+  const u = tp.filas.at(-1), a = tp.anomalia_7d.actual, est = tp.filas.filter(f => f[8]);
+  // detalle técnico de esta actualización (los dos tramos y la corrección), en «Cómo se calcula»
+  DEFINICIONES.temp_tramos = ["Datos de esta actualización", `Reanálisis ERA5-Land hasta el ${diaLluvia(tp.ultimo_era5)}${est.length
+    ? `; del ${diaLluvia(est[0][0])} al ${diaLluvia(est.at(-1)[0])}, modelo de pronóstico corregido en ${conSigno(tp.correccion)} °C (su diferencia media
+      con ERA5-Land en los últimos ${tp.dias_comunes || 30} días que tienen los dos)` : ""}.`];
+  return panel({ titulo: tituloTemp(a), clase: "clima-temp", cifra: `${conSigno(a)} °C`,
+    ud: `Promedio de las máximas de los últimos 7 días: ${grados(u[2])}; lo normal es ${grados(u[4])}`,
+    extra: `<p class="frase solo-ancho">Comparamos con los dos Niños más fuertes de las últimas décadas en Piura, en las mismas fechas del año.</p>
+      <div class="leyenda leyenda-temp"><span style="--c:var(--acento)">2026 · Niño costero en curso</span><span class="solo-ancho" style="--c:var(--gris-ref)">1997 ·
+        Niño extraordinario 1997–98</span><span class="solo-ancho" style="--c:var(--gris-ref-claro)">2016 · meses antes del Niño costero 2017</span><span
+        class="caja-normal">Lo normal (1991–2020)</span></div>
+      <div class="grafico" id="g-temp"></div>`,
+    pie: `Fuente: reanálisis ERA5-Land y modelo de pronóstico (Copernicus/ECMWF), vía <a href="${esc(tp.url)}" target="_blank" rel="noopener">Open-Meteo</a>.
+      Datos al ${fecha(tp.fecha_corte)}`, vence: "temp", calc: ["temp", "temp_tramos"] });
 }
-// Ríos: dos columnas (Piura | Chira) con el nivel actual, el último aviso del Senamhi para la cuenca y la serie propia
+// Ríos: dos columnas (Piura | Chira). Cada una abre con una frase: el aviso del Senamhi en palabras y la tendencia del nivel;
+// la cifra en metros va como dato secundario. Lo técnico (nivel, serie propia, umbrales) va a «Cómo se calcula» (ronda 20)
 const RIOS = [
-  { cod: "47E0415A", cuenca: "Piura", titulo: "Río Piura · Puente Ñácara (Chulucanas)", umbrales: `Umbrales en caudal (m³/s), no en nivel: por eso
-    no se dibujan. Puente Sánchez Cerro: amarillo 900, naranja 1300, rojo 1900 (mesa técnica del COER Piura, 26/08/2026, según la prensa);
-    Puente Ñácara: rojo 1100 (aviso del Senamhi del 13/03/2023).` },
-  { cod: "47E09732", cuenca: "Chira", titulo: "Río Chira · La Ardilla", umbrales: "No se encontraron umbrales oficiales publicados para La Ardilla." }];
+  { cod: "47E0415A", cuenca: "Piura", rio: "PIURA", estacion: "Puente Ñácara", titulo: "Río Piura · Puente Ñácara (Chulucanas)" },
+  { cod: "47E09732", cuenca: "Chira", rio: "CHIRA", estacion: "La Ardilla", titulo: "Río Chira · La Ardilla" }];
 const NIVELES_AVISO = { AMARILLO: "amarillo", NARANJA: "naranja", ROJO: "rojo" };
 const avisoReciente = (cuenca, dias, niveles = Object.keys(NIVELES_AVISO)) => (D.rios?.avisos || [])
   .filter(a => a.cuenca === cuenca && niveles.includes(a.nivel) && (Date.now() - Date.parse(a.fin + "T23:59:59-05:00")) / 864e5 < dias)
@@ -3027,24 +3086,52 @@ const avisoReciente = (cuenca, dias, niveles = Object.keys(NIVELES_AVISO)) => (D
 // «INCREMENTO DEL CAUDAL DEL RÍO ALAMOR - ESTACIÓN ALAMOR» → «incremento del caudal del río Alamor, estación Alamor»
 const textoAviso = av => `${esc(av.titulo.split(" DEL RÍO ")[0].toLowerCase())} del río ${esc(lugar(av.rio))}, estación ${esc(lugar(av.estacion))}`;
 const horaRio = f => `${diaLluvia(f.slice(0, 10))}, ${f.slice(11, 16)}`;
+// Tendencia del nivel: el último valor frente al de 6 horas antes (o el más cercano a 6 h entre 6 y 12 h antes, si falta).
+// Más de 5 cm de cambio: sube o baja; si no, estable. Si en las últimas 12 h hubo un pico 5 cm sobre los dos extremos, «subió … y
+// ya está bajando». Hoy, sin lluvia, el nivel varía 1 a 3 cm por hora: 5 cm separa un cambio real del vaivén (ronda 20)
+const UMBRAL_RIO = 0.05;
+const MOMENTO = h => h < 6 ? "de madrugada" : h < 12 ? "en la mañana" : h < 18 ? "en la tarde" : "de noche";
+function tendenciaRio(serie) {
+  if (!serie?.length) return null;
+  const hora = f => Date.parse(f + ":00-05:00") / 36e5, u = serie.at(-1), hu = hora(u[0]);
+  const previo = serie.filter(s => hu - hora(s[0]) >= 6 && hu - hora(s[0]) <= 12).sort((a, b) => hora(b[0]) - hora(a[0]))[0];
+  if (!previo) return null;
+  const ult12 = serie.filter(s => hu - hora(s[0]) <= 12), pico = ult12.reduce((m, s) => s[1] > m[1] ? s : m, ult12[0]);
+  if (pico[1] - ult12[0][1] >= UMBRAL_RIO && pico[1] - u[1] >= UMBRAL_RIO)
+    return { dir: "pico", txt: `subió ${MOMENTO(+pico[0].slice(11, 13))} y ya está bajando` };
+  const d = u[1] - previo[1];
+  return d > UMBRAL_RIO ? { dir: "sube", txt: "está subiendo" } : d < -UMBRAL_RIO ? { dir: "baja", txt: "viene bajando" } : { dir: "estable", txt: "está estable" };
+}
+// Qué dice el aviso, en palabras: «está creciendo el río Alamor, que desemboca en el Chira»
+function queAviso(av, x) {
+  const t = av.titulo.toUpperCase(), rio = esc(lugar(av.rio));
+  const que = /INCREMENTO|CRECIDA|AUMENTO/.test(t) ? `está creciendo el río ${rio}` : /DESCENSO|DISMINUCI/.test(t) ? `está bajando el río ${rio}` : textoAviso(av);
+  return av.rio === x.rio ? `${que}${lugar(av.estacion) !== x.estacion ? ` (estación ${esc(lugar(av.estacion))})` : ""}` : `${que}, que desemboca en el ${x.cuenca}`;
+}
+// Frase de un río: aviso (o su ausencia) y tendencia; la misma, resumida, va en la tarjeta de El Niño del Resumen
+function fraseRio(x) {
+  const e = D.rios?.estaciones[x.cod], av = avisoReciente(x.cuenca, 3), td = tendenciaRio(e?.serie), grave = av && av.nivel !== "AMARILLO";
+  const avTxt = av ? `<span class="aviso ${NIVELES_AVISO[av.nivel]}">Aviso ${NIVELES_AVISO[av.nivel]}</span> del Senamhi: ${queAviso(av, x)}.`
+    : `<span class="aviso sin">Sin aviso</span> del Senamhi en los últimos 3 días.`;
+  const tdTxt = td ? ` En ${x.estacion}, el nivel ${td.txt}.` : e?.serie.length ? ` En ${x.estacion}, aún no hay 6 horas de serie para ver si sube o baja.` : "";
+  return { html: `<p class="frase-rio${grave ? " grave" : ""}">${avTxt}${tdTxt}</p>`, av, td, grave,
+    corto: `el ${x.cuenca} ${av ? `con aviso ${NIVELES_AVISO[av.nivel]}${av.rio !== x.rio ? ` por el río ${esc(lugar(av.rio))}` : ""}` : "sin aviso"}${td ? `, con el nivel ${
+      td.dir === "pico" ? "bajando tras subir" : td.dir === "sube" ? "subiendo" : td.dir === "baja" ? "bajando" : "estable"}` : ""}` };
+}
 function tarjetaRios() {
   const r = D.rios;
   if (!r) return sinDatos("Nivel de los ríos Piura y Chira", "el Senamhi");
+  DEFINICIONES.rios_serie = ["Serie propia", `El Senamhi publica solo las últimas 24 horas de cada estación; el observatorio guarda un valor por hora
+    desde el ${fecha(r.desde)}. Si una actualización falla, esas horas se pierden.`];
   const cols = RIOS.map(x => {
-    const e = r.estaciones[x.cod], u = e?.serie.at(-1), av = avisoReciente(x.cuenca, 3);
-    return `<div class="rio"><h4>${x.titulo}</h4>
-      ${u ? `<p class="cifra-rio"><b>${num(u[1], 2)} m</b> de nivel · ${horaRio(u[0])}</p>` : `<p class="sin-datos">Sin dato reciente de nivel.</p>`}
-      <p class="aviso-rio">${av ? `<span class="aviso ${NIVELES_AVISO[av.nivel]}">Aviso ${NIVELES_AVISO[av.nivel]}</span> del Senamhi N.° ${av.numero}
-        (${diaLluvia(av.fin)}): ${textoAviso(av)}` : `<span class="aviso sin">Sin aviso</span> del Senamhi en los últimos 3 días`}</p>
-      <div class="grafico" id="g-rio-${x.cod}"></div>
-      <p class="nota">Nivel (m), no caudal. Serie propia desde el ${fecha(r.desde)}: el Senamhi publica solo las últimas 24 horas.</p>
-      <p class="nota">${x.umbrales}</p></div>`; }).join("");
+    const e = r.estaciones[x.cod], u = e?.serie.at(-1);
+    return `<div class="rio"><h4>${x.titulo}</h4>${fraseRio(x).html}
+      ${u ? `<p class="cifra-rio">${g("nivel_regla", "Nivel")}: <b>${num(u[1], 2)} m</b> · ${horaRio(u[0])}</p>` : `<p class="sin-datos">Sin dato reciente de nivel.</p>`}
+      <div class="grafico" id="g-rio-${x.cod}"></div></div>`; }).join("");
   return panel({ titulo: "Nivel de los ríos Piura y Chira", clase: "clima-rios",
-    frase: "El aviso es el semáforo oficial del Senamhi para el río o sus afluentes en el departamento.",
     extra: `<div class="dos-rios">${cols}</div>${masDetalle(r.url_avisos, "avisos hidrológicos del Senamhi")}`,
-    pie: `Fuentes: ${enlace(r)} (estaciones automáticas, nivel cada 10 minutos); <a href="${esc(r.url_avisos)}" target="_blank" rel="noopener">avisos
-      hidrológicos del Senamhi</a>. Umbrales: Senamhi (aviso de 2023) y COER Piura (según la prensa). Datos al ${fecha(r.fecha_corte)}`,
-    vence: "rios", calc: ["rios"] });
+    pie: `Fuentes: ${enlace(r)}; <a href="${esc(r.url_avisos)}" target="_blank" rel="noopener">avisos hidrológicos del Senamhi</a>. Datos al ${fecha(r.fecha_corte)}`,
+    vence: "rios", calc: ["rios", "rios_tendencia", "rios_serie", "rios_umbrales"] });
 }
 // Radar de lluvias de la UDEP: la imagen más reciente, enlazada directo a su servidor (la descarga el navegador de quien mira,
 // no GitHub). No se usa iframe: su servidor corta algunas conexiones seguras y, con iframe, la página no puede saber si falló;
@@ -3202,17 +3289,19 @@ function graficosClima() {
     { nombre: "Mar", color: "var(--acento)", principal: true, v: t.filas.map(f => f[1]) }],
     "lineas", { dias: true, sinCero: true, fmt: grados, eje: v => `${num(v)}°`, alto: esCelular() ? 170 : 220 });
   const tp = D.temp;  // temperatura: promedios de 7 días; franja normal (p10-p90) con su mediana; 1997 y 2016 en gris fino
-  if (tp && $("g-temp")) { const c = j => tp.filas.map(f => f[j]);
+  if (tp && $("g-temp")) { const c = j => tp.filas.map(f => f[j]), ancho = !matchMedia("(max-width: 639px)").matches;  // bajo 640 px, sin 1997 ni 2016 (como .solo-ancho)
     graficoMeses($("g-temp"), c(0), [
-      { nombre: "2016", color: "var(--gris-ref)", ancho: 1.25, v: c(7) },
-      { nombre: "1997", color: "var(--gris-ref)", ancho: 1.25, v: c(6) },
-      { nombre: "Normal", color: "var(--texto-3)", v: c(4) },
+      ...(ancho ? [{ nombre: "2016", color: "var(--gris-ref-claro)", ancho: 1.25, v: c(7) },
+        { nombre: "1997", color: "var(--gris-ref)", ancho: 1.25, v: c(6) }] : []),
+      { nombre: "Lo normal (mediana)", color: "var(--texto-3)", ancho: 1.25, v: c(4) },
       { nombre: "2026", color: "var(--acento)", principal: true, v: c(2) }],
-      "lineas", { dias: true, sinCero: true, franja: [c(3), c(5)], fmt: grados, fechaTxt: diaLluvia, eje: v => `${num(v)}°`, alto: esCelular() ? 200 : 240 }); }
+      "lineas", { dias: true, sinCero: true, franja: [c(3), c(5)], sombra: { v: c(2), ref: c(4) }, soloPrincipal: true, fmt: grados,
+        fechaTxt: diaLluvia, eje: v => `${num(v)}°`, alto: esCelular() ? 200 : 240 }); }
   for (const x of RIOS) { const s = D.rios?.estaciones[x.cod]?.serie, el = $(`g-rio-${x.cod}`);
     if (s?.length > 1 && el) graficoMeses(el, s.map(v => v[0]), [{ nombre: "Nivel", color: "var(--acento)", principal: true, v: s.map(v => v[1]) }],
-      "lineas", { dias: true, sinCero: true, fmt: v => `${num(v, 2)} m`, fechaTxt: horaRio, eje: v => `${num(v, 1)}`, alto: 150,
-        ejeTxt: s.length <= 48 ? f => f.slice(11, 16) : null }); }  // con 1 o 2 días de serie, el eje dice la hora
+      "lineas", { dias: true, sinCero: true, area: "var(--ll1)", fmt: v => `${num(v, 2)} m`, fechaTxt: horaRio, eje: v => `${num(v, 1)}`, alto: 150,
+        // hasta 2 días de serie: la hora cada 4 horas (cada 8 si el gráfico mide menos de 500 px: si no, se enciman); con más, la fecha
+        ...(s.length <= 48 ? { ejeTxt: f => f.slice(11, 16), marcaEje: f => +f.slice(11, 13) % (el.clientWidth < 500 ? 8 : 4) === 0 } : {}) }); }  // área celeste: el agua
   graficosLluvia();
 }
 // Lluvia de 30 días: tres estaciones por defecto (lluvia_senamhi.py: Bernal en la costa, a 31 km de la ciudad porque las de
