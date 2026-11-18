@@ -7,3 +7,11 @@ __pycache__/
 data/raw/
 # Notas internas que no se publican (borradores de mensajes, etc.)
 privado/
+# Notas de trabajo (resúmenes de cada ronda, auditoría, inventarios, sistema de diseño): solo en la computadora del equipo
+notas/
+# Herramientas de Claude Code e instrucciones del proyecto: se usan en local, no se publican
+.claude/
+.agents/
+skills-lock.json
+CLAUDE.md
+graphify-out/

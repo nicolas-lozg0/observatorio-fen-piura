@@ -27,7 +27,7 @@ jobs:
       - run: python scripts/test_clima.py
       - run: python scripts/gasto_mef.py
       # Infobras y SUSALUD no responden a los servidores de GitHub (tiempo agotado en todas las ejecuciones desde el
-      # 30/10/2026): se actualizan desde una computadora con scripts/actualizar_local.sh (ver docs/actualizacion_local.md).
+      # 30/10/2026): se actualizan desde una computadora con scripts/actualizar_local.sh (ver scripts/actualizacion_local.md).
       # inversiones_mef.py usa los CUI de docs/data/infobras_piura.json tal como está en el repositorio.
       - run: python scripts/inversiones_mef.py
       # Pasos opcionales: si una fuente falla, se conservan sus datos anteriores (con su propia fecha) y el resto

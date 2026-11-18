@@ -1,7 +1,7 @@
 """
 Aviso de comunicado nuevo del ENFEN (no escribe datos).
 
-La tarjeta del ENFEN se llena a mano en docs/data/enfen_comunicado.json (ver docs/actualizacion_local.md). Este script
+La tarjeta del ENFEN se llena a mano en docs/data/enfen_comunicado.json (ver scripts/actualizacion_local.md). Este script
 revisa la portada de https://enfen.imarpe.gob.pe/, que enlaza los comunicados oficiales, y falla con un mensaje si hay
 uno más reciente que el del JSON. En GitHub Actions el paso queda marcado y el resumen lo dice.
 
@@ -31,7 +31,7 @@ def main():
     ultimo = max(hay)
     if ultimo > (a, n):
         sys.exit(f"Hay un comunicado nuevo del ENFEN (N.° {ultimo[1]}-{ultimo[0]}): actualiza docs/data/enfen_comunicado.json "
-                 f"(ahora tiene el N.° {actual}). Instrucciones en docs/actualizacion_local.md.")
+                 f"(ahora tiene el N.° {actual}). Instrucciones en scripts/actualizacion_local.md.")
     print(f"El JSON tiene el último comunicado (N.° {actual}).")
 
 

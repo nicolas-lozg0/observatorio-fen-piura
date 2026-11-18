@@ -4,7 +4,7 @@
 # y push solo de esos archivos de datos.
 # Uso:  scripts/actualizar_local.sh            (actualiza, hace commit y push)
 #       scripts/actualizar_local.sh --sin-push (actualiza y hace commit, sin push; para probar)
-# Instrucciones: docs/actualizacion_local.md
+# Instrucciones: scripts/actualizacion_local.md
 set -u
 
 cd "$(dirname "$0")/.." || exit 1

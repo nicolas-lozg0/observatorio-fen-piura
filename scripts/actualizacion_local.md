@@ -46,7 +46,7 @@ Necesitas conexión a internet y permiso para hacer `git push` al repositorio. E
 1. Comprueba que estés en la rama `main` y que no haya cambios a medias en los datos de obras o camas.
 2. Trae la última versión del repositorio (`git pull --rebase`); los cambios tuyos en otros archivos se guardan y se reponen solos.
 3. Corre `scripts/infobras.py` y `scripts/camas_susalud.py`. Cada uno reintenta hasta 3 veces si el sitio no responde. Si uno falla, el otro igual corre y se conservan los datos anteriores del que falló.
-4. Hace un commit **solo** con `docs/data/infobras_piura.json` y `docs/data/camas_piura.json`, con el mensaje "Actualiza Infobras y camas (local) AAAA-MM-DD".
+4. Hace un commit **solo** con sus 5 archivos de datos (`infobras_piura.json`, `infobras_departamentos.json`, `camas_piura.json`, `camas_serie.json` e `ipress_piura.json`, en `docs/data/`), con el mensaje "Actualiza Infobras y camas (local) AAAA-MM-DD".
 5. Vuelve a traer cambios (el workflow diario pudo subir datos mientras tanto) y hace `git push`. GitHub Pages publica la página en 1 o 2 minutos.
 6. Termina con "Listo." o con "ATENCIÓN: fallaron: …" si alguna fuente no se pudo actualizar.
 
