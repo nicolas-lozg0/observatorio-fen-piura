@@ -15,13 +15,15 @@ la ejecución mensual. Por eso el avance es suma(devengado) / suma(PIM) sobre to
 Entidad: en gobiernos locales PLIEGO viene vacío y cada municipalidad es una unidad ejecutora;
 por eso la entidad es el pliego (nacional y regional) o la ejecutora (local).
 """
+import json
+import sys
 import time
 import urllib.error
 from datetime import datetime
 
 import pandas as pd
 
-from comun import PERU, abrir, fecha_modificacion, guardar, verificar_espacio
+from comun import DATOS, PERU, abrir, fecha_modificacion, guardar, verificar_espacio
 
 ANIO = datetime.now(PERU).year
 ARCHIVO = "https://fs.datosabiertos.mef.gob.pe/datastorefiles/{}-Gasto-Diario.csv"
@@ -78,12 +80,10 @@ def archivo_del_anio():
     raise SystemExit("No hay archivo de gasto diario del MEF ni del año en curso ni del anterior.")
 
 
-def main():
-    verificar_espacio()
-    anio, url, fecha = archivo_del_anio()
-    print(f"Leyendo {url} (modificado {fecha})")
+def leer(url):
+    """Lee el CSV por partes y filtra Piura: (partes agregadas, nombres, filas leídas)."""
     partes, nombres, n, t0 = [], {k: {} for k in NOMBRES}, 0, time.time()
-    with abrir(url) as r:  # los reintentos cubren la conexión, no un corte a mitad de la descarga
+    with abrir(url) as r:  # los reintentos de abrir() cubren la conexión; un corte a mitad de la descarga lo cubre main()
         for i, ch in enumerate(pd.read_csv(r, dtype=str, encoding="utf-8", encoding_errors="replace",
                                                usecols=COLUMNAS, chunksize=500_000)):
             if i % 4 == 0:
@@ -94,6 +94,28 @@ def main():
                 nombres[k].update(zip(p[k], p[col]))
             partes.append(agregar(p))
             print(f"  {n:,} filas leídas, {time.time() - t0:.0f} s", flush=True)
+    return partes, nombres, n
+
+
+def main():
+    verificar_espacio()
+    anio, url, fecha = archivo_del_anio()
+    # El workflow corre dos veces al día: si el MEF no publicó un archivo nuevo, no se vuelve a leer (son ~9 GB)
+    previo = DATOS / "gasto_piura.json"
+    if previo.exists() and json.loads(previo.read_text(encoding="utf-8")).get("fecha_corte") == fecha and "--forzar" not in sys.argv:
+        print(f"El archivo del MEF no cambió ({fecha}): gasto_piura.json se queda igual.")
+        return
+    print(f"Leyendo {url} (modificado {fecha})")
+    # Un corte a mitad de la descarga deja el CSV incompleto (13/11/2026: «EOF inside string»): se intenta una vez más
+    for intento in (1, 2):
+        try:
+            partes, nombres, n = leer(url)
+            break
+        except (pd.errors.ParserError, OSError) as e:
+            if intento == 2:
+                raise
+            print(f"  La lectura se cortó ({e}); nuevo intento en 60 s", flush=True)
+            time.sleep(60)
     agr = agregar(pd.concat(partes))
     if agr.empty:
         raise SystemExit("No se encontró ninguna fila de Piura: revisar el archivo del MEF.")

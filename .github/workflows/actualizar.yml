@@ -5,7 +5,11 @@ name: Actualizar datos
 
 on:
   schedule:
-    - cron: "0 15 * * *"  # 10:00 hora de Perú; el MEF publica el archivo diario hacia las 8:30
+    # Dos corridas, en minutos que no son en punto: a la hora en punto GitHub se atrasa 4 a 9 horas (noviembre de 2026).
+    # El MEF publica el archivo diario hacia las 8:30; si a la 2.ª corrida no cambió, gasto_mef.py no lo vuelve a leer.
+    # Los ríos también ganan: dos lecturas al día de una ventana de 24 h dejan menos huecos.
+    - cron: "17 14 * * *"  # 9:17 hora de Perú
+    - cron: "7 18 * * *"   # 13:07 hora de Perú
   workflow_dispatch:
 
 permissions:
