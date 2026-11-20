@@ -2776,15 +2776,15 @@ function filaCasas(i, nombre, x, ref) {
   const p = pct(x[0], x[1]) ?? 0, gr = grupoVul(i), texto = gr.frase(i, nombre, p);
   return `<div class="fila-casas${ref ? " ref" : ""}"><p>${texto}.</p>${casasSvg(p, texto, gr)}</div>`;
 }
-// 10 íconos: el % en el color del grupo y el resto en gris. El relleno avanza de izquierda a derecha y recorta la silueta
-// (clipPath con un solo rectángulo sobre la fila): 3,2 íconos = 3 enteros y una franja izquierda del cuarto. Lleva la frase
-// como texto alternativo y no es enfocable
+// 10 íconos: el % en el color del grupo y el resto en gris. El ícono parcial se llena de abajo hacia arriba (de izquierda a
+// derecha, una franja angosta de la casa se leía como un «1»): 3,2 íconos = 3 enteros y el cuarto lleno hasta el 20 % de su
+// alto. Lleva la frase como texto alternativo y no es enfocable
 function casasSvg(p, etiqueta, gr = GRUPOS_VUL.viv) {  // la portada (sin desagüe) usa el grupo de servicios
-  const icono = gr.icono === "persona" ? PERSONA : CASA, n = p / 10, enteros = Math.floor(n), id = `casas-${++idCasas}`;
-  const ancho = enteros * 24 + (n - enteros) * 20;
+  const icono = gr.icono === "persona" ? PERSONA : CASA, n = p / 10, enteros = Math.floor(n), parte = n - enteros, id = `casas-${++idCasas}`;
   const fila = fill => Array.from({ length: 10 }, (_, k) => `<path transform="translate(${k * 24} 0)" d="${icono}" fill="${fill}"/>`).join("");
   return `<svg class="casas" viewBox="0 0 236 20" role="img" aria-label="${esc(etiqueta)}" focusable="false"><defs><clipPath id="${id}"><rect
-      width="${ancho.toFixed(1)}" height="20"/></clipPath></defs>${fila("var(--neutro)")}<g clip-path="url(#${id})">${fila(`var(${gr.tonos[3]})`)}</g></svg>`;
+      width="${enteros * 24}" height="20"/>${parte > 0 ? `<rect x="${enteros * 24}" y="${(20 * (1 - parte)).toFixed(1)}" width="20" height="${(20 * parte).toFixed(1)}"/>` : ""}</clipPath></defs>${
+      fila("var(--neutro)")}<g clip-path="url(#${id})">${fila(`var(${gr.tonos[3]})`)}</g></svg>`;
 }
 function proporcion(p) {
   if (p >= 95) return ["casi todas las", true];
