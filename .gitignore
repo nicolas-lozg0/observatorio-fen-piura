@@ -15,3 +15,5 @@ notas/
 skills-lock.json
 CLAUDE.md
 graphify-out/
+# Bases para el análisis econométrico (lluvia y censo por manzana): no se publican
+data/procesado/

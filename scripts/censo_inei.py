@@ -231,8 +231,8 @@ CORTES = {**{k: ESCALA for k in "abcdhi"}, "e": [15, 20, 25, 30], "f": [4, 8, 12
 # Clases de la vista de número: afectados por hectárea de manzana (densidad neta, sin calles ni terreno vacío, para que
 # no cambie entre niveles). Viviendas y mayores de 65 comparten escala; menores de 15 y sin seguro son muchas más personas.
 DENSIDAD = {**{k: [5, 10, 20, 40] for k in "abcdhif"}, "e": [10, 20, 40, 80], "g": [25, 50, 100, 200]}
-NOTAS = {"e": "Más alto = más población dependiente (no es una carencia).",
-         "f": "Más alto = más población dependiente (no es una carencia)."}
+NOTAS = {"e": "Más alto = más población dependiente (no es una falta de servicios).",
+         "f": "Más alto = más población dependiente (no es una falta de servicios)."}
 # Localidades además de Ciudad de Piura: centros poblados de los otros distritos de la provincia con al menos estas
 # viviendas (ronda 16: con 2000 entran 7; con 500 entraban 31, muchos con 2 a 5 hexágonos). Nombre con tildes para la página.
 PROVINCIA = "2001"
@@ -352,28 +352,16 @@ def resumen(localidades, distritos):
             "distritos_sin_desague": [[d["nombre"], *d["a"]] for d in distritos.values()]}
 
 
-def main():
-    verificar_espacio()
-    import geopandas  # falla aquí, con un mensaje claro, si faltan las librerías locales
-    import pyogrio
-    import shapely
-    from shapely.geometry import mapping
-
+def cargar(prefijo):
+    """Lee los tabulados, deja las manzanas cuyo ubigeo empieza con `prefijo` y ubica las columnas de los indicadores.
+    Devuelve (datos, enc, P, V). La usan este script y lluvia_manzanas.py."""
     datos, enc = {}, {}
     for h, nombre in (("P", "POBLACION"), ("V", "VIVIENDA")):
         datos[h], enc[h] = leer_hoja(nombre)
     if (datos["P"][0] != datos["V"][0]).any():
         sys.exit("Las hojas POBLACION y VIVIENDA no traen las mismas manzanas en el mismo orden")
 
-    # Provincia de Piura (ubigeo 2001xx). Distritos de Ciudad de Piura: ubigeo verificado en los datos, no supuesto
-    dp0 = datos["P"]
-    nombres = {norm(d).upper(): d for d in DISTRITOS}
-    ubis = (dp0[(dp0[3].map(norm) == "piura") & dp0[4].map(lambda x: norm(x).upper() in nombres)]
-            .groupby(1)[4].first().to_dict())
-    if len(ubis) != len(DISTRITOS):
-        sys.exit(f"Se esperaban {len(DISTRITOS)} distritos y se encontraron {ubis}")
-    print("Ubigeos de Ciudad de Piura:", ubis)
-    sel = dp0[1].str.startswith(PROVINCIA)
+    sel = datos["P"][1].str.startswith(prefijo)
     for h in datos:
         datos[h] = datos[h][sel].reset_index(drop=True)
     ep, ev = enc["P"], enc["V"]
@@ -400,6 +388,26 @@ def main():
          "dia_24": cV("Disponibilidad de agua todos los días | Rango de horas | 24 horas"),
          "sh_total": cV(sh + "Total"), "red_dentro": cV(sh + "Red pública de desagüe dentro de la vivienda"),
          "red_fuera": cV(sh + "Red pública de desagüe fuera de la vivienda pero dentro de la edificación")}
+    return datos, enc, P, V
+
+
+def main():
+    verificar_espacio()
+    import geopandas  # falla aquí, con un mensaje claro, si faltan las librerías locales
+    import pyogrio
+    import shapely
+    from shapely.geometry import mapping
+
+    datos, enc, P, V = cargar(PROVINCIA)
+
+    # Distritos de Ciudad de Piura: ubigeo verificado en los datos, no supuesto
+    dp0 = datos["P"]
+    nombres = {norm(d).upper(): d for d in DISTRITOS}
+    ubis = (dp0[(dp0[3].map(norm) == "piura") & dp0[4].map(lambda x: norm(x).upper() in nombres)]
+            .groupby(1)[4].first().to_dict())
+    if len(ubis) != len(DISTRITOS):
+        sys.exit(f"Se esperaban {len(DISTRITOS)} distritos y se encontraron {ubis}")
+    print("Ubigeos de Ciudad de Piura:", ubis)
 
     validaciones = validar(datos, enc, P, V)
     for v in validaciones:
