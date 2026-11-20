@@ -369,57 +369,98 @@ def main():
                            "hex30": True, "frases": True, "criticos": True,
                            "decimos": ["3 de cada 10|true", "menos de 1 de cada 10|false", "casi 10 de cada 10|true", "10 de cada 10|true", "1 de cada 10|false"], "proporcion": ["1 de cada 4|false", "6 de cada 10|true", "casi todas las|true"]},
                     f"pestaña Vulnerabilidad: {rv}")
-            # Lluvia y localidades (coherencia): los círculos del mapa, las barras pareadas, la tabla y el gráfico detallado muestran
-            # exactamente lo que da datosLocalidades (mismo %, misma lluvia, mismas localidades) con 2017 y con 1998; las filas
-            # resaltadas son las del tercio superior de las dos variables; la vista por localidad va hasta el zoom 11
+            # Lluvia y localidades (coherencia): los puntos del mapa de lluvia, las barras pareadas, la tabla y el gráfico detallado
+            # muestran exactamente lo que da datosLocalidades (mismas localidades, mismo %, misma lluvia) con 2017 y con 1998; las
+            # filas resaltadas son las del tercio superior de las dos variables. El mapa de lluvia va aparte: el de vivienda no
+            # tiene lluvia ni círculos al alejarse; el selector de año (solo años, 2017 al abrir) rige el mapa de lluvia y las barras
             rc = pg.evaluate("""async () => { const m = await vulP, espera = ms => new Promise(r => setTimeout(r, ms));
                 for (let k = 0; k < 100 && $('f-lluvia-vul').disabled; k++) await espera(100);
+                const ml = await mapaLluviaVulP; for (let k = 0; k < 50 && !ml?._puntos; k++) await espera(100);
                 const clave = (id, p, ll) => `${id}|${p}|${ll}`, r = {};
                 const desde = sel => [...document.querySelectorAll(sel)].map(e => clave(e.dataset.loc, +e.dataset.p, +e.dataset.ll)).sort().join();
-                m.setZoom(10); await espera(300); await vulNivel(m);
+                r.selector = [...$('f-lluvia-vul').options].map(o => o.value).join() + '|' + $('f-lluvia-vul').value;
                 for (const anio of ['2017', '1998']) {
-                  $('f-lluvia-vul').value = anio; $('f-lluvia-vul').dispatchEvent(new Event('change')); await espera(600);
-                  const datos = datosLocalidades(vulInd()), esperado = datos.map(x => clave(x.id, x.p, x.lluvia)).sort().join(), circ = [];
-                  vulCapas.loc.eachLayer(c => circ.push(clave(c.options.loc, c.options.p, c.options.ll)));
+                  $('f-lluvia-vul').value = anio; $('f-lluvia-vul').dispatchEvent(new Event('change')); await espera(800);
+                  const datos = datosLocalidades(vulInd()), esperado = datos.map(x => clave(x.id, x.p, x.lluvia)).sort().join(), pts = [];
+                  ml._puntos.eachLayer(c => pts.push(c.options.loc + '|' + c.options.ll));
                   const dest = destacadas(datos), filasDest = [...document.querySelectorAll('#vul-localidades .par.destacada')].map(f => f.dataset.loc).sort().join();
-                  r[anio] = { circulos: circ.sort().join() === esperado, barras: desde('#vul-localidades .par') === esperado,
+                  const ciudad = datos.find(x => x.id === 'metro').lluvia;
+                  r[anio] = { puntos: pts.sort().join() === datos.map(x => x.id + '|' + x.lluvia).sort().join(), barras: desde('#vul-localidades .par') === esperado,
                     tabla: desde('#vul-tabla-loc tr') === esperado, grafico: desde('#vul-disp circle') === esperado,
-                    conLluvia: datos.every(x => typeof x.lluvia === 'number'), resaltadas: filasDest === [...dest].sort().join() };
+                    conLluvia: datos.every(x => typeof x.lluvia === 'number'), resaltadas: filasDest === [...dest].sort().join(),
+                    frase: new RegExp(`^En ${anio} llovió más en .+La ciudad de Piura recibió ${num(ciudad)} mm`).test($('vul-lluvia-frase').textContent.replace(/\\s+/g, ' ')),
+                    franjas: document.querySelectorAll('#vul-lluvia-leyenda .franjas-ley span').length, m1983: $('vul-lluvia-1983').hidden };
                 }
-                r.modo = nivelDe(m) === 'loc' && m.hasLayer(vulCapas.loc) && !['h9', 'h10', 'mz'].some(n => vulCapas[n] && m.hasLayer(vulCapas[n]))
-                  && /Vista por localidad/.test($('vul-modo').textContent) && $('vul-leyenda-mapa').querySelectorAll('.bloque-ley').length === 2;
-                // franjas de lluvia: su leyenda (aparte de la del indicador) tiene las 5 clases
-                r.franjas = document.querySelectorAll('#vul-lluvia-leyenda .franjas-ley span').length;
-                // ningún par de círculos se superpone y todo círculo visible tiene etiqueta, en los zooms 9, 10 y 11 (en celular, el mínimo es 10)
-                r.separados = [];
-                for (const z of [9, 10, 11]) { m.setZoom(z); await espera(300); await vulNivel(m);
-                  const cs = []; vulCapas.loc.eachLayer(c => cs.push([m.latLngToContainerPoint(c.getLatLng()), c.getRadius()]));
-                  const ok = cs.every(([p, r], a) => cs.every(([q, s2], b) => a === b || p.distanceTo(q) >= r + s2 - .5));
-                  // etiquetas: una por círculo y sin superponerse entre ellas
-                  const et = [...document.querySelectorAll('.nombre-loc-mapa')].map(e => e.getBoundingClientRect());
-                  const sinChoque = et.every((p, a) => et.every((q, b) => a === b || p.right <= q.left + .5 || q.right <= p.left + .5 || p.bottom <= q.top + .5 || q.bottom <= p.top + .5));
-                  const tam = m.getSize(), vistos = cs.filter(([p]) => p.x >= 0 && p.y >= 0 && p.x <= tam.x && p.y <= tam.y).length;
-                  r.separados.push(ok && et.length === vistos && sinChoque); }
-                // estilos de la leyenda y de las barras pareadas presentes (una edición del CSS los había borrado)
+                // nombres de los puntos del mapa de lluvia sin superponerse
+                const et = [...document.querySelectorAll('#mapa-lluvia-vul .nombre-punto-lluvia')].map(e => e.getBoundingClientRect());
+                r.nombres = et.length > 0 && et.every((p, a) => et.every((q, b) => a === b || p.right <= q.left + .5 || q.right <= p.left + .5 || p.bottom <= q.top + .5 || q.bottom <= p.top + .5));
+                // mapa de vivienda: al alejar siguen los sectores (sin círculos ni lluvia)
+                m.setZoom(10); await espera(300); await vulNivel(m);
+                r.vivienda = nivelDe(m) === 'h9' && !vulCapas.loc && !m.getPane('lluvia') && m.hasLayer(vulCapas.h9);
+                encuadrar(m); await espera(300); await vulNivel(m);
                 r.estilos = getComputedStyle(document.querySelector('#vul-localidades .par')).display === 'grid'
-                  && getComputedStyle(document.querySelector('#vul-leyenda-mapa .clases-ley span'), '::before').width === '12px';
-                m.setZoom(11); await espera(300); await vulNivel(m); r.z11 = nivelDe(m);
-                m.setZoom(12); await espera(300); await vulNivel(m); r.z12 = nivelDe(m) + (/Vista por sectores/.test($('vul-modo').textContent) ? ' aviso' : '');
+                  && getComputedStyle(document.querySelector('#vul-lluvia-leyenda .franjas-ley span'), '::before').width === '14px';
                 // tercio superior: con 6 filas, las 2 más altas de cada variable; los empates entran (b empata con a en %, c con b en lluvia)
                 const f = (id, lluvia, p) => ({ id, lluvia, p });
                 r.tercio = [...destacadas([f('a', 900, 50), f('b', 800, 50), f('c', 800, 10), f('d', 100, 60), f('e', 50, 5), f('f', 10, 1)])].sort().join();
-                r.radios = [radioLoc(10), Math.round(radioLoc(12235)), radioLoc(1e6)];
                 r.marca = MARCA_DESTACADA(vulInd());
                 $('f-orden-loc').value = 'lluvia'; $('f-orden-loc').dispatchEvent(new Event('change'));
                 const ll = [...document.querySelectorAll('#vul-localidades .par')].map(e => +e.dataset.ll);
                 r.ordenLluvia = ll.every((x, j) => !j || ll[j - 1] >= x);
                 $('f-orden-loc').value = 'p'; $('f-orden-loc').dispatchEvent(new Event('change'));
-                $('f-lluvia-vul').value = ''; $('f-lluvia-vul').dispatchEvent(new Event('change')); await espera(300);
+                $('f-lluvia-vul').value = '2017'; $('f-lluvia-vul').dispatchEvent(new Event('change')); await espera(300);
                 return r; }""")
-            ok_anio = {"circulos": True, "barras": True, "tabla": True, "grafico": True, "conLluvia": True, "resaltadas": True}
-            revisar(rc == {"2017": ok_anio, "1998": ok_anio, "modo": True, "z11": "loc", "z12": "h9 aviso", "tercio": "a,b",
-                           "radios": [5, 8, 20], "ordenLluvia": True,
-                           "franjas": 5, "separados": [True, True, True], "estilos": True, "marca": "Mucha lluvia y sin desagüe"}, f"vulnerabilidad, lluvia y localidades: {rc}")
+            ok_anio = {"puntos": True, "barras": True, "tabla": True, "grafico": True, "conLluvia": True, "resaltadas": True, "frase": True,
+                       "franjas": 5, "m1983": True}
+            revisar(rc == {"selector": "1983,1998,2017,2023|2017", "2017": ok_anio, "1998": ok_anio, "nombres": True, "vivienda": True,
+                           "estilos": True, "tercio": "a,b", "marca": "Mucha lluvia y sin desagüe", "ordenLluvia": True},
+                    f"vulnerabilidad, lluvia y localidades: {rc}")
+            # Sincronía: con cada localidad y cada indicador (8 × 9), todos los bloques muestran el mismo indicador y la misma cifra
+            # total: título, cifra, frases (con su ícono), leyenda (reparto en servicios; simple en población), mapa (color del
+            # grupo), sectores, ayuda, barras pareadas (fila elegida, base en viviendas o personas, orden inicial), tabla y gráfico
+            # detallados, y desglose por distrito (solo en la Ciudad de Piura). En población no aparecen «crítico», «problema» ni «afectados»
+            rs = pg.evaluate("""async () => { const m = await vulP, espera = ms => new Promise(r => setTimeout(r, ms)), fallas = [];
+                for (let k = 0; k < 100 && $('f-lluvia-vul').disabled; k++) await espera(100);
+                let combinaciones = 0;
+                for (const lc of D.censo.localidades) {
+                  $('f-loc').value = lc.id; await cambiarLoc(); await espera(150);
+                  for (const ind of D.censo.indicadores) {
+                    $('f-vul').value = ind.k; $('f-vul').dispatchEvent(new Event('change')); await espera(60); await vulNivel(m); await espera(40);
+                    combinaciones++;
+                    const i = vulInd(), t = vulTotal(i.k), loc = locActual(), metro = vulLoc === 'metro', gr = grupoVul(i), pT = pct(t[0], t[1]);
+                    const filasF = [...document.querySelectorAll('#vul-frases .fila-casas')];
+                    let capa = vulCapas[nivelDe(m)], l; capa?.eachLayer(x => { l ||= x; });
+                    const sel = document.querySelector('#vul-localidades .par.sel');
+                    const fila = document.querySelector(`#vul-tabla-loc tr[data-loc="${vulLoc}"]`), punto = document.querySelector(`#vul-disp circle[data-loc="${vulLoc}"]`);
+                    const textoPob = ['vul-resumen', 'vul-mapa', 'vul-sectores', 'vul-lluvia-panel'].map(id => $(id).textContent).join(' ');
+                    const ok = {
+                      titulo: $('vul-titulo').textContent === tituloVul(i),
+                      cifra: $('vul-cifra').textContent.includes(vulPct(i, t)) && $('vul-cifra').textContent.includes(num(t[0])),
+                      frases: (metro ? filasF.length === 3 : filasF[0]?.querySelector('p').textContent.startsWith(loc.nombre + ':')
+                          && filasF[0].querySelector('p').textContent.includes(pctTxt(pT)))
+                        && filasF.every(f => f.querySelector('path').getAttribute('d') === (gr.icono === 'persona' ? PERSONA : CASA)),
+                      leyenda: gr.reparto ? !!document.querySelector('#vul-leyenda .reparto') && $('vul-leyenda').textContent.includes(nombreTexto(loc))
+                        : !document.querySelector('#vul-leyenda .reparto') && !!document.querySelector('#vul-leyenda .leyenda-pob'),
+                      // sin sectores con base suficiente (ej. Tambogrande, agua las 24 horas) el mapa queda vacío, y está bien
+                      mapa: m.hasLayer(capa) && (l ? hexEstilo(l.feature).fillColor === token(gr.tonos[claseVul(i, l.feature)]) : !visibles(nivelDe(m)).features.length),
+                      sectores: gr.criterio ? !/mayor proporción/.test($('vul-criticos-titulo').textContent) : /mayor proporción de|base suficiente/.test($('vul-criticos-titulo').textContent),
+                      ayuda: $('vul-ayuda').textContent === gr.ayuda,
+                      barras: sel?.dataset.loc === vulLoc && +sel.dataset.p === pT && sel.querySelector('small').textContent.endsWith(gr.base)
+                        && $('f-orden-loc').value === gr.orden,
+                      tabla: +fila?.dataset.p === pT && $('vul-tabla-loc-cab').textContent.toLowerCase().includes(gr.base),
+                      grafico: +punto?.dataset.p === pT,
+                      distritos: metro ? !$('vul-distritos').hidden && document.querySelector('#vul-tabla tr.total').textContent.includes(vulPct(i, t))
+                        : $('vul-distritos').hidden && !$('vul-un-distrito').hidden && $('vul-un-distrito').textContent.includes(loc.nombre),
+                      lenguaje: gr.criterio ? true : !/crític|problema|afectad/i.test(textoPob) };
+                    const mal = Object.keys(ok).filter(x => !ok[x]);
+                    if (mal.length) fallas.push(`${lc.id}/${ind.k}: ${mal.join(',')}`);
+                  }
+                }
+                $('f-loc').value = 'metro'; await cambiarLoc();
+                $('f-vul').value = 'a'; $('f-vul').dispatchEvent(new Event('change')); await espera(800);  // que termine el movimiento del mapa
+                return { combinaciones, fallas }; }""")
+            print(f"Sincronía de la pestaña Vulnerabilidad: {rs['combinaciones']} combinaciones, {len(rs['fallas'])} con fallas")
+            revisar(rs["combinaciones"] == 72 and not rs["fallas"], f"vulnerabilidad, sincronía: {rs['fallas'][:10]}")
             # Zoom 15: hexágonos de 130 m (mínimo 20); zoom 16: manzanas (denominador 0 no se dibuja, extensas sin relleno, gris con
             # pocos casos); vista de número: densidad por hectárea de manzana en el mismo nivel; localidades sin el nivel de 130 m
             rz = pg.evaluate("""async () => { const m = await vulP, espera = ms => new Promise(r => setTimeout(r, ms));

@@ -666,7 +666,35 @@ def franjas(celda, g, valida, completos, v, meses, dep):
                                                          "fuente": FUENTE, "features": feats})
 
 
-def capa_sectores(celda, completos, v, meses, base):
+def lluvia_distritos(celda, g, valida, completos, v):
+    """Lluvia promedio de cada distrito del departamento (para la frase del mapa de lluvia): promedio de las celdas con dato,
+    ponderado por el área de cada celda que cae dentro del distrito (así entran también los distritos más chicos que una celda).
+    Cada arreglo trae un valor por año y, si existe, la normal al final, como en lluvia_sectores.json."""
+    import pyogrio
+    import shapely
+    from shapely.geometry import box
+    d = pyogrio.read_dataframe(censo.LIMITES, where=f"UBIGEO LIKE '{DEPARTAMENTO}%'", columns=["UBIGEO", "NOMBDIST", "NOMBPROV"])
+    d = d.to_crs(4326) if d.crs is not None and d.crs.to_epsg() != 4326 else d
+    clave_normal = f"normal_{v}_{NORMAL[0]}_{NORMAL[1]}"
+    capas = [celda[f"lluvia_{v}_{y}"] for y in completos] + ([celda[clave_normal]] if clave_normal in celda else [])
+    fi, ci = np.nonzero(valida)
+    cajas = [box(g["oeste"] + j * g["dx"], g["norte"] - (i + 1) * g["dy"], g["oeste"] + (j + 1) * g["dx"], g["norte"] - i * g["dy"])
+             for i, j in zip(fi, ci)]
+    arbol = shapely.STRtree(cajas)
+    out = []
+    for _, r in d.iterrows():
+        geo = shapely.make_valid(r.geometry)
+        k = arbol.query(geo, predicate="intersects")
+        w = np.array([cajas[x].intersection(geo).area for x in k])
+        if not len(k) or w.sum() == 0:
+            sys.exit(f"Distrito {r['NOMBDIST']} sin celdas con dato")
+        out.append({"u": r["UBIGEO"], "n": r["NOMBDIST"], "p": r["NOMBPROV"],  # provincia: hay dos Salitral (Morropón y Sullana)
+                    "v": [int(round(np.average([c[fi[x], ci[x]] for x in k], weights=w))) for c in capas]})
+    print(f"Lluvia por distrito: {len(out)} distritos")
+    return sorted(out, key=lambda x: x["u"])
+
+
+def capa_sectores(celda, completos, v, meses, base, distritos):
     """Lluvia de cada manzana, hexágono y localidad de la pestaña Vulnerabilidad: docs/data/lluvia_sectores.json y lluvia_detalle.json.
     Usa las mismas manzanas y hexágonos que los archivos del censo de la página. Manzana: su celda (por el centroide, como en
     lluvia_manzana). Hexágono: promedio de sus manzanas (sin las extensas, como el hexágono) ponderado por viviendas.
@@ -727,7 +755,7 @@ def capa_sectores(celda, completos, v, meses, base):
     # lo que la pestaña usa al abrirse (localidades y hexágonos de 350 m) y, aparte, el detalle que solo se pide al acercar
     # el mapa (hexágonos de 130 m y manzanas), como los archivos del censo
     guardar("lluvia_sectores.json", {**meta, "localidades": {k: {"prom": x["prom"], "centro": x["centro"], "h9": x["h9"]}
-                                                             for k, x in locs.items()}})
+                                                             for k, x in locs.items()}, "distritos": distritos})
     guardar("lluvia_detalle.json", {**meta, "celdas": celdas, "manzanas": mzs, "h10": locs["metro"]["h10"]})
 
 def main():
@@ -814,7 +842,7 @@ def main():
     dep = departamento()
     franja_costera(g, valida, dep)
     franjas(celda, g, valida, completos, v, meses, dep)
-    capa_sectores(celda, completos, v, meses, base)
+    capa_sectores(celda, completos, v, meses, base, lluvia_distritos(celda, g, valida, completos, v))
 
     ctrl = puntos_control(base)
     mapa_control(celda[f"lluvia_{v}_{2017 if 2017 in completos else completos[-1]}"], g, valida, base, ctrl, v,
