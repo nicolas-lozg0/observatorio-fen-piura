@@ -1,6 +1,6 @@
 """
 Censo 2025 (INEI) por manzana para la pestaña Vulnerabilidad: Ciudad de Piura (Piura, Castilla y Veintiséis de Octubre)
-y los centros poblados urbanos de 2000 viviendas o más de los otros distritos de la provincia de Piura.
+y los centros poblados urbanos de 2000 viviendas o más de los otros distritos del departamento de Piura.
 
 Se corre a mano, una sola vez (el censo no cambia). Los archivos de origen los entregó el INEI y no van al repositorio
 (data/raw/ está en .gitignore):
@@ -233,13 +233,19 @@ CORTES = {**{k: ESCALA for k in "abcdhi"}, "e": [15, 20, 25, 30], "f": [4, 8, 12
 DENSIDAD = {**{k: [5, 10, 20, 40] for k in "abcdhif"}, "e": [10, 20, 40, 80], "g": [25, 50, 100, 200]}
 NOTAS = {"e": "Más alto = más población dependiente (no es una falta de servicios).",
          "f": "Más alto = más población dependiente (no es una falta de servicios)."}
-# Localidades además de Ciudad de Piura: centros poblados de los otros distritos de la provincia con al menos estas
-# viviendas (ronda 16: con 2000 entran 7; con 500 entraban 31, muchos con 2 a 5 hexágonos). Nombre con tildes para la página.
-PROVINCIA = "2001"
+# Localidades además de Ciudad de Piura: centros poblados de los otros distritos del departamento con al menos estas
+# viviendas, contando sus manzanas dispersas (ronda 16: con 2000 entraban 7 de la provincia; desde el 20/11/2026, todo el
+# departamento: 25). Cada centro poblado va por separado, también los vecinos de Sullana. Nombre con tildes para la página.
+DEPARTAMENTO = "20"
 LOCALIDAD_MIN = 2000
 NOMBRES_LOC = {"CATACAOS": "Catacaos", "TAMBO GRANDE": "Tambogrande", "LA UNION": "La Unión", "LA ARENA": "La Arena",
                "LAS LOMAS": "Las Lomas", "CUCUNGARA": "Cucúngara (Cura Mori)",
-               "LA LEGUA-SAN JACINTO (LA LEGUA)": "La Legua–San Jacinto (Catacaos)"}
+               "LA LEGUA-SAN JACINTO (LA LEGUA)": "La Legua–San Jacinto (Catacaos)",
+               "SULLANA": "Sullana", "PAITA": "Paita", "TALARA": "Talara", "CHULUCANAS": "Chulucanas", "SECHURA": "Sechura",
+               "BELLAVISTA": "Bellavista (Sullana)", "NUEVO SULLANA": "Nuevo Sullana", "MANCORA": "Máncora",
+               "QUERECOTILLO": "Querecotillo", "NEGRITOS": "Negritos (La Brea)", "SAN LUCAS (PUEBLO NUEVO DE COLAN)": "San Lucas (Colán)",
+               "LOS ORGANOS": "Los Órganos", "MORROPON": "Morropón", "SAN JACINTO": "San Jacinto (Ignacio Escudero)",
+               "EL ALTO": "El Alto", "LA MATANZA": "La Matanza", "HUANCABAMBA": "Huancabamba", "MALLARITOS": "Mallaritos (Marcavelica)"}
 
 
 def slug(s):
@@ -398,7 +404,7 @@ def main():
     import shapely
     from shapely.geometry import mapping
 
-    datos, enc, P, V = cargar(PROVINCIA)
+    datos, enc, P, V = cargar(DEPARTAMENTO)
 
     # Distritos de Ciudad de Piura: ubigeo verificado en los datos, no supuesto
     dp0 = datos["P"]
@@ -420,7 +426,7 @@ def main():
     ind["ccpp"] = datos["P"][6].values
     ind["nombre_ccpp"] = datos["P"][5].values
     # Localidad de cada manzana: Ciudad de Piura (los 3 distritos completos) o un centro poblado urbano de otro distrito
-    # de la provincia con LOCALIDAD_MIN viviendas o más (las dispersas de ese centro poblado cuentan en su total)
+    # del departamento con LOCALIDAD_MIN viviendas o más (las dispersas de ese centro poblado cuentan en su total)
     clave = ind["ubigeo"] + "-" + ind["ccpp"]
     tam = ind[~ind["ubigeo"].isin(ubis)].groupby(clave)["v"].sum()
     elegidas = sorted(tam[tam >= LOCALIDAD_MIN].index, key=lambda k: -tam[k])
@@ -531,7 +537,7 @@ def main():
         "fuente": "INEI, Censos Nacionales 2025, tabulados por manzana entregados el 13/11/2026",
         "url": "https://www.inei.gob.pe/",
         "fecha_corte": "2026-11-13",
-        "ambito": "Provincia de Piura: Ciudad de Piura (distritos de Piura, Castilla y Veintiséis de Octubre) y los centros poblados "
+        "ambito": "Departamento de Piura: Ciudad de Piura (distritos de Piura, Castilla y Veintiséis de Octubre) y los centros poblados "
                   f"urbanos de {LOCALIDAD_MIN} viviendas o más de los otros distritos",
         "minimo": MINIMO,
         "indicadores": [{"k": k, "rotulo": rot, "tipo": t, "numerador": n, "denominador": d, "frase": FRASES[k],

@@ -460,7 +460,7 @@ def main():
                 $('f-vul').value = 'a'; $('f-vul').dispatchEvent(new Event('change')); await espera(800);  // que termine el movimiento del mapa
                 return { combinaciones, fallas }; }""")
             print(f"Sincronía de la pestaña Vulnerabilidad: {rs['combinaciones']} combinaciones, {len(rs['fallas'])} con fallas")
-            revisar(rs["combinaciones"] == 72 and not rs["fallas"], f"vulnerabilidad, sincronía: {rs['fallas'][:10]}")
+            revisar(rs["combinaciones"] == 9 * 26 and not rs["fallas"], f"vulnerabilidad, sincronía: {rs['fallas'][:10]}")
             # Zoom 15: hexágonos de 130 m (mínimo 20); zoom 16: manzanas (denominador 0 no se dibuja, extensas sin relleno, gris con
             # pocos casos); vista de número: densidad por hectárea de manzana en el mismo nivel; localidades sin el nivel de 130 m
             rz = pg.evaluate("""async () => { const m = await vulP, espera = ms => new Promise(r => setTimeout(r, ms));

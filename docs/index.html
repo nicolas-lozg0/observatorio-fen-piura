@@ -869,7 +869,7 @@
   <section class="pestana" id="vulnerabilidad" aria-labelledby="t-vulnerabilidad" hidden>
     <h2 id="t-vulnerabilidad">¿Dónde están las viviendas más expuestas?</h2>
     <p class="intro">Primera exploración del Censo 2025 por <span data-g="manzana">manzana</span> en la Ciudad de Piura (distritos de
-      Piura, Castilla y Veintiséis de Octubre) y los centros poblados urbanos más grandes de la provincia: servicios de agua y desagüe, materiales de la vivienda, edades y seguro de salud. Cada indicador se muestra por
+      Piura, Castilla y Veintiséis de Octubre) y los centros poblados urbanos más grandes del departamento: servicios de agua y desagüe, materiales de la vivienda, edades y seguro de salud. Cada indicador se muestra por
       separado, sin índices ni ponderaciones.</p>
     <div class="paneles" id="vul-contenido">
       <!-- 1. Controles -->
@@ -954,7 +954,7 @@
         </details>
         <p class="nota">Solo zonas urbanas con manzanas censales; no incluye población rural dispersa. Ciudad de Piura: los distritos
           de Piura, Castilla y Veintiséis de Octubre; las demás, los centros poblados de 2000 viviendas o más de los otros distritos
-          de la provincia.</p>
+          del departamento.</p>
         <p class="pie" id="vul-pie"></p>
         <div id="vul-calculo"></div>
       </div>
@@ -1089,10 +1089,11 @@
             colorea por afectados por hectárea de manzana (densidad neta: el área de las manzanas del sector, sin calles ni terreno
             vacío, para que la medida no cambie de un nivel a otro), con cinco clases fijas por grupo de indicadores. «Paredes de
             material precario» no incluye el adobe (1,4 % de las viviendas de la Ciudad de Piura). El selector de localidad
-            agrega los centros poblados urbanos de 2000 viviendas o más de los otros distritos de la provincia; solo zonas
+            agrega los centros poblados urbanos de 2000 viviendas o más (contando sus manzanas dispersas) de los otros distritos del
+            departamento, cada uno por separado (también los vecinos de Sullana); solo zonas
             urbanas con manzanas censales, sin la población rural dispersa.
             La barra de la leyenda y su frase reparten las viviendas (o personas) de los sectores de 350 m de toda la localidad;
-            la comparación entre localidades ordena las barras de mayor a menor porcentaje, con la línea del promedio de las 8 zonas
+            la comparación entre localidades ordena las barras de mayor a menor porcentaje, con el promedio de todas las zonas
             urbanas (suma numeradores y denominadores). Las frases dicen el distrito con el porcentaje más alto y el más bajo («1 de cada N» o «N de cada 10»); los sectores
             críticos (servicios y vivienda) son los sectores de 350 m donde más de la mitad de las viviendas está en la situación del
             indicador (por ejemplo, sin desagüe), ordenados por número; en los indicadores de población se muestran los 5 sectores de
@@ -1121,13 +1122,14 @@
             polígono (las dispersas no tienen ubicación). El año del mapa de lluvia rige también los globos y la comparación.
             <em>Comparación entre localidades:</em> barras pareadas con la lluvia (escala de 0 a la localidad con más lluvia) y el
             porcentaje (escala de 0 a 100 %). Se resaltan las localidades que están a la vez en el tercio superior de las dos
-            variables: entre las 3 de 8 con más lluvia y entre las 3 con mayor porcentaje (los empates entran). Puntos del mapa,
+            variables: entre el tercio de localidades con más lluvia y el tercio con mayor porcentaje (⌈n/3⌉: con 26 localidades, 9; los empates
+            entran). El titular nombra siempre las 3 localidades con más lluvia. Puntos del mapa,
             barras, tabla y gráfico detallado salen de la misma función de datos, y una prueba automática (scripts/test_pagina.py)
             comprueba que coincidan. <em>Límites:</em> lluvia no es inundación (en 2017 el daño en la ciudad dependió del desborde
             del río y del drenaje, que la celda no capta); enero a abril no recoge las lluvias de mayo y junio de 1983; y en 1983
             CHIRPS subestima mucho la lluvia de la Ciudad de Piura (en la celda de la estación Miraflores, 403 mm de enero a abril
             frente a 1692 mm medidos), así que ese año no se compara bien con los otros. La comparación es un cruce descriptivo
-            entre 8 localidades, no una relación de causa (scripts/lluvia_manzanas.py).</li>
+            entre localidades, no una relación de causa (scripts/lluvia_manzanas.py).</li>
         </ul>
         <h3>Cómo se generan las frases</h3>
         <p class="nota">Cada frase se arma con reglas fijas a partir de los datos del momento; no hay conclusiones escritas a mano.</p>
@@ -2491,7 +2493,7 @@ function datosLocalidades(i) {
     return { id: x.id, nombre: x.nombre, viviendas: x.v, base: i.tipo === "pob" ? x.p : x.v, n, d, max, p: pct(n, d), clase: clasePct(i, n, d),
       lluvia: lluviaDe(ll?.prom), centro: ll?.centro }; });
 }
-// Tercio superior: entre las ⌈n/3⌉ más altas de cada variable (con 8 localidades, las 3 primeras; los empates entran)
+// Tercio superior: entre las ⌈n/3⌉ más altas de cada variable (con 26 localidades, las 9 primeras; los empates entran)
 function destacadas(filas) {
   const k = Math.ceil(filas.length / 3);
   const corte = c => filas.map(f => f[c]).filter(v => v != null).sort((a, b) => b - a)[k - 1];
@@ -2517,7 +2519,7 @@ async function iniciarLluviaVul() {
 }
 
 /* Mapa «Lluvia en los Niños anteriores»: franjas de lluvia del año elegido en todo el departamento, con una cifra por franja,
-   y las 8 localidades como puntos neutros de referencia (mismo tamaño, gris oscuro) con su nombre */
+   y las localidades como puntos neutros de referencia (mismo tamaño, gris oscuro) con su nombre */
 const franjasCache = {};
 async function pintarMapaLluviaVul() {
   const el = $("mapa-lluvia-vul"), a = anioLluvia();
@@ -2976,9 +2978,10 @@ function pintarComparacion(i) {
   const sumN = filas.reduce((s, x) => s + x.n, 0), prom = pct(sumN, filas.reduce((s, x) => s + x.d, 0));
   $("vul-prom").textContent = `Promedio de las ${filas.length} zonas urbanas: ${pctTxt(prom)} ${ind} (suma numeradores y denominadores; no promedia porcentajes). `
     + `Resaltadas: las que están a la vez entre las ${Math.ceil(filas.length / 3)} con más lluvia y entre las ${Math.ceil(filas.length / 3)} con más ${ind}.`;
-  // Titular directo (los dos grupos): las 3 localidades con más lluvia y cómo están en el indicador frente a las demás; si las 8
-  // están a 5 puntos o menos entre sí, lo dice. Después, las resaltadas (tercio superior de las dos variables) con su rótulo
-  const k = Math.ceil(filas.length / 3), porLl = filas.filter(x => x.lluvia != null && x.p != null).sort((p, q) => q.lluvia - p.lluvia);
+  // Titular directo (los dos grupos): las 3 localidades con más lluvia (siempre 3, aunque haya muchas) y cómo están en el
+  // indicador frente a las demás; si todas están a 5 puntos o menos entre sí, lo dice. Después, las resaltadas (tercio superior
+  // de las dos variables) con su rótulo
+  const k = 3, porLl = filas.filter(x => x.lluvia != null && x.p != null).sort((p, q) => q.lluvia - p.lluvia);
   const top = porLl.slice(0, k), resto = porLl.slice(k), ps = porLl.map(x => x.p), PARECIDAS = 5;
   const rango = xs => { const v = xs.map(x => x.p), lo = Math.min(...v), hi = Math.max(...v);
     return lo === hi ? pctTxt(lo) : `entre ${pctTxt(lo)} y ${pctTxt(hi)}`; };

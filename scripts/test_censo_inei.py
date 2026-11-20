@@ -28,7 +28,8 @@ assert cortes["e"] == [15, 20, 25, 30] and cortes["f"] == [4, 8, 12, 16] and cor
 assert "adobe" in [i for i in d["indicadores"] if i["k"] == "h"][0]["numerador"] and "no incluye adobe" in [i for i in d["indicadores"] if i["k"] == "h"][0]["numerador"]
 # Localidades: Ciudad de Piura primero y luego los centros poblados de 2000 viviendas o más, cada uno con su archivo
 locs = d["localidades"]
-assert locs[0]["id"] == "metro" and locs[0]["nombre"] == "Ciudad de Piura" and len(locs) == 8, [x["id"] for x in locs]
+# desde el 20/11/2026, todo el departamento: la Ciudad de Piura, 7 centros poblados de la provincia y 18 del resto
+assert locs[0]["id"] == "metro" and locs[0]["nombre"] == "Ciudad de Piura" and len(locs) == 26, [x["id"] for x in locs]
 for x in locs:
     assert all(0 <= x[k][0] <= x[k][1] for k in ks), x["id"]
     if x["id"] == "metro":
