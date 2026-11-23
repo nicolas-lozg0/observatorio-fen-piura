@@ -47,7 +47,17 @@ FUENTE = ("CHIRPS v3.0 mensual (Climate Hazards Center, UC Santa Barbara), recor
 
 # Nombres de los indicadores del censo en la base (las letras son las de censo_inei.INDICADORES)
 NOMBRES = {"a": "sin_desague", "b": "sin_agua_red", "c": "agua_no_diaria", "d": "agua_menos_24h", "e": "menores_15",
-           "f": "mayores_65", "g": "sin_essalud_privado", "h": "paredes_precarias", "i": "piso_tierra"}
+           "f": "mayores_65", "g": "sin_essalud_privado", "h": "paredes_precarias", "i": "piso_tierra",
+           "j": "paredes_adobe_tapia"}
+# Variables del terreno (scripts/hand_manzanas.py), EXPLORATORIAS: no pasaron la validación con el desborde de 2017
+# (privado/hand_validacion.md). Se agregan tal como se calcularon, sin cálculos nuevos.
+HAND_COLS = ["hand_mediana", "hand_min", "hand_p10", "hand_pct_area_2m", "hand_pct_area_5m", "hand_pocos_pixeles",
+             "dep_media", "dep_max", "dep_pct_area"]
+EXPLORATORIA = " (exploratoria: no pasó la validación de 2017)"
+ETIQ_HAND = {"hand_mediana": "HAND mediano, m", "hand_min": "HAND mínimo, m", "hand_p10": "HAND percentil 10, m",
+             "hand_pct_area_2m": "% del área con HAND < 2 m", "hand_pct_area_5m": "% del área con HAND < 5 m",
+             "hand_pocos_pixeles": "1 = menos de 3 píxeles de 30 m", "dep_media": "Prof. media de depresión, m",
+             "dep_max": "Prof. máxima de depresión, m", "dep_pct_area": "% del área en depresión > 0,5 m"}
 
 # Puntos de control: centro poblado principal (el de más manzanas) de cada distrito, ubicado con la cartografía
 CONTROL = [("Piura centro", "200101"), ("Castilla", "200104"), ("Veintiséis de Octubre", "200115"),
@@ -346,6 +356,8 @@ def etiquetas(cols, v, meses):
             e = f"Anomalía del acumulado {v} {p[2]} frente a la normal (mm)"
         elif p[0] == "anomp":
             e = f"Acumulado {v} {p[2]} como % de la normal"
+        elif base in ETIQ_HAND:
+            e = ETIQ_HAND[base] + EXPLORATORIA
         else:
             sys.exit(f"Variable sin etiqueta: {c}")
         out[c] = (e + bil)[:80]
@@ -371,6 +383,10 @@ def diccionario(cols_mz, cols_celda, etq, v, meses, completos, g):
 
     def calculo(c):
         b = c[:-4] if c.endswith("_bil") else c
+        if c in ETIQ_HAND:
+            return ("EXPLORATORIA, no pasó la validación de 2017. " + ("HAND (altura sobre el cauce más cercano, GLO-30 HAND v1, 30 m), "
+                    "estadística zonal ponderada por la fracción de cada píxel dentro del polígono." if c.startswith("hand_") else
+                    "Profundidad de llenado de las depresiones del Copernicus DEM GLO-30 (30 m), ponderada por la fracción de cada píxel."))
         if c.endswith("_bil"):
             return "Interpolación bilineal entre los centros de las 4 celdas vecinas en el centroide de la manzana; si alguna no tiene dato, el peso se reparte entre las otras. Solo para robustez."
         if b.startswith("lluvia_max_"):
@@ -386,6 +402,8 @@ def diccionario(cols_mz, cols_celda, etq, v, meses, completos, g):
     def unidad(c):
         if c.startswith(("lluvia_", "normal_", "anom_")):
             return "mm"
+        if c in ETIQ_HAND:
+            return "0/1" if c == "hand_pocos_pixeles" else "%" if "pct" in c else "m"
         if c.startswith("anomp_"):
             return "%"
         if c.endswith("_km"):
@@ -448,6 +466,9 @@ Generado por `scripts/lluvia_manzanas.py` el {hoy}. Años: {', '.join(map(str, c
   en lluvias muy intensas y localizadas.
 - Las celdas valen para todo el departamento, pero el censo por manzana solo cubre los distritos que trae el tabulado
   (ver `notas/avance_lluvia_manzanas.md`).
+- **Variables del terreno `hand_*` y `dep_*`: exploratorias, no pasaron la validación de 2017.** Vienen de
+  `scripts/hand_manzanas.py` (HAND y depresiones del modelo de terreno Copernicus de 30 m). No usarlas como medida de
+  exposición sin una validación independiente (ver `privado/hand_validacion.md`).
 - Anomalías: cuando llegue la serie completa, el script calcula la normal {NORMAL[0]}-{NORMAL[1]} y las variables
   `normal_{v}_{NORMAL[0]}_{NORMAL[1]}`, `anom_{v}_AÑO` (mm) y `anomp_{v}_AÑO` (% de la normal). Hoy están pendientes.
 
@@ -807,6 +828,9 @@ def main():
     censo_cols = ["viviendas", "poblacion"] + [f"{n}_{s}" for n in NOMBRES.values() for s in "nd"] + ["sin_essalud_privado_max"]
     lluvia_cols = list(celda) + [c + "_bil" for c in celda if c.startswith("lluvia_")]
     mz = mz[ident + geo + censo_cols + lluvia_cols]
+    if (SALIDA / "hand_manzana.csv").exists():  # variables exploratorias del terreno, si ya se calcularon
+        h = pd.read_csv(SALIDA / "hand_manzana.csv", dtype={"codigo": str})
+        mz = mz.merge(h[["codigo"] + HAND_COLS], on="codigo", how="left")
     mz["km2"] = mz["km2"].round(5)
     mz["lon"], mz["lat"] = mz["lon"].round(6), mz["lat"].round(6)
     for c in lluvia_cols:

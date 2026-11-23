@@ -14,7 +14,7 @@ d["features"] = json.loads((DATOS / "censo_manzanas.json").read_text(encoding="u
 h10 = json.loads((DATOS / "censo_hex10.json").read_text(encoding="utf-8"))
 ks = [i["k"] for i in d["indicadores"]]
 
-assert ks == list("abcdefghi"), ks
+assert ks == list("abcdefghij"), ks  # j: paredes de adobe o tapia (22/11/2026)
 for nombre in ("censo_piura.json", "censo_hex10.json", "censo_manzanas.json"):
     assert (DATOS / nombre).stat().st_size < 3 * 2**20, f"{nombre} debe pesar menos de 3 MB"
 assert RUTA.stat().st_size < 0.5 * 2**20, "la base (se carga al abrir la pestaña) debe ser liviana"
@@ -22,8 +22,8 @@ assert RUTA.stat().st_size < 0.5 * 2**20, "la base (se carga al abrir la pestañ
 cortes = {i["k"]: i["cortes"] for i in d["indicadores"]}
 for k, c in cortes.items():
     assert len(c) == 4 and all(0 < a < b < 100 for a, b in zip(c, c[1:])), (k, c)
-assert all(cortes[k] == [5, 20, 50, 80] for k in "abcdhi")
-assert [len(i.get("palabras", [])) for i in d["indicadores"]] == [5, 5, 5, 5, 0, 0, 0, 5, 5]
+assert all(cortes[k] == [5, 20, 50, 80] for k in "abcdhij")
+assert [len(i.get("palabras", [])) for i in d["indicadores"]] == [5, 5, 5, 5, 0, 0, 0, 5, 5, 5]
 assert cortes["e"] == [15, 20, 25, 30] and cortes["f"] == [4, 8, 12, 16] and cortes["g"] == [30, 50, 65, 80]
 assert "adobe" in [i for i in d["indicadores"] if i["k"] == "h"][0]["numerador"] and "no incluye adobe" in [i for i in d["indicadores"] if i["k"] == "h"][0]["numerador"]
 # Localidades: Ciudad de Piura primero y luego los centros poblados de 2000 viviendas o más, cada uno con su archivo
@@ -115,7 +115,7 @@ print(f"OK: {len(ids)} manzanas, {len(ks)} indicadores, coincidencia {100 * c['t
 # Vista de número (ronda 17): densidad por hectárea de manzana. Cada sector trae el área de sus manzanas, que suma la de ellas,
 # y los cortes de densidad son fijos por grupo de indicadores
 dens = {i["k"]: i["densidad"] for i in d["indicadores"]}
-assert all(dens[k] == [5, 10, 20, 40] for k in "abcdhif") and dens["e"] == [10, 20, 40, 80] and dens["g"] == [25, 50, 100, 200]
+assert all(dens[k] == [5, 10, 20, 40] for k in "abcdhijf") and dens["e"] == [10, 20, 40, 80] and dens["g"] == [25, 50, 100, 200]
 assert all(h["properties"]["ha"] > 0 for h in d["hexagonos"]["features"] + h10["features"])
 assert all("ha" in f["properties"] for f in d["features"])
 area_mz = sum(f["properties"]["ha"] for f in d["features"] if "km2" not in f["properties"])

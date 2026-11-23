@@ -47,7 +47,10 @@ DECIMALES = 5      # coordenadas con 5 decimales (≈ 1 m)
 
 # Materiales de paredes que cuentan como precarios (decisión de Germán Vega; sin adobe desde la ronda 16: en la
 # Ciudad de Piura es el 1,4 % de las viviendas y es un material tradicional, no improvisado)
-PRECARIOS = ["tapia", "quincha (cana con barro)", "piedra con barro", "madera (pona, tornillo, etc)", "triplay/ calamina/ estera"]
+PRECARIOS = ["quincha (cana con barro)", "piedra con barro", "madera (pona, tornillo, etc)", "triplay/ calamina/ estera"]
+# Adobe y tapia van en su propio indicador (j) desde el 22/11/2026: en la Ciudad de Piura son poco comunes, pero en la sierra
+# son frecuentes y muy frágiles ante lluvias fuertes. La tapia salió de «precario» para no mezclar los dos indicadores
+ADOBE_TAPIA = ["adobe", "tapia"]
 
 # Indicadores: k, rótulo, tipo (denominador de viviendas o de población), numerador y denominador en palabras.
 # Los de agua y desagüe se expresan como carencia para que, en todo el mapa, más oscuro sea más vulnerable.
@@ -76,10 +79,13 @@ INDICADORES = [
      "Es una aproximación: no mide informalidad laboral (el censo no pregunta por el empleo)",
      "Población censada"),
     ("h", "Paredes de material precario", "viv",
-     "Viviendas con paredes exteriores de tapia, quincha, piedra con barro, madera o triplay, calamina o estera (no incluye adobe)",
+     "Viviendas con paredes exteriores de quincha, piedra con barro, madera o triplay, calamina o estera (no incluye adobe ni tapia, que van en su propio indicador)",
      "Viviendas particulares con ocupantes presentes"),
     ("i", "Piso de tierra", "viv",
      "Viviendas con piso de tierra",
+     "Viviendas particulares con ocupantes presentes"),
+    ("j", "Paredes de adobe o tapia", "viv",
+     "Viviendas con paredes exteriores de adobe o tapia",
      "Viviendas particulares con ocupantes presentes"),
 ]
 
@@ -95,6 +101,7 @@ FRASES = {
     "f": ["personas", "tiene 65 años o más", "tienen 65 años o más"],
     "g": ["personas", "no tiene EsSalud ni seguro privado", "no tienen EsSalud ni seguro privado"],
     "h": ["viviendas", "tiene paredes de material precario", "tienen paredes de material precario"],
+    "j": ["viviendas", "tiene paredes de adobe o tapia", "tienen paredes de adobe o tapia"],
     "i": ["viviendas", "tiene piso de tierra", "tienen piso de tierra"],
 }
 
@@ -210,6 +217,7 @@ def indicadores(dp, dv, P, V):
         "f": (dp[P["e65"]], T),
         "g": (g_min, T),
         "h": (dv[V["precarios"]].sum(axis=1), dv[V["vpop"]]),
+        "j": (dv[V["adobe_tapia"]].sum(axis=1), dv[V["vpop"]]),
         "i": (dv[V["tierra"]], dv[V["vpop"]]),
     }
     for k, (n, d) in pares.items():
@@ -227,10 +235,10 @@ OVERPASS_ESPEJOS = ["https://overpass-api.de/api/interpreter", "https://overpass
 # los cortes de la ronda 16 para los demográficos. No se mueven aunque una clase quede casi vacía: así se compara entre localidades.
 ESCALA = [5, 20, 50, 80]
 PALABRAS = ["Casi ninguna", "Pocas", "Menos de la mitad", "Más de la mitad", "Casi todas"]
-CORTES = {**{k: ESCALA for k in "abcdhi"}, "e": [15, 20, 25, 30], "f": [4, 8, 12, 16], "g": [30, 50, 65, 80]}
+CORTES = {**{k: ESCALA for k in "abcdhij"}, "e": [15, 20, 25, 30], "f": [4, 8, 12, 16], "g": [30, 50, 65, 80]}
 # Clases de la vista de número: afectados por hectárea de manzana (densidad neta, sin calles ni terreno vacío, para que
 # no cambie entre niveles). Viviendas y mayores de 65 comparten escala; menores de 15 y sin seguro son muchas más personas.
-DENSIDAD = {**{k: [5, 10, 20, 40] for k in "abcdhif"}, "e": [10, 20, 40, 80], "g": [25, 50, 100, 200]}
+DENSIDAD = {**{k: [5, 10, 20, 40] for k in "abcdhijf"}, "e": [10, 20, 40, 80], "g": [25, 50, 100, 200]}
 NOTAS = {"e": "Más alto = más población dependiente (no es una falta de servicios).",
          "f": "Más alto = más población dependiente (no es una falta de servicios)."}
 # Localidades además de Ciudad de Piura: centros poblados de los otros distritos del departamento con al menos estas
@@ -387,6 +395,7 @@ def cargar(prefijo):
     sh = "Servicio higiénico está conectado | "
     V = {"vpop": cV(par + "Total de viviendas particulares con ocupantes presentes"),
          "precarios": [cV(par + m) for m in PRECARIOS],
+         "adobe_tapia": [cV(par + m) for m in ADOBE_TAPIA],
          "tierra": cV("Material predominante en los pisos | Tierra"),
          "agua_red": cV("Abastecimiento de agua proveniente | Red pública"),
          "semana_total": cV(sem + "Total"), "semana_no": cV(sem + "No"),

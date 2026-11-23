@@ -152,7 +152,7 @@ def main():
                 // Vulnerabilidad: tarjeta normal con la proporción en el titular, la cifra, 10 casas y el distrito con el mayor %
                 const vp = document.querySelector('#resumen-paneles .vul-portada');
                 const fracciones = [26.7, 33.3, 31, 60, 12.5, 50].map(fraccionTxt).join('|');
-                const vul = !!vp && vp.querySelectorAll('svg.casas g path').length === 10
+                const vul = !!vp && vp.querySelectorAll('svg.casas .base path').length === 10
                   && vp.querySelector('h3').textContent === 'Más de 1 de cada 4 viviendas de la ciudad de Piura no tiene desagüe'
                   && vp.querySelector('.cifra').textContent === '39.607' && /En Castilla llega a 31,9/.test(vp.textContent)
                   && !!vp.querySelector('a[href="#vulnerabilidad"]')
@@ -340,7 +340,7 @@ def main():
                   comparacion: (() => { const fs = [...document.querySelectorAll('#vul-localidades .par')], ps = fs.map(f => +f.dataset.p);
                     const ls = D.censo.localidades, prom = pct(ls.reduce((s, x) => s + x.a[0], 0), ls.reduce((s, x) => s + x.a[1], 0));
                     return fs.length === ls.length && ps.every((p, j) => !j || ps[j - 1] >= p) && fs.filter(f => f.classList.contains('sel')).length === 1
-                      && fs.every(f => f.querySelectorAll('.par-barra').length === 2 && /viviendas$/.test(f.querySelector('small').textContent))
+                      && fs.every(f => f.querySelectorAll('.par-barra').length === 2 && /\\d viviendas/.test(f.querySelector('small').textContent))
                       && $('vul-prom').textContent.includes(pctTxt(prom)) && !$('vul-detallado').open; })(),
                   borde: hexEstilo(conA([0, 100])).weight > 0 && hexEstilo(conA([0, 100])).fillOpacity === 1,
                   multiplicar: getComputedStyle(document.querySelector('#mapa-vul .leaflet-tile-pane')).mixBlendMode,
@@ -351,7 +351,7 @@ def main():
                     return fs.length === ds.length && ds.every(x => fs.some(f => f.querySelector('p').textContent.startsWith(lugar(x.nombre) + ':')))
                       && ps.every((p, j) => !j || ps[j - 1] >= p) && fs.every(f => { const s = f.querySelector('svg');
                         return s.getAttribute('role') === 'img' && s.getAttribute('aria-label') + '.' === f.querySelector('p').textContent
-                          && s.getAttribute('focusable') === 'false' && s.querySelectorAll('g path').length === 10; })
+                          && s.getAttribute('focusable') === 'false' && s.querySelectorAll('.base path').length === 10; })
                       && !/En toda/.test($('vul-frases').textContent); })(),
                   decimos: [decimos(31.9), decimos(3), decimos(98.1), decimos(100), decimos(12)].map(x => x.join('|')),
                   // los 5 sectores: más de la mitad afectada, de mayor a menor número, con su barra y su cifra
@@ -407,13 +407,19 @@ def main():
                 $('f-orden-loc').value = 'lluvia'; $('f-orden-loc').dispatchEvent(new Event('change'));
                 const ll = [...document.querySelectorAll('#vul-localidades .par')].map(e => +e.dataset.ll);
                 r.ordenLluvia = ll.every((x, j) => !j || ll[j - 1] >= x);
+                const vis = [...document.querySelectorAll('#vul-localidades .par')].filter(e => getComputedStyle(e).display !== 'none');
+                r.primeras = vis.length <= 12 && vis.some(e => e.dataset.loc === 'metro') && !$('vul-ver-todas').hidden;
+                $('vul-ver-todas').click();
+                r.todas = [...document.querySelectorAll('#vul-localidades .par')].every(e => getComputedStyle(e).display !== 'none');
+                $('vul-ver-todas').click();
                 $('f-orden-loc').value = 'p'; $('f-orden-loc').dispatchEvent(new Event('change'));
                 $('f-lluvia-vul').value = '2017'; $('f-lluvia-vul').dispatchEvent(new Event('change')); await espera(300);
                 return r; }""")
             ok_anio = {"puntos": True, "barras": True, "tabla": True, "grafico": True, "conLluvia": True, "resaltadas": True, "frase": True,
                        "franjas": 5, "m1983": True}
             revisar(rc == {"selector": "1983,1998,2017,2023|2017", "2017": ok_anio, "1998": ok_anio, "nombres": True, "vivienda": True,
-                           "estilos": True, "tercio": "a,b", "marca": "Mucha lluvia y sin desagüe", "ordenLluvia": True},
+                           "estilos": True, "tercio": "a,b", "marca": "Mucha lluvia y sin desagüe", "ordenLluvia": True,
+                           "primeras": True, "todas": True},
                     f"vulnerabilidad, lluvia y localidades: {rc}")
             # Sincronía: con cada localidad y cada indicador (8 × 9), todos los bloques muestran el mismo indicador y la misma cifra
             # total: título, cifra, frases (con su ícono), leyenda (reparto en servicios; simple en población), mapa (color del
@@ -445,7 +451,7 @@ def main():
                       mapa: m.hasLayer(capa) && (l ? hexEstilo(l.feature).fillColor === token(gr.tonos[claseVul(i, l.feature)]) : !visibles(nivelDe(m)).features.length),
                       sectores: gr.criterio ? !/mayor proporción/.test($('vul-criticos-titulo').textContent) : /mayor proporción de|base suficiente/.test($('vul-criticos-titulo').textContent),
                       ayuda: $('vul-ayuda').textContent === gr.ayuda,
-                      barras: sel?.dataset.loc === vulLoc && +sel.dataset.p === pT && sel.querySelector('small').textContent.endsWith(gr.base)
+                      barras: sel?.dataset.loc === vulLoc && +sel.dataset.p === pT && sel.querySelector('small').textContent.includes(gr.base)
                         && $('f-orden-loc').value === gr.orden,
                       tabla: +fila?.dataset.p === pT && $('vul-tabla-loc-cab').textContent.toLowerCase().includes(gr.base),
                       grafico: +punto?.dataset.p === pT,
@@ -460,7 +466,7 @@ def main():
                 $('f-vul').value = 'a'; $('f-vul').dispatchEvent(new Event('change')); await espera(800);  // que termine el movimiento del mapa
                 return { combinaciones, fallas }; }""")
             print(f"Sincronía de la pestaña Vulnerabilidad: {rs['combinaciones']} combinaciones, {len(rs['fallas'])} con fallas")
-            revisar(rs["combinaciones"] == 9 * 26 and not rs["fallas"], f"vulnerabilidad, sincronía: {rs['fallas'][:10]}")
+            revisar(rs["combinaciones"] == 10 * 26 and not rs["fallas"], f"vulnerabilidad, sincronía: {rs['fallas'][:10]}")
             # Zoom 15: hexágonos de 130 m (mínimo 20); zoom 16: manzanas (denominador 0 no se dibuja, extensas sin relleno, gris con
             # pocos casos); vista de número: densidad por hectárea de manzana en el mismo nivel; localidades sin el nivel de 130 m
             rz = pg.evaluate("""async () => { const m = await vulP, espera = ms => new Promise(r => setTimeout(r, ms));
