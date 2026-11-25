@@ -465,6 +465,23 @@
   .tira .et-total { font-weight: 700; fill: var(--texto); }
   .tira-frase { margin: var(--e1) 0 0; }
   .fuera { margin-top: var(--e2); }
+  /* Precios: un producto a la vez (gráficos a la izquierda, lista a la derecha en la PC; la lista debajo en el celular) */
+  .prod-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--e4); }
+  @media (min-width: 900px) { .prod-grid { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); align-items: start; } }
+  .filtros-prod { max-width: 360px; margin: 0; }
+  .prod-lista ol { list-style: none; margin: 0; padding: 0; max-height: 640px; overflow-y: auto; }
+  .prod-lista button { display: flex; justify-content: space-between; gap: var(--e2); width: 100%; min-height: 36px; padding: var(--e1) var(--e2);
+    border: 0; border-bottom: 1px solid var(--linea); background: none; font: inherit; font-size: var(--t-sm); color: var(--texto); text-align: left; cursor: pointer; }
+  .prod-lista button:hover, .prod-lista button:focus-visible { background: var(--acento-suave); }
+  .prod-lista button[aria-pressed="true"] { background: var(--acento-suave); font-weight: 700; box-shadow: inset 3px 0 0 var(--marino); }
+  .prod-lista b { font-variant-numeric: tabular-nums; }
+  .prod-lista b.sube { color: var(--sube); } .prod-lista b.baja { color: var(--baja); }
+  #panel-producto .grafico svg { overflow: visible; }
+  .marca-shock { font-size: 11px; fill: var(--texto-2); }
+  #panel-producto .rotulo-sec { font-size: 11px; fill: var(--texto-3); }
+  .leyenda .punteada::before { background: repeating-linear-gradient(90deg, var(--c) 0 4px, transparent 4px 7px); }
+  .leyenda .franja::before { width: 14px; height: 10px; background: var(--c); opacity: .3; border-radius: 2px; }
+  .destacado-precios .cifra { color: var(--titulo); }
 
   /* Vulnerabilidad: mapa de manzanas más alto (es el contenido principal de la pestaña) y selector de indicador */
   .control-medio { max-width: 360px; }
@@ -1159,15 +1176,19 @@
   <!-- ===================== PRECIOS ===================== -->
   <section class="pestana" id="precios" aria-labelledby="t-precios" hidden>
     <h2 id="t-precios">¿Cómo están los precios?</h2>
-    <p class="intro">Los precios de <span id="n-alim">varios</span> alimentos en los mercados de Piura (Midagri), la <span data-g="ipc">inflación</span> de la
-      ciudad (INEI) y el costo de la canasta básica.</p>
+    <p class="intro">Los precios de <span id="n-alim">varios</span> alimentos en los mercados de Piura (Midagri), mes a mes, y cuánto habría subido con ellos
+      la canasta básica de alimentos; después, la <span data-g="ipc">inflación</span> de la ciudad (INEI) y el costo oficial de la canasta básica.</p>
     <div class="paneles" id="precios-paneles"></div>
     <details class="detalle">
       <summary><span class="ver">Ver detalle</span><span class="ocultar">Ocultar detalle</span></summary>
       <div class="cuerpo-detalle">
-        <h3 id="t-alim-tabla">Precios de alimentos en los mercados de Piura</h3>
-        <div class="tabla"><table class="ancha min-640" id="tabla-alim"></table></div>
-        <p class="nota" id="alim-insuficientes"></p>
+        <h3 id="t-mensual">Precio mensual del producto elegido</h3>
+        <div class="tabla"><table class="ancha min-640" id="tabla-mensual"></table></div>
+        <p><a href="infografia/precios_quincena.html">Ver comparación de la última quincena (infografía)</a></p>
+        <h3>Canasta estimada: productos del SISAP en la canasta de Costa urbana</h3>
+        <div class="tabla"><table class="ancha min-640" id="tabla-canasta"></table></div>
+        <h3>Canasta estimada: resultado por año</h3>
+        <div class="tabla"><table class="ancha min-640" id="tabla-canasta-res"></table></div>
         <h3>Inflación (IPC) de Piura, serie mensual</h3>
         <div class="tabla alta"><table class="ancha min-640">
           <thead><tr><th>Mes</th><th class="n">Variación mensual</th><th class="n">Acumulada en el año</th>
@@ -1177,7 +1198,9 @@
         <h3>Líneas de pobreza por dominio (soles por persona al mes)</h3>
         <div class="tabla"><table class="ancha min-640" id="tabla-pobreza"></table></div>
         <h3 id="como-precios">Cómo se calcula</h3>
-        <h4 class="vul-sub">Precios en los mercados</h4>
+        <h4 class="vul-sub" id="como-canasta">Canasta básica de alimentos estimada</h4>
+        <ul class="metodo nota" id="canasta-notas"></ul>
+        <h4 class="vul-sub">Precios en los mercados (por mes)</h4>
         <ul class="metodo nota" id="alim-notas"></ul>
         <h4 class="vul-sub">Inflación (IPC)</h4>
         <ul class="metodo nota" id="ipc-notas"></ul>
@@ -3781,9 +3804,10 @@ function graficoMeses(el, meses, series, tipo = "lineas", op = {}) {
 // (mensual) en un solo bloque con sus dos cifras y un gráfico con selector; la canasta (anual) compacta al final
 function pintarPrecios() {
   const p = D.ipc, el = $("precios-paneles");
-  if (D.sisap) $("n-alim").textContent = alimentosVisibles(D.sisap, "mayorista").length;
-  el.innerHTML = panelAlimentos() + panelIPC() + panelCanasta();
-  activarAlimentos(); activarIPC(); graficoCanasta();
+  if (D.mensual) $("n-alim").textContent = D.mensual.productos.length;
+  // orden (25/11/2026): canasta estimada, un producto a la vez, inflación y canasta oficial
+  el.innerHTML = panelCanastaEstimada() + panelProducto() + panelIPC() + panelCanasta();
+  activarProducto(); activarIPC(); graficoCanasta(); tablasCanasta(); notasPrecios();
   if (!p?.serie?.length) return;
   $("ipc-cuerpo").innerHTML = [...p.serie].reverse().map(x => `<tr><td>${esc(mesTxt(x.mes))}</td><td class="n">${pct2(x.mensual)}</td>
     <td class="n">${pct2(x.acumulada)}</td><td class="n">${pct2(x.doce_meses)}</td><td class="n">${pct2(x.nacional_doce_meses)}</td>
@@ -3826,209 +3850,257 @@ function activarIPC() {
   sel.onchange = () => { ipcGraf = sel.value; graficosIPC(); };
   graficosIPC();
 }
-// Precios de alimentos en los mercados de Piura (SISAP): variación de la 2.ª quincena del mes anterior al mes en curso, con una
-// raya en lo habitual de esas mismas fechas (mediana de los 4 años anteriores) o en lo que pasó en un año elegido
-let alimTipo = "mayorista", alimComp = "habitual", alimOrden = "var";
-const signo = v => v == null ? "sin dato" : `${v >= 0.05 ? "+" : v <= -0.05 ? "−" : ""}${num(Math.abs(v), 1)} %`;
+// Precios de alimentos en los mercados de Piura (SISAP), por mes (25/11/2026, pedido de Germán Vega). El gráfico de la última
+// quincena frente a lo habitual pasó a docs/infografia/precios_quincena.html (enlazado en el detalle).
+const signo = v => v == null ? "sin dato" : `${v >= 0.05 ? "+" : v <= -0.05 ? "−" : ""}${num(Math.abs(v), 1)} %`;
 const yLista = xs => xs.join(", ").replace(/, ([^,]*)$/, " y $1");
-function periodoAlim(s) {
-  const r = s.reciente[1], dia = +r.slice(8), fin = new Date(+r.slice(0, 4), +r.slice(5, 7), 0).getDate();
-  const mb = MESES[+s.base[0].slice(5, 7) - 1], mr = MESES[+r.slice(5, 7) - 1];
-  return { base: `la 2.ª quincena de ${mb}`, corto: `2.ª quincena de ${mb}`, reciente: dia < fin ? `${mr} (hasta el ${dia})` : mr,
-    anio: +s.reciente[0].slice(0, 4) };
+const puntos = v => `${v >= 0.5 ? "+" : v <= -0.5 ? "−" : ""}${num(Math.abs(v), 0)}`;
+const MES_LARGO = m => MESES[m - 1];
+
+// ---------- Tarjeta destacada: la canasta básica de alimentos estimada (Parte D) ----------
+// Estimación propia, no cifra del INEI: pesos fijos de la canasta de Costa urbana (año base 2010), precios minoristas del SISAP
+// para la parte cubierta y el IPC nacional de alimentos (dentro del hogar) y de restaurantes (fuera) para el resto
+function canastaEstimada() {
+  const c = D.canasta, x = c?.minorista, a = String(D.mensual?.anios?.at(-1) ?? 2026);
+  if (!x?.anios?.[a] || x.anios[a].b == null) return null;
+  const v = x.anios[a].b, h = x.habitual.b, soles = c.canasta_soles * v / 100;
+  return { v, h, soles, familia: 4 * soles, a, mes: MES_LARGO(c.mes_fin), cob: x.cobertura, x, c };
 }
-const sueleTxt = h => h >= 0.5 ? `suele subir ${num(h, 1)} %` : h <= -0.5 ? `suele bajar ${num(-h, 1)} %` : "suele mantenerse";
-// «Fuera de lo habitual»: la variación del año en curso se aleja 5 puntos o más de la mediana de los 4 años anteriores (con 1 a
-// 7 fechas por quincena, menos que eso puede ser ruido). Lo usan el titular, el resaltado del gráfico, la tabla y el Resumen.
-const UMBRAL_HABITUAL = 5;
-const fueraHabitual = x => x.var != null && x.habitual != null && Math.abs(x.var - x.habitual) >= UMBRAL_HABITUAL;
-// Productos del gráfico: con al menos s.minimo_fechas fechas con precio en cada periodo del año en curso (los demás van en el
-// detalle: «Sin datos suficientes este periodo»)
-const alimentosVisibles = (s, tipo) => s.productos.filter(p => p[tipo].suficiente !== false && p[tipo].var != null);
-// Titular en dos líneas, desde los datos: [cuántos subieron, cuáles están fuera de lo habitual (3 como máximo y «N más»)]
-function fraseAlimentos(s, tipo) {
-  const P = periodoAlim(s), xs = alimentosVisibles(s, tipo).map(p => ({ n: p.nombre, ...p[tipo] }));
-  const sube = xs.filter(x => x.var >= 1).length;
-  const l1 = `Entre ${P.base} y ${P.reciente}, subieron ${sube} de ${xs.length} alimentos en los mercados ${tipo}s de Piura`;
-  const raros = xs.filter(fueraHabitual).sort((a, b) => Math.abs(b.var - b.habitual) - Math.abs(a.var - a.habitual));
-  const nombra = raros.slice(0, 3).map(x => `${x.n.toLowerCase()} (${signo(x.var)}; ${sueleTxt(x.habitual)})`);
-  if (raros.length > 3) nombra.push(`${raros.length - 3} más`);
-  const l2 = raros.length ? `Fuera de lo habitual: ${yLista(nombra)}`
-    : `Ningún alimento se aleja ${UMBRAL_HABITUAL} puntos o más de lo habitual en estas fechas`;
-  return [l1, l2];
+function panelCanastaEstimada() {
+  const e = canastaEstimada();
+  if (!e) return sinDatos("Canasta básica de alimentos estimada", "precios del SISAP y del INEI");
+  const verbo = e.v >= 0.05 ? "subió" : e.v <= -0.05 ? "bajó" : "no varió";
+  const soles = Math.abs(e.soles) < 0.5 ? "casi lo mismo por persona al mes" : `unos S/ ${num(Math.abs(e.soles), 0)} ${e.soles > 0 ? "más" : "menos"} por persona al mes
+    (S/ ${num(Math.abs(e.familia), 0)} para una familia de 4)`;
+  return panel({ id: "panel-canasta-est", clase: "ancho destacado-precios",
+    titulo: `Estimamos que la canasta básica de alimentos ${verbo} ${num(Math.abs(e.v), 1)} % de enero a ${e.mes} de ${e.a}`,
+    cifra: signo(e.v), ud: `lo habitual en esas fechas: ${signo(e.h)} (promedio de ${D.mensual.habitual.join(" y ")}) · ${soles}`,
+    extra: `<p class="nota"><strong>Estimación del Observatorio, no es una cifra oficial del INEI.</strong> Los precios de los mercados de Piura
+      (SISAP) cubren el ${num(e.cob, 1)} % del valor de la canasta; el resto se estima con el IPC nacional de alimentos y de restaurantes.
+      <a href="#como-canasta" class="ir-como">Cómo se calcula</a>.</p>`,
+    pie: `Midagri (SISAP), mercados minoristas de Piura; INEI (canasta de Costa urbana e IPC nacional, ${mesTxt(e.c.ipc_hasta)})` });
 }
-// Cifra resumen: promedio ponderado (pesos del IPC por subclase) de los alimentos del gráfico que tienen lo habitual
-function promedioAlim(s, tipo) {
-  const m = s.promedio?.[tipo];
-  if (!m) return null;
-  const v = m.var, verbo = v >= 0.05 ? `subieron ${num(v, 1)} %` : v <= -0.05 ? `bajaron ${num(-v, 1)} %` : "no variaron";
-  return { m, txt: `En promedio, los alimentos ${verbo} (lo habitual en estas fechas: ${signo(m.habitual)})`,
-    n: `Promedio ponderado por el peso de cada alimento en la canasta del IPC, con los ${m.n} alimentos que tienen raya de lo habitual
-      (<a href="#como-precios" class="ir-como">cómo se calcula</a>).` };
+
+// ---------- Un producto a la vez (Parte C) ----------
+let prodSel = null;
+const productosConDatos = () => (D.mensual?.productos || []).filter(p => p.acumulada != null);
+function titularProducto(p) {
+  const d = p.acumulada, n = p.nombre;
+  if (d == null) return `${n}: sin datos suficientes para compararlo con lo habitual`;
+  if (!p.separa) return Math.abs(d) <= D.mensual.umbral_separa ? `${n} va igual que lo habitual en ${D.mensual.anios.at(-1)}`
+    : `${n} no se ha separado de lo habitual de forma sostenida: hoy va ${num(Math.abs(d), 0)} puntos ${d > 0 ? "por encima" : "por debajo"}`;
+  return `${n} se separó de lo habitual desde ${MES_LARGO(p.separa)}: en lo que va de ${D.mensual.anios.at(-1)} acumula ${num(Math.abs(d), 0)} puntos
+    ${d > 0 ? "más" : "menos"} que lo habitual`;
 }
-function panelAlimentos() {
-  const s = D.sisap, titulo = "Precios de alimentos en los mercados de Piura";
-  if (!s) return sinDatos(titulo, "precios del SISAP (Midagri)");
-  const P = periodoAlim(s), a = s.anios;
-  return panel({ id: "panel-alim", titulo: `<span id="alim-tit">${titulo}</span>`, clase: "ancho", vence: "sisap",
-    ud: `Variación del precio promedio por kg: ${P.base} frente a ${P.reciente}`,
-    frase: `<span id="alim-frase"></span>`,
-    extra: `<p class="prom-alim" id="alim-prom"></p><p class="nota" id="alim-prom-n"></p><div class="filtros filtros-alim">
-        <label>Mercado<select id="f-alim-tipo"><option value="mayorista">Mayorista</option><option value="minorista">Minorista</option></select></label>
-        <label>Comparar con<select id="f-alim-comp"><option value="habitual">Lo habitual (${a[0]}-${a.at(-1)})</option>${
-          [...a].reverse().map(x => `<option value="${x}">Lo que pasó en ${x}</option>`).join("")}<option value="">Sin comparación</option></select></label>
-        <label>Ordenar por<select id="f-alim-orden"><option value="var">Variación de ${P.anio}</option><option value="dif">Diferencia con lo habitual</option></select></label></div>
-      <div class="leyenda"><span class="caja" style="--c:var(--sube)">Subió</span><span class="caja" style="--c:var(--baja)">Bajó</span><span
-        class="sep-ley" aria-hidden="true"></span><span class="raya" id="alim-raya"></span></div>
-      <div class="grafico" id="g-alim"></div><p class="nota" id="alim-nota"></p>`,
-    pie: `Fuente: ${enlace(s)}. Datos al ${fecha(s.fecha_corte)}. Tabla, nombres del SISAP y <a href="#como-precios" class="ir-como">cómo se calcula</a>, en el detalle.` });
+function panelProducto() {
+  const M = D.mensual;
+  if (!M?.productos?.length) return sinDatos("Precios de alimentos en los mercados de Piura", "precios del SISAP (Midagri)");
+  return panel({ id: "panel-producto", clase: "ancho", titulo: `<span id="prod-tit"></span>`,
+    extra: `<div class="prod-grid">
+      <div class="prod-graficos">
+        <div class="filtros filtros-prod"><label>Producto<select id="f-prod"></select></label></div>
+        <h4 class="vul-sub" id="prod-g1-tit"></h4>
+        <div class="leyenda" id="prod-ley1"></div>
+        <div class="grafico" id="g-prod1"></div>
+        <h4 class="vul-sub">Cada mes, ¿subió más o menos que lo habitual?</h4>
+        <div class="leyenda"><span class="caja" style="--c:var(--sube)">Subió más que lo habitual</span><span class="caja" style="--c:var(--baja)">Subió menos (o bajó más)</span></div>
+        <div class="grafico" id="g-prod2"></div>
+        <h4 class="vul-sub">Diésel en Piura: cuánto ha subido en el año</h4>
+        <div class="leyenda" id="diesel-ley"></div>
+        <div class="grafico" id="g-diesel"></div>
+        <p class="nota" id="prod-nota"></p>
+      </div>
+      <aside class="prod-lista"><h4 class="vul-sub">Todos los productos: diferencia acumulada frente a lo habitual (puntos)</h4>
+        <ol id="prod-lista"></ol><p class="nota" id="prod-sin"></p></aside>
+    </div>`,
+    pie: `Fuente: Midagri, SISAP, mercados mayoristas de Piura, datos al ${fecha(M.fecha_corte)}; Osinergmin (diésel); ENFEN.
+      <a href="#como-precios" class="ir-como">Cómo se calcula</a>` });
 }
-function activarAlimentos() {
-  const t = $("f-alim-tipo"), c = $("f-alim-comp"), o = $("f-alim-orden");
+function activarProducto() {
+  const M = D.mensual, sel = $("f-prod");
+  if (!sel || !M) return;
+  const conDatos = productosConDatos().sort((a, b) => b.acumulada - a.acumulada);
+  prodSel ||= conDatos[0]?.nombre;  // por defecto, el que más se separó hacia arriba
+  sel.innerHTML = conDatos.map(p => `<option>${esc(p.nombre)}</option>`).join("");
+  sel.value = prodSel;
+  sel.onchange = () => { prodSel = sel.value; pintarProducto(); };
+  $("prod-lista").innerHTML = conDatos.map(p => `<li><button type="button" data-p="${esc(p.nombre)}"><span>${esc(p.nombre)}</span><b class="${
+    p.acumulada > 0.5 ? "sube" : p.acumulada < -0.5 ? "baja" : ""}">${puntos(p.acumulada)}</b></button></li>`).join("");
+  $("prod-lista").onclick = ev => { const b = ev.target.closest("[data-p]"); if (b) { prodSel = sel.value = b.dataset.p; pintarProducto(); } };
+  const sin = M.productos.filter(p => p.acumulada == null).map(p => p.nombre.toLowerCase());
+  $("prod-sin").textContent = sin.length ? `Sin datos suficientes para compararlos con lo habitual: ${yLista(sin)} (les falta el precio de diciembre de 2023 en el SISAP).` : "";
+  pintarProducto();
+}
+// Posición en el eje: 0 = diciembre del año anterior (índice 100), 1 = enero… La alerta del ENFEN (13 de febrero) cae entre enero y
+// febrero (meses como promedios: el punto de febrero está a mitad de mes); la subida del diésel, entre el mes anterior y su primer mes alto
+function marcasShock() {
+  const M = D.mensual, out = [];
+  const f = M.shocks?.enfen?.fecha;
+  if (f && +f.slice(0, 4) === M.anios.at(-1)) { const mm = +f.slice(5, 7), dd = +f.slice(8); out.push({ x: mm + (dd - 15) / 30, t: `Alerta ENFEN (${dd} ${MES_CORTO[mm - 1].toLowerCase()}.)`, corto: "ENFEN" }); }
+  if (M.diesel?.sube_desde) out.push({ x: M.diesel.sube_desde - .5, t: `Sube el diésel (${MES_CORTO[M.diesel.sube_desde - 1].toLowerCase()}.)`, corto: "Diésel" });
+  return out;
+}
+// Gráfico de índice (diciembre = 100): líneas por año, lo habitual, sombreado entre el año en curso y lo habitual, marcas de los
+// shocks y globo por mes. Los tres gráficos usan los mismos márgenes, para que los meses queden alineados
+const MARGEN_PROD = { l: 44, r: 92, t: 22, b: 26 };
+function graficoIndice(el, series, op = {}) {
+  const n = op.n, W = Math.max(280, Math.min(900, el.clientWidth || 640)), H = op.alto || (W < 500 ? 200 : 240);
+  const m = W < 500 ? { ...MARGEN_PROD, r: 60 } : MARGEN_PROD;  // en el celular, menos margen para el rótulo final
+  const vals = series.flatMap(s => s.v).concat(op.barras || []).filter(v => v != null).concat(op.cero ? [0] : [100]);
+  let lo = Math.min(...vals), hi = Math.max(...vals);
+  const paso = [1, 2, 5, 10, 20, 25, 50, 100].find(p => (hi - lo) / p <= (H < 220 ? 4 : 5)) || 200;
+  lo = Math.floor(lo / paso) * paso; hi = Math.ceil(hi / paso) * paso; if (hi === lo) hi = lo + paso;
+  const x = i => m.l + i * (W - m.l - m.r) / (n - 1), y = v => m.t + (hi - v) * (H - m.t - m.b) / (hi - lo);
+  let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(op.etiqueta || "")}">`;
+  for (let v = lo; v <= hi + 1e-9; v += paso) svg += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}" stroke="${v === (op.cero ? 0 : 100) ? "var(--texto-3)" : "var(--linea)"}"/>
+    <text x="${m.l - 6}" y="${y(v) + 4}" text-anchor="end">${op.cero ? puntos(v) : num(v)}</text>`;
+  const etiquetas = ["Dic", ...MES_CORTO].slice(0, n);
+  etiquetas.forEach((t, i) => { if (W >= 500 || i % 2 === 0) svg += `<text x="${x(i)}" y="${H - 8}" text-anchor="middle">${t}</text>`; });
+  for (const [k, mk] of (op.marcas || []).entries()) if (mk.x >= 0 && mk.x <= n - 1) {
+    // en pantallas angostas, rótulos cortos; si no cabe a la izquierda de su línea, va a la derecha
+    const t = W < 500 ? mk.corto : mk.t, ancho = anchoTexto(t), izq = k === 0 && x(mk.x) - ancho - 4 >= 0;
+    svg += `<line x1="${x(mk.x)}" x2="${x(mk.x)}" y1="${m.t - 6}" y2="${H - m.b}" stroke="var(--texto-2)" stroke-dasharray="3 3"/>
+      <text class="marca-shock" x="${x(mk.x) + (izq ? -4 : 4)}" y="${m.t - 9}" text-anchor="${izq ? "end" : "start"}">${esc(t)}</text>`;
+  }
+  if (op.sombra) svg += areasEntre(op.sombra.v, op.sombra.ref, x, y);
+  if (op.barras) {
+    const bw = Math.max(4, (W - m.l - m.r) / (n - 1) * .55);
+    op.barras.forEach((v, i) => { if (v == null) return; const y0 = y(Math.max(0, v)), alto = Math.max(1, Math.abs(y(v) - y(0)));
+      svg += `<rect x="${(x(i) - bw / 2).toFixed(1)}" y="${y0.toFixed(1)}" width="${bw.toFixed(1)}" height="${alto.toFixed(1)}" rx="2" fill="var(${v >= 0 ? "--sube" : "--baja"})"/>`; });
+  }
+  const rots = [];
+  for (const s of [...series].reverse()) {
+    const pts = s.v.map((v, i) => v == null ? null : `${x(i).toFixed(1)},${y(v).toFixed(1)}`);
+    // una polilínea por tramo con dato
+    let tramo = [];
+    const cerrar = () => { if (tramo.length > 1) svg += `<polyline fill="none" stroke="${s.color}" stroke-width="${s.ancho || 1.5}"${s.rayas ? ` stroke-dasharray="${s.rayas}"` : ""} stroke-linejoin="round" stroke-linecap="round" points="${tramo.join(" ")}"/>`; tramo = []; };
+    pts.forEach(pt => pt ? tramo.push(pt) : cerrar()); cerrar();
+    const i = s.v.findLastIndex(v => v != null);
+    if (s.principal && i >= 0) svg += `<circle cx="${x(i)}" cy="${y(s.v[i])}" r="3.5" fill="${s.color}" stroke="var(--superficie)" stroke-width="2"/>`;
+    if (s.rotulo && i > 0) rots.push({ t: s.rotulo, x: x(i) + 7, y: y(s.v[i]), principal: s.principal });
+  }
+  // rótulos al final de cada línea: si dos quedan a menos de 13 px, el de abajo baja; los que se salen del gráfico, se omiten (queda la leyenda)
+  rots.sort((a, b) => a.y - b.y).forEach((r, k, arr) => { if (k && r.y - arr[k - 1].y < 13) r.y = arr[k - 1].y + 13; });
+  for (const r of rots) if (r.y <= H - m.b + 4 || r.principal)
+    svg += `<text class="${r.principal ? "rotulo" : "rotulo-sec"}" x="${r.x}" y="${r.y + 4}">${esc(r.t)}</text>`;
+  svg += `<line class="guia" y1="${m.t}" y2="${H - m.b}" stroke="var(--texto-3)" stroke-dasharray="3 3" visibility="hidden"/>
+    <rect class="zona" x="${m.l}" y="${m.t}" width="${W - m.l - m.r}" height="${H - m.t - m.b}" fill="transparent"/></svg><div class="globo"></div>`;
+  el.innerHTML = svg;
+  const zona = el.querySelector(".zona"), guia = el.querySelector(".guia"), globo = el.querySelector(".globo"), svgEl = el.querySelector("svg");
+  zona.addEventListener("pointermove", ev => {
+    const caja = svgEl.getBoundingClientRect(), k = W / caja.width, i = Math.max(0, Math.min(n - 1, Math.round(((ev.clientX - caja.left) * k - m.l) * (n - 1) / (W - m.l - m.r))));
+    guia.setAttribute("x1", x(i)); guia.setAttribute("x2", x(i)); guia.setAttribute("visibility", "visible");
+    globo.innerHTML = `<strong>${i ? MES_LARGO(i) : "Diciembre anterior (= 100)"}</strong><br>` + (op.globo ? op.globo(i) : series.map(s =>
+      `<span style="color:${s.color}">■</span> ${esc(s.nombre)}: ${s.v[i] == null ? "sin dato" : num(s.v[i], 1)}`).join("<br>"));
+    globo.style.display = "block";
+    const px = x(i) / k; globo.style.left = (px > caja.width / 2 ? px - globo.offsetWidth - 10 : px + 10) + "px"; globo.style.top = "8px";
+  });
+  zona.addEventListener("pointerleave", () => { globo.style.display = "none"; guia.setAttribute("visibility", "hidden"); });
+}
+// años de contexto: grises, sin competir con el año en curso; se distinguen por el trazo (2024 punteado) y el tono, no solo por el color
+const SERIES_ANIO = { 2024: { color: "var(--gris-ref)", ancho: 1.5, rayas: "4 3", rotulo: "2024" }, 2025: { color: "var(--gris-medio)", ancho: 1.5, rotulo: "2025" } };
+const leyendaAnio = a => `<span${SERIES_ANIO[a]?.rayas ? ' class="punteada"' : ""} style="--c:${SERIES_ANIO[a]?.color}">${a}</span>`;
+function pintarProducto() {
+  const M = D.mensual, p = M?.productos.find(x => x.nombre === prodSel);
+  if (!p) return;
+  const fin = M.mes_fin, n = fin + 1, act = String(M.anios.at(-1)), con100 = v => [100, ...v.slice(0, fin)];
+  $("prod-tit").textContent = titularProducto(p);
+  $("prod-g1-tit").textContent = `Cuánto ha subido ${p.nombre.toLowerCase()} en lo que va del año (precio de diciembre = 100)`;
+  document.querySelectorAll("#prod-lista [data-p]").forEach(b => b.setAttribute("aria-pressed", b.dataset.p === p.nombre));
+  const serie = [
+    ...M.habitual.map(a => ({ nombre: String(a), v: con100(p.anios[a].indice), ...SERIES_ANIO[a] })),
+    { nombre: `Lo habitual (${M.habitual.join("-")})`, v: con100(p.habitual.indice), color: "var(--texto-3)", ancho: 2.5 },
+    { nombre: act, v: con100(p.anios[act].indice), color: "var(--marino)", ancho: 3, principal: true, rotulo: `${act}: ${num(p.anios[act].indice.slice(0, fin).findLast(v => v != null) ?? 0, 0)}` }];
+  const marcas = marcasShock();
+  graficoIndice($("g-prod1"), serie, { n, marcas, sombra: { v: serie.at(-1).v, ref: serie[2].v }, etiqueta: `Índice del precio de ${p.nombre}, diciembre = 100` });
+  $("prod-ley1").innerHTML = `<span style="--c:var(--marino)">${act}</span><span style="--c:var(--texto-3)">Lo habitual (promedio ${M.habitual.join(" y ")})</span>${
+    M.habitual.map(leyendaAnio).join("")}<span class="franja" style="--c:var(--calor)">Por encima de lo habitual</span><span
+    class="franja" style="--c:var(--acento)">Por debajo</span>`;
+  graficoIndice($("g-prod2"), [], { n, marcas, cero: true, barras: [null, ...p.diferencia_var.slice(0, fin)], alto: 170,
+    etiqueta: `Diferencia entre la variación mensual de ${act} y la habitual, en puntos`,
+    globo: i => i ? `${act}: ${signo(p.anios[act].var[i - 1])}<br>Lo habitual: ${signo(p.habitual.var[i - 1])}<br>Diferencia: ${p.diferencia_var[i - 1] == null ? "sin dato" : `${puntos(p.diferencia_var[i - 1])} puntos`}` : "" });
+  const d = M.diesel;
+  if (d) {
+    const ds = [...M.habitual.map(a => ({ nombre: String(a), v: con100(d.indice[a]), ...SERIES_ANIO[a] })),
+      { nombre: `Lo habitual (${M.habitual.join("-")})`, v: con100(d.habitual), color: "var(--texto-3)", ancho: 2.5 },
+      { nombre: act, v: con100(d.indice[act]), color: "var(--marino)", ancho: 3, principal: true, rotulo: `${act}: ${num(d.indice[act].findLast(v => v != null), 0)}` }];
+    graficoIndice($("g-diesel"), ds, { n, marcas, alto: 170, etiqueta: "Índice del precio del diésel en Piura, diciembre = 100" });
+    $("diesel-ley").innerHTML = `<span style="--c:var(--marino)">${act}</span><span style="--c:var(--texto-3)">Lo habitual</span>${M.habitual.map(leyendaAnio).join("")}`;
+  }
+  $("prod-nota").innerHTML = `100 = precio promedio de diciembre del año anterior; 150 = 50 % más caro. Lo habitual: promedio de ${M.habitual.join(" y ")}
+    (se excluyen 2022, por el alza de los fertilizantes, y 2023, por El Niño costero). Noviembre de ${act}, hasta el ${M.dia_fin}, se compara con los mismos días
+    de los otros años. Diésel: precio promedio del diésel B5 S-50 en los grifos de Piura (Osinergmin), hasta ${MES_LARGO(+d.fecha_corte.slice(5))}.
+    Marcas: inicio de la alerta de El Niño costero (ENFEN, 13/02/${act}) y primer mes en que el diésel supera en 5 % su precio de diciembre (${MES_LARGO(d.sube_desde)}).`;
+  tablaMensual(p);
+}
+function tablaMensual(p) {
+  const M = D.mensual, t = $("tabla-mensual");
   if (!t) return;
-  t.value = alimTipo; c.value = alimComp; o.value = alimOrden;
-  t.onchange = () => { alimTipo = t.value; graficoAlimentos(); };
-  c.onchange = () => { alimComp = c.value; graficoAlimentos(); };
-  o.onchange = () => { alimOrden = o.value; graficoAlimentos(); };
-  graficoAlimentos();
+  const fin = M.mes_fin, anios = M.anios.map(String);
+  $("t-mensual").textContent = `Precio mensual de ${p.nombre.toLowerCase()} en los mercados mayoristas de Piura (S/ por kg)`;
+  t.innerHTML = `<thead><tr><th>Mes</th>${anios.map(a => `<th class="n">${a}</th>`).join("")}<th class="n">Índice ${anios.at(-1)}</th><th class="n">Lo habitual</th>
+    <th class="n">Var. mensual ${anios.at(-1)}</th></tr></thead><tbody>
+    <tr><td>Diciembre anterior</td>${anios.map(a => `<td class="n">${p.anios[a].diciembre_anterior == null ? "—" : num(p.anios[a].diciembre_anterior, 2)}</td>`).join("")}<td class="n">100</td><td class="n">100</td><td class="n">—</td></tr>
+    ${Array.from({ length: fin }, (_, k) => `<tr><td>${mayus(MES_LARGO(k + 1))}${k + 1 === fin ? ` (1 al ${M.dia_fin})` : ""}</td>${anios.map(a => `<td class="n">${p.anios[a].precio[k] == null ? "—" : num(p.anios[a].precio[k], 2)}</td>`).join("")}
+      <td class="n">${p.anios[anios.at(-1)].indice[k] == null ? "—" : num(p.anios[anios.at(-1)].indice[k], 1)}</td><td class="n">${p.habitual.indice[k] == null ? "—" : num(p.habitual.indice[k], 1)}</td>
+      <td class="n">${signo(p.anios[anios.at(-1)].var[k])}</td></tr>`).join("")}</tbody>
+    <caption class="nota">Promedio de los días con precio de cada mes (al menos ${M.minimo_fechas}); «—»: menos fechas. Nombre en el SISAP: «${esc(p.sisap)}».</caption>`;
 }
-function graficoAlimentos() {
-  const el = $("g-alim"), s = D.sisap;
-  if (!el || !s) return;
-  const tipo = alimTipo, comp = alimComp, P = periodoAlim(s);
-  const ref = x => comp === "habitual" ? x.habitual : comp ? x.anios[comp] : null;
-  // orden: por la variación del año en curso o por su distancia (con signo) a lo habitual; sin dato o sin habitual, al final
-  const clave = x => alimOrden === "dif" ? (x.var != null && x.habitual != null ? x.var - x.habitual : null) : x.var;
-  const filas = alimentosVisibles(s, tipo).map(p => ({ p, ...p[tipo], ref: ref(p[tipo]) })).sort((a, b) => (clave(b) ?? -1e9) - (clave(a) ?? -1e9));
-  const [l1, l2] = fraseAlimentos(s, tipo);
-  $("alim-tit").textContent = l1; $("alim-frase").textContent = l2 + ".";
-  const pr = promedioAlim(s, tipo);
-  $("alim-prom").textContent = pr ? pr.txt + "." : ""; $("alim-prom-n").innerHTML = pr ? pr.n : "";
-  $("alim-raya").textContent = comp === "habitual" ? `Lo habitual en estas fechas (mediana de ${s.anios[0]}-${s.anios.at(-1)})`
-    : comp ? `Lo que pasó en las mismas fechas de ${comp}` : "";
-  $("alim-raya").hidden = !comp;
-  $("panel-alim").querySelector(".sep-ley").hidden = !comp;
-  const sinRef = comp ? filas.filter(x => x.var != null && x.ref == null).map(x => x.p.nombre.toLowerCase()) : [];
-  $("alim-nota").innerHTML = [
-    comp === "habitual" ? `La raya marca cuánto suele cambiar el precio en estas mismas fechas; en negrita y con línea punteada, los que se alejan
-      ${UMBRAL_HABITUAL} puntos o más.` : comp ? `La raya marca cuánto cambió en las mismas fechas de ${comp}.` : "",
-    sinRef.length ? `Sin raya: ${yLista(sinRef)} (${comp === "habitual" ? "pocos años con dato" : `sin dato en ${comp}`}).` : ""]
-    .filter(Boolean).join(" ");
-  $("alim-nota").hidden = !$("alim-nota").textContent;
-  // en pantallas angostas el nombre va encima de su barra, para que las barras usen todo el ancho
-  const W = Math.max(280, Math.min(900, el.clientWidth || 720)), estrecho = W < 500, fila = estrecho ? 44 : 32, sobre = estrecho ? 15 : 0;
-  const m = { l: estrecho ? 0 : 170, r: 4, t: 4, b: 24 }, H = m.t + m.b + fila * filas.length;
-  const vals = filas.flatMap(x => [x.var, x.ref]).filter(v => v != null), lo = Math.min(0, ...vals), hi = Math.max(0, ...vals);
-  const paso = [1, 2, 5, 10, 20, 50, 100].find(p => (hi - lo) / p <= (estrecho ? 4 : 7)) || 200;
-  const lo2 = Math.floor(lo / paso) * paso, hi2 = Math.ceil(hi / paso) * paso || paso;
-  // espacio para la cifra de cada barra, a cada lado que tenga barras
-  const izq = m.l + (lo < 0 ? 54 : 6), der = W - m.r - (hi > 0 ? 54 : 6);
-  const x = v => izq + (v - lo2) * (der - izq) / (hi2 - lo2 || 1);
-  let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Variación del precio ${tipo} de ${filas.length} alimentos en Piura">`;
-  for (let v = lo2; v <= hi2 + 1e-9; v += paso) svg += `<line x1="${x(v)}" x2="${x(v)}" y1="${m.t}" y2="${H - m.b}" stroke="${
-    Math.abs(v) < 1e-9 ? "var(--texto-3)" : "var(--linea)"}"/><text x="${x(v)}" y="${H - 6}" text-anchor="middle">${signo(v).replace(",0", "")}</text>`;
-  filas.forEach((f, i) => {
-    const y0 = m.t + i * fila, yc = y0 + sobre + (fila - sobre) / 2, v = f.var, r = f.ref, alto = (fila - sobre) * (estrecho ? .62 : .58);
-    const fuera = comp === "habitual" && fueraHabitual(f);
-    svg += `<g class="alim-fila${fuera ? " fuera" : ""}" data-i="${i}"><rect class="alim-fondo" x="0" y="${y0}" width="${W}" height="${fila}" fill="transparent"/>
-      <text class="nombre" x="${estrecho ? 2 : m.l - 8}" y="${estrecho ? y0 + 13 : yc + 4}" text-anchor="${estrecho ? "start" : "end"}" style="font-size:13px;fill:var(--texto)">${
-        esc(f.p.nombre)}</text>`;
-    if (v == null) svg += `<text x="${x(0) + 6}" y="${yc + 4}">sin dato</text>`;
-    else {
-      const a = Math.min(x(0), x(v)), w = Math.max(Math.abs(x(v) - x(0)), 1.5);
-      svg += `<rect x="${a.toFixed(1)}" y="${(yc - alto / 2).toFixed(1)}" width="${w.toFixed(1)}" height="${alto.toFixed(1)}" rx="2"
-        fill="${v >= 0.05 ? "var(--sube)" : v <= -0.05 ? "var(--baja)" : "var(--texto-3)"}"/>`;
-      // la cifra va más allá de la barra y de la raya, para que no se encimen
-      const xs = [x(0), x(v), ...(r != null ? [x(r)] : [])], pos = v >= 0 ? Math.max(...xs) + 6 : Math.min(...xs) - 6;
-      svg += `<text class="rotulo" x="${pos.toFixed(1)}" y="${yc + 4}" text-anchor="${v >= 0 ? "start" : "end"}">${signo(v)}</text>`;
-    }
-    // fuera de lo habitual: línea punteada fina de la raya a la punta de la barra (la distancia) y raya más gruesa
-    if (fuera) svg += `<line x1="${x(r).toFixed(1)}" x2="${x(v).toFixed(1)}" y1="${yc.toFixed(1)}" y2="${yc.toFixed(1)}" stroke="var(--texto)"
-      stroke-width="1.2" stroke-dasharray="3 2"/>`;
-    if (r != null) svg += `<line x1="${x(r).toFixed(1)}" x2="${x(r).toFixed(1)}" y1="${(yc - alto / 2 - 4).toFixed(1)}" y2="${(yc + alto / 2 + 4).toFixed(1)}" stroke="var(--texto)"
-      stroke-width="${fuera ? 4 : 2.5}"/>`;
-    svg += "</g>";
-  });
-  el.innerHTML = svg + `</svg><div class="globo"></div>`;
-  const globo = el.querySelector(".globo"), svgEl = el.querySelector("svg");
-  el.querySelectorAll(".alim-fila").forEach(g => {
-    g.addEventListener("pointermove", ev => {
-      const f = filas[+g.dataset.i], caja = svgEl.getBoundingClientRect();
-      globo.innerHTML = `<strong>${esc(f.p.nombre)}</strong><br><span class="nota-globo">${f.p.descripcion ? `${esc(f.p.descripcion)}. ` : ""}En el SISAP: «${
-        esc(f.p.sisap)}»</span><br>` + (f.var == null ? "Sin dato en estas fechas" :
-        `S/ ${num(f.base, 2)} → S/ ${num(f.reciente, 2)} por kg: <strong>${signo(f.var)}</strong>`) +
-        `<br>Lo habitual en estas fechas: ${f.habitual == null ? "sin historial suficiente" : `${signo(f.habitual)} (S/ ${num(f.habitual_base, 2)} → S/ ${
-          num(f.habitual_reciente, 2)} por kg, precios medianos de ${s.anios[0]}-${s.anios.at(-1)})`}` +
-        (fueraHabitual(f) ? `<br><strong>Fuera de lo habitual: ${num(Math.abs(f.var - f.habitual), 1)} puntos ${f.var > f.habitual ? "por encima" : "por debajo"}</strong>` : "") +
-        `<br>${s.anios.map(a => `${a}: ${signo(f.anios[a])}`).join(" · ")}` +
-        `<br>Fechas con precio: ${f.fechas[P.anio][0]} en la ${esc(P.corto)} y ${f.fechas[P.anio][1]} en ${esc(P.reciente)}` +
-        (f.vs_anio_anterior != null ? `<br>Precio frente a las mismas fechas de ${P.anio - 1}: ${signo(f.vs_anio_anterior)}` : "");
-      globo.style.display = "block";
-      const px = ev.clientX - caja.left, py = ev.clientY - caja.top;
-      globo.style.left = Math.max(0, Math.min(caja.width - globo.offsetWidth, px - globo.offsetWidth / 2)) + "px";
-      globo.style.top = (py > caja.height / 2 ? py - globo.offsetHeight - 12 : py + 16) + "px";
-    });
-    g.addEventListener("pointerleave", () => globo.style.display = "none");
-  });
-  tablaAlimentos();
+// Cómo se calcula: la canasta estimada y los precios mensuales
+function notasPrecios() {
+  const e = canastaEstimada(), M = D.mensual;
+  if (e) { const c = e.c, f = c.fuente_pesos;
+    $("canasta-notas").innerHTML = `<li><strong>Es una estimación del Observatorio, no una cifra oficial del INEI.</strong> El INEI calcula el costo de la canasta
+      una vez al año (línea de pobreza extrema); aquí se estima cuánto cambió en lo que va de ${e.a}.</li>
+    <li>Pesos: la canasta básica de alimentos de Costa urbana (el dominio que incluye la ciudad de Piura; el INEI no publica una canasta de Piura
+      ni de la costa norte), ${c.correspondencia.length ? "110" : ""} productos. Peso de cada producto = su valor en la canasta (cantidad × precio), en soles por persona al día.
+      Fuente: <a href="${esc(f.url)}" target="_blank" rel="noopener">${esc(f.documento)}</a>, ${esc(f.cuadro)}, págs. ${esc(f.paginas)}.</li>
+    <li>Correspondencia: cada producto del SISAP se une a uno de la canasta (tabla en el detalle). Casos dudosos: arroz superior → arroz corriente,
+      leche reconstituida → leche evaporada, palta fuerte → palta criolla, papa yungay → papa blanca. Cobertura: ${num(e.cob, 1)} % del valor de la canasta.</li>
+    <li>Variación: de diciembre de ${+e.a - 1} (base) a ${e.mes} de ${e.a}, con pesos fijos. Parte cubierta: promedio ponderado de las variaciones del precio
+      minorista promedio mensual del SISAP (mercados minoristas de Piura). Parte no cubierta, dos supuestos: (a) se movió igual que la parte cubierta
+      (${signo(e.x.anios[e.a].a)}); (b) los alimentos dentro del hogar se movieron como el IPC nacional de alimentos y las comidas fuera del hogar
+      (${num(c.fuera_del_hogar, 1)} % de la canasta) como el de restaurantes y hoteles (INEI, Cuadro 1 del informe técnico de precios; no hay IPC de alimentos de
+      Piura legible por programa). La cifra principal es (b): ${signo(e.v)}.</li>
+    <li>Hasta ${e.mes}: el último mes con IPC publicado (sale el día 1 del mes siguiente). Lo habitual: el mismo cálculo en ${D.mensual.habitual.join(" y ")}, promediado.</li>
+    <li>En soles: ${signo(e.v)} × S/ ${num(c.canasta_soles)} (canasta de alimentos de Costa urbana ${D.pobreza?.lineas?.extrema?.anios?.at(-1) ?? 2025}, por persona al mes) =
+      S/ ${num(e.soles, 1)} por persona y S/ ${num(e.familia, 1)} para una familia de 4.</li>
+    <li>Limitaciones: los pesos son de un año base fijo (2010) y no siguen cambios de consumo; el SISAP cubre solo una parte de la canasta
+      (sin pan, fideos, carnes de res, pescado, frutas como manzana o naranja, ni comidas fuera del hogar); los precios son de los mercados de
+      Piura y no de todas las tiendas; con precios mayoristas en lugar de minoristas el resultado es ${signo(c.mayorista.anios[e.a].b)} (tabla del detalle).</li>`; }
+  if (M) $("alim-notas").innerHTML = `<li>Precios: ${enlace({ url: "http://sistemas.midagri.gob.pe/sisap/portal2/ciudades/", fuente: "Midagri, SISAP «Precios en ciudades»" })},
+      mercados mayoristas de Piura (por los precios, coinciden con el Mercado Modelo de Piura). El SISAP no tiene descarga automática: la tabla se exporta a mano cada semana.</li>
+    <li>Precio mensual: promedio de los días con precio del mes, en soles por kg (los precios por saco, malla o ciento se dividen por los kilos que indica el SISAP).
+      Un mes con menos de ${M.minimo_fechas} fechas con precio queda vacío. Noviembre de ${M.anios.at(-1)} es parcial (hasta el ${M.dia_fin}); se compara con los mismos días de cada año.</li>
+    <li>Índice acumulado: precio del mes ÷ precio de diciembre del año anterior × 100. Lo habitual: promedio de los índices de ${M.habitual.join(" y ")};
+      se excluyen 2022 (alza de los fertilizantes) y 2023 (El Niño costero). La diferencia, en puntos del índice.</li>
+    <li>«Se separa de lo habitual»: el primer mes desde el cual la diferencia acumulada supera ${M.umbral_separa} puntos (en valor absoluto, con el mismo signo)
+      y no vuelve a bajar de ese umbral hasta el último mes con dato. El producto por defecto es el de mayor diferencia acumulada hacia arriba.</li>
+    <li>Barras «Cada mes…»: variación mensual de ${M.anios.at(-1)} menos el promedio de las variaciones del mismo mes en ${M.habitual.join(" y ")}.</li>
+    <li>Marcas: alerta de El Niño costero, <a href="${esc(M.shocks.enfen.url)}" target="_blank" rel="noopener">${esc(M.shocks.enfen.fuente)}</a>. Diésel:
+      ${esc(M.diesel.fuente)}, ${esc(M.diesel.producto)}; la marca va en el primer mes de ${M.anios.at(-1)} en que el precio supera en 5 % o más al de diciembre
+      (${MES_LARGO(M.diesel.sube_desde)}: de S/ ${num(M.diesel.precio_dic, 2)} a más; último dato S/ ${num(M.diesel.precio_ultimo, 2)} por galón). Es un promedio mensual: el día exacto no se conoce.</li>
+    <li>Aceite: el SISAP cambió la presentación en 2024 (botella de 1 litro → 900 ml); la serie se empalma (las dos vienen en soles por litro).</li>
+    <li>La comparación de la última quincena frente a lo habitual (el gráfico que estaba antes en esta pestaña) sigue disponible como
+      <a href="infografia/precios_quincena.html">infografía</a>.</li>`;
 }
-function tablaAlimentos() {
-  const s = D.sisap, t = $("tabla-alim");
-  if (!s || !t) return;
-  const P = periodoAlim(s), tipo = alimTipo;
-  const corto = ([d0, d1]) => `${+d0.slice(8)}-${+d1.slice(8)} ${MES_CORTO[+d0.slice(5, 7) - 1].toLowerCase()}.`;
-  const nf = (x, a) => x.fechas?.[a] ? ` <span class="nota">(${x.fechas[a].join("/")})</span>` : "";
-  const soles = (b, r) => b == null || r == null ? "—" : `S/ ${num(b, 2)} → ${num(r, 2)}`;
-  t.innerHTML = `<thead><tr><th>Alimento (nombre en el SISAP)</th><th class="n">S/ por kg, ${corto(s.base)} → ${corto(s.reciente)}</th>
-      <th class="n">Variación ${P.anio}</th>${s.anios.map(a => `<th class="n">${a}</th>`).join("")}<th class="n">Habitual</th>
-      <th class="n">S/ por kg, habitual</th><th class="n">Precio frente a ${P.anio - 1}</th></tr></thead>
-    <tbody>${s.productos.map(p => { const x = p[tipo]; return `<tr><td>${fueraHabitual(x) ? `<strong>${esc(p.nombre)}</strong>` : esc(p.nombre)}<span
-      class="casos">${esc(p.sisap)}</span></td>
-      <td class="n">${soles(x.base, x.reciente)}</td>
-      <td class="n"><strong>${signo(x.var)}</strong>${nf(x, P.anio)}</td>${s.anios.map(a => `<td class="n">${x.anios[a] == null ? "—" : signo(x.anios[a])}${nf(x, a)}</td>`).join("")}
-      <td class="n">${x.habitual == null ? "—" : signo(x.habitual)}</td><td class="n">${soles(x.habitual_base, x.habitual_reciente)}</td>
-      <td class="n">${x.vs_anio_anterior == null ? "—" : signo(x.vs_anio_anterior)}</td></tr>`; }).join("")}</tbody>
-    <caption class="nota">Mercados ${tipo}s de Piura (cambia con el selector «Mercado» del gráfico). Cada año: variación entre las mismas fechas
-      (2.ª quincena de octubre frente a ${esc(P.reciente)}); entre paréntesis, las fechas con precio de cada periodo (octubre/noviembre).
-      Habitual: mediana de ${s.anios[0]}-${s.anios.at(-1)}, solo con 3 años o más; su precio es la mediana de los precios de esos años, en soles
-      de cada año (sin ajustar por inflación). En negrita: fuera de lo habitual (${UMBRAL_HABITUAL} puntos o más).
-      «Precio frente a ${P.anio - 1}»: el precio de ${esc(P.reciente)} frente al de las mismas fechas de ${P.anio - 1}.</caption>`;
-  const faltan = s.productos.filter(p => p[tipo].suficiente === false || p[tipo].var == null).map(p => p.nombre.toLowerCase());
-  $("alim-insuficientes").textContent = `Sin datos suficientes este periodo (menos de ${s.minimo_fechas} fechas con precio en un periodo): ${
-    faltan.length ? yLista(faltan) : "ninguno"}.`;
-  $("alim-notas").innerHTML = `<li>Precios de alimentos: ${enlace(s)}, «Mercados mayoristas y minoristas de Piura». El SISAP no dice cuáles;
-      por los precios, coinciden con el Mercado Modelo de Piura que registra la Dirección Regional de Agricultura. El SISAP no tiene descarga
-      automática: la tabla se exporta a mano cada semana.</li>
-    <li>Periodos: el mes del último dato, del 1 al día de ese dato (si tiene menos de 2 fechas, el mes anterior completo), frente a la 2.ª
-      quincena (16 a fin de mes) del mes anterior. Es la misma comparación del gráfico de precios de Lima con datos del SISAP. Se compara el
-      promedio de los días con precio de cada periodo.</li>
-    <li>Precio por kg: los precios mayoristas vienen por saco, malla, cajón o ciento; se dividen por los kilos que el SISAP indica para
-      cada unidad (saco de 50 kg, ciento de choclos de 25 kg, etc.).</li>
-    <li>Cada quincena tiene pocas fechas con precio (de 1 a 7), así que una diferencia de pocos puntos con lo habitual puede ser ruido. Se
-      destaca como «fuera de lo habitual» una diferencia de ${UMBRAL_HABITUAL} puntos o más entre la variación de ${P.anio} y la mediana de
-      ${s.anios[0]}-${s.anios.at(-1)}. Lo habitual usa en cada año las mismas fechas: del 16 al 31 de octubre frente al 1 de noviembre hasta el
-      mismo día del corte.</li>
-    <li>Un alimento aparece en el gráfico solo si tiene al menos ${s.minimo_fechas} fechas con precio en cada periodo de ${P.anio}; las fechas
-      de cada periodo están en el globo y en la tabla. Fechas con precio de este periodo: ${s.fechas_base.map(f => +f.slice(8)).join(", ")} de
-      ${MESES[+s.fechas_base[0].slice(5, 7) - 1]} y ${s.fechas_reciente.map(f => +f.slice(8)).join(", ")} de ${MESES[+s.fechas_reciente[0].slice(5, 7) - 1]}.</li>
-    <li>Nombres: el gráfico usa nombres simples; el nombre original del SISAP está en el globo y en la tabla. ${s.productos.filter(p => p.descripcion)
-      .map(p => `«${esc(p.nombre)}»: ${esc(minuscula(p.descripcion))}.`).join(" ")}</li>
-    <li>Reemplazos frente a la lista del gráfico de precios de Lima: ${yLista(s.productos.filter(p => p.reemplaza)
-      .map(p => `${p.reemplaza} → ${p.nombre.toLowerCase()}`))}. El SISAP ya no registra en Piura los productos de la izquierda.</li>
-    <li>Los precios mayorista y minorista no siempre se mueven igual; por eso se puede elegir uno u otro.</li>
-    <li>Promedio («En promedio, los alimentos…»): promedio de las variaciones, ponderado por el peso de cada alimento en la canasta del IPC,
-      solo con los alimentos del gráfico que tienen lo habitual (${s.promedio?.[tipo]?.n ?? 0} en los mercados ${tipo}s), para comparar lo mismo
-      con lo mismo; lo habitual se promedia con los mismos pesos. El INEI no publica pesos por producto ni para Piura: se usa el peso de la
-      subclase de consumo en el IPC de Lima Metropolitana, base diciembre 2021 (<a href="https://www.inei.gob.pe/media/MenuRecursivo/metodologias/metodologia_ipclm_dic_2021.pdf"
-      target="_blank" rel="noopener">INEI, Metodología del IPC de Lima Metropolitana</a>, p. 21), repartido en partes iguales entre los
-      alimentos de esta lista que caen en la misma subclase: ${[...new Set(s.productos.map(p => p.subclase))].map(c => `${esc(c.slice(7).toLowerCase())}
-      (${yLista(s.productos.filter(p => p.subclase === c).map(p => p.nombre.toLowerCase()))})`).join("; ")}.</li>
-    <li>Aceite: el SISAP cambió la presentación en 2024 (botella de 1 litro → 900 ml). La serie se empalma: lo habitual usa la de 1 litro en
-      2022-2023; las dos vienen en soles por litro.</li>
-    <li>Pescado: no se incluye. No hay una fuente oficial con precios de pescado de Piura en 2026 que se pueda descargar de forma automática
-      (los reportes diarios de PRODUCE son PDF con un certificado de seguridad incompleto y su tablero no tiene descarga; la Dirección Regional
-      de la Producción no publica una serie de precios). Cebolla blanca y lechuga no están en el SISAP de Piura.</li>`;
+// Tablas de la canasta estimada (detalle): correspondencia SISAP → canasta, cobertura y resultado por año con (a) y (b)
+function tablasCanasta() {
+  const e = canastaEstimada(), t = $("tabla-canasta");
+  if (!e || !t) return;
+  const c = e.c, x = e.x, may = c.mayorista;
+  t.innerHTML = `<thead><tr><th>Producto del SISAP</th><th>Producto de la canasta (INEI)</th><th class="n">Peso en la canasta</th><th>Nota</th></tr></thead><tbody>${
+    c.correspondencia.map(r => `<tr><td>${esc(r.sisap)}${x.cubiertos.includes(r.sisap) ? "" : ' <span class="nota">(sin precio en algún mes base)</span>'}</td><td>${r.canasta}. ${esc(r.nombre_canasta.toLowerCase())}</td>
+      <td class="n">${num(r.peso, 2)} %</td><td class="nota">${r.nota ? esc(r.nota) : ""}</td></tr>`).join("")}</tbody>
+    <caption class="nota">Cobertura: ${num(x.cobertura, 1)} % del valor de la canasta de Costa urbana (${x.cubiertos.length} productos con precio en diciembre y en ${e.mes} de los tres años).
+      Sin producto en la canasta de Costa urbana: ${yLista(c.sin_canasta.map(n => n.toLowerCase()))}. Comidas fuera del hogar: ${num(c.fuera_del_hogar, 1)} % del valor.</caption>`;
+  $("tabla-canasta-res").innerHTML = `<thead><tr><th>Diciembre anterior a ${e.mes}</th><th class="n">Parte cubierta (SISAP minorista)</th><th class="n">(a) Todo como la parte cubierta</th>
+    <th class="n">(b) Resto con el IPC nacional</th><th class="n">IPC nacional: alimentos / restaurantes</th><th class="n">(b) con precios mayoristas</th></tr></thead><tbody>${
+    Object.entries(x.anios).map(([a, r]) => `<tr><td>${a}</td><td class="n">${signo(r.cubierta)}</td><td class="n">${signo(r.a)}</td><td class="n"><strong>${signo(r.b)}</strong></td>
+      <td class="n">${r.ipc ? `${signo(r.ipc.alimentos)} / ${signo(r.ipc.restaurantes)}` : "—"}</td><td class="n">${signo(may.anios[a].b)}</td></tr>`).join("")}
+    <tr class="total"><td>Lo habitual (${D.mensual.habitual.join("-")})</td><td class="n">${signo(x.habitual.cubierta)}</td><td class="n">${signo(x.habitual.a)}</td><td class="n"><strong>${signo(x.habitual.b)}</strong></td><td></td><td class="n">${signo(may.habitual.b)}</td></tr></tbody>`;
 }
+
 // Canasta básica: líneas de pobreza del INEI en el dominio Costa urbana (el INEI no publica líneas por departamento)
 function panelCanasta() {
   const l = D.pobreza?.lineas;
@@ -4156,14 +4228,12 @@ function pintarResumen() {
   // Precios: los mercados (semanal, alimentos de la región) como dato principal y la inflación (mensual) como línea secundaria
   const ipcU = D.ipc?.serie?.at(-1), lineaIPC = ipcU ? `<p class="nota">Inflación en Piura, ${mesTxt(ipcU.mes)}: ${pct2(ipcU.doce_meses)} en 12 meses
     (nacional ${pct2(ipcU.nacional_doce_meses)}).</p>` : "";
-  if (D.sisap) {
-    const xs = alimentosVisibles(D.sisap, "mayorista"), sube = xs.filter(p => p.mayorista.var >= 1).length, P = periodoAlim(D.sisap);
-    const pr = promedioAlim(D.sisap, "mayorista");
-    ps.ipc = (panel({ titulo: `Subieron ${sube} de ${xs.length} alimentos en los mercados de Piura`, clase: "compacto", vence: "sisap",
-      ...(pr ? { cifra: signo(pr.m.var), ud: `en promedio entre ${P.base} y ${P.reciente}, mercados mayoristas (lo habitual en estas fechas:
-        ${signo(pr.m.habitual)}; ${pr.m.n} alimentos, ponderados por su peso en el IPC)` } : { ud: `Entre ${P.base} y ${P.reciente}, mercados mayoristas` }),
-      frase: `${fraseAlimentos(D.sisap, "mayorista")[1]}.`, extra: lineaIPC,
-      ver: ["#precios", "Ver precios"], pie: `Midagri (SISAP), al ${fecha(D.sisap.fecha_corte)}${ipcU ? `; INEI, ${mesTxt(ipcU.mes)}` : ""}` }));
+  const ce = canastaEstimada();
+  if (ce) {
+    ps.ipc = (panel({ titulo: `La canasta básica de alimentos ${ce.v >= 0.05 ? "subió" : ce.v <= -0.05 ? "bajó" : "no varió"} en ${ce.a} (estimación)`, clase: "compacto", vence: "sisap",
+      cifra: signo(ce.v), ud: `de enero a ${ce.mes}; lo habitual: ${signo(ce.h)}. ${Math.abs(ce.soles) < 0.5 ? "Casi lo mismo" : `Unos S/ ${num(Math.abs(ce.soles), 0)} ${ce.soles > 0 ? "más" : "menos"}`} por persona al mes`,
+      frase: "Estimación del Observatorio con los precios de los mercados de Piura (SISAP) y el IPC del INEI; no es una cifra oficial.", extra: lineaIPC,
+      ver: ["#precios", "Ver precios"], pie: `Midagri (SISAP) e INEI, al ${fecha(ce.c.fecha_corte)}` }));
   } else if (ipcU) {
     const s = D.ipc.serie.slice(-24), u = ipcU, dif = u.doce_meses - u.nacional_doce_meses;
     ps.ipc = (panel({ titulo: `La inflación en Piura es ${dif >= 0.1 ? "mayor que" : dif <= -0.1 ? "menor que" : "similar a"} la nacional`,
@@ -4494,6 +4564,8 @@ function pintarFuentes() {
     ["Líneas de pobreza (canasta básica)", D.pobreza && { ...D.pobreza, fecha_corte: `${fecha(D.pobreza.fecha_corte)} (año ${D.pobreza.lineas.total.anios.at(-1)})` }, "Anual (mayo), a mano"],
     ["IPC de Piura", D.ipc && { ...D.ipc, fecha_corte: `${fecha(D.ipc.fecha_corte)} (${mesTxt(D.ipc.ultimo_mes)})` }, "Mensual (día 1)", "ipc"],
     [`Precios de ${D.sisap?.productos.length ?? ""} alimentos en los mercados de Piura (mayorista y minorista)`, D.sisap, "Semanal, a mano (se exporta el Excel del SISAP)", "sisap"],
+    ["Precio del diésel en Piura", D.mensual?.diesel && { ...D.mensual.diesel, fecha_corte: mesTxt(D.mensual.diesel.fecha_corte) }, "Mensual, con el script diesel_osinergmin.py"],
+    ["Canasta básica de alimentos de Costa urbana (pesos, año base 2010)", D.canasta && { fuente: D.canasta.fuente_pesos.documento, url: D.canasta.fuente_pesos.url, fecha_corte: "año base 2010" }, "Fijo"],
     ["Límites distritales del mapa", D.mapa && { ...D.mapa, fecha_corte: "límites de 2007" }, "Fijo"],
     ["Vulnerabilidad por manzana (Censo 2025, Ciudad de Piura y localidades)", CENSO, "Fijo: se procesa a mano una sola vez"],
   ];
@@ -4562,7 +4634,7 @@ document.addEventListener("click", async ev => {
 function redibujar(tab) {
   if (tab === "clima") graficosClima();
   if (tab === "dengue" && D.d26) graficoSemanas();
-  if (tab === "precios") { graficosIPC(); graficoAlimentos(); }
+  if (tab === "precios") { graficosIPC(); pintarProducto(); }
   if (tab === "salud") { graficoOcupacion(); pintarMapaSalud(); }
   if (tab === "obras") pintarMapaObras();
   // vulInd() es nulo mientras la pestaña arma su selector (el censo puede venir antes, cargado por Fuentes y método)
@@ -4603,10 +4675,10 @@ let listo;
 const arranque = new Promise(r => listo = r);  // se cumple cuando D tiene los datos de la carga inicial
 (async () => {
   mostrar();
-  const [gasto, inv, fen, obras, dh, d26, camas, mapa, ipc, camasSerie, ipress, pobreza, cortos, nombres, deps, revisadas, lluvia, tsm, enfen, nino12, imerg, temp, rios, censoRes, sisap] = await Promise.all(["gasto_piura.json",
+  const [gasto, inv, fen, obras, dh, d26, camas, mapa, ipc, camasSerie, ipress, pobreza, cortos, nombres, deps, revisadas, lluvia, tsm, enfen, nino12, imerg, temp, rios, censoRes, sisap, mensual, canasta] = await Promise.all(["gasto_piura.json",
     "inversiones_piura.json", "fen_piura.json", "infobras_piura.json", "dengue_historico.json", "dengue_2026.json", "camas_piura.json",
     "piura_distritos.json", "ipc_piura.json", "camas_serie.json", "ipress_piura.json", "lineas_pobreza.json", "nombres_cortos_obras.json", "nombres_entidades.json", "infobras_departamentos.json", "obras_revisadas.json",
-    "lluvia_piura.json", "tsm_paita.json", "enfen_comunicado.json", "nino12.json", "imerg_piura.json", "temperatura_piura.json", "rios_piura.json", "censo_resumen.json", "precios_sisap.json"].map(cargar));
+    "lluvia_piura.json", "tsm_paita.json", "enfen_comunicado.json", "nino12.json", "imerg_piura.json", "temperatura_piura.json", "rios_piura.json", "censo_resumen.json", "precios_sisap.json", "precios_mensual.json", "canasta_estimada.json"].map(cargar));
   if (!gasto) {
     listo();  // la pestaña Vulnerabilidad no depende del gasto: que no se quede esperando
     $("resumen-paneles").innerHTML = `<p>No se pudieron cargar los datos. Si abriste el archivo directamente, sírvelo con
@@ -4616,7 +4688,7 @@ const arranque = new Promise(r => listo = r);  // se cumple cuando D tiene los d
   D.gasto = { ...gasto, rows: filas(gasto) };
   if (inv) { D.invMeta = inv; D.inv = Object.fromEntries(filas(inv).map(r => [r.cui, r])); }
   if (fen) D.fen = { ...fen, rows: filas(fen) };
-  Object.assign(D, { obras, dh, d26, camas, mapa, ipc, camasSerie, ipress, pobreza, cortos, nombres, deps, revisadas, lluvia, tsm, enfen, nino12, imerg, temp, rios, censoRes, sisap });
+  Object.assign(D, { obras, dh, d26, camas, mapa, ipc, camasSerie, ipress, pobreza, cortos, nombres, deps, revisadas, lluvia, tsm, enfen, nino12, imerg, temp, rios, censoRes, sisap, mensual, canasta });
   listo();
   // Nombres legibles de entidades: diccionario o, si falta, la regla sobre el nombre original
   for (const k in gasto.nombres.entidad) gasto.nombres.entidad[k] = nombres?.mef?.[k] || legible(gasto.nombres.entidad[k]);

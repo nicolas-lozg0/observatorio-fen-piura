@@ -51,4 +51,28 @@ from precios_sisap import promedio_ponderado
 f = lambda v, h: {"suficiente": True, "var": v, "habitual": h}
 assert promedio_ponderado([{"peso": 3, "t": f(10, 0)}, {"peso": 1, "t": f(-2, 4)}, {"peso": 9, "t": f(50, None)}], "t") == \
     {"var": 7.0, "habitual": 1.0, "n": 2}, "pondera y deja fuera los que no tienen lo habitual"
+
+# Series mensuales y canasta estimada (precios_mensual.py, 25/11/2026)
+from precios_mensual import CORRESPONDENCIA, mensual, separacion
+assert separacion([1, 3, 1, 3, 4, 5]) == 4, "se separa desde el primer mes que ya no vuelve bajo el umbral"
+assert separacion([-3, -4, -5]) == 1 and separacion([3, 4, 1]) is None and separacion([None, 3, None, 4]) == 2
+assert mensual({"2026-01-05": 2.0, "2026-01-20": 4.0, "2026-01-28": 9.0}, 2026, 1, hasta=25) == 3.0, "mes parcial: hasta el día de corte"
+assert mensual({"2026-01-05": 2.0}, 2026, 1) is None, "menos de 2 fechas: mes vacío"
+DATOS = HISTORIAL.parent.parent / "docs" / "data"
+pesos = json.loads((DATOS / "canasta_pesos.json").read_text(encoding="utf-8"))
+assert len(pesos["productos"]) == 110 and abs(pesos["total_valor"] - 4.2727) < 1e-3, "canasta de Costa urbana: 110 productos, S/ 4,27 al día"
+assert {n for n, _ in CORRESPONDENCIA.values()} <= {f["n"] for f in pesos["productos"] if f["valor_costa_urbana"] > 0}
+c = json.loads((DATOS / "canasta_estimada.json").read_text(encoding="utf-8"))
+x = c["minorista"]
+assert 30 < x["cobertura"] < 40 and abs(c["fuera_del_hogar"] - 31.3) < 0.1
+for a, r in x["anios"].items():  # (b) = cubierta × cobertura + resto con el IPC (alimentos dentro del hogar, restaurantes fuera)
+    cob, f = x["cobertura"] / 100, c["fuera_del_hogar"] / 100
+    assert abs(r["b"] - (cob * r["cubierta"] + (1 - cob - f) * r["ipc"]["alimentos"] + f * r["ipc"]["restaurantes"])) < 0.02, a
+assert x["anios"]["2026"]["ipc"] == {"alimentos": 5.86, "restaurantes": 3.83}, "IPC nacional ene.-oct. 2026 (INEI, Cuadro 1)"
+m = json.loads((DATOS / "precios_mensual.json").read_text(encoding="utf-8"))
+pm = {q["nombre"]: q for q in m["productos"]}
+z = pm["Zanahoria"]["anios"]["2026"]
+assert abs(z["precio"][0] / z["diciembre_anterior"] * 100 - z["indice"][0]) < 0.01, "índice: diciembre anterior = 100"
+assert pm["Papa yungay"]["acumulada"] is None, "papa yungay: sin diciembre de 2023, sin lo habitual"
+assert m["diesel"]["sube_desde"] == 3 and m["shocks"]["enfen"]["fecha"] == "2026-02-13"
 print("test_precios_sisap: todo bien")

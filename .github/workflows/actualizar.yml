@@ -42,6 +42,10 @@ jobs:
       - id: ipc
         run: python scripts/ipc_inei.py  # dato mensual: solo descarga el informe del INEI si hay uno nuevo
         continue-on-error: true
+      # Diésel en Piura (Osinergmin, reporte mensual) y, con él y el IPC, las series mensuales de precios y la canasta estimada
+      - id: diesel
+        run: python scripts/diesel_osinergmin.py && python scripts/precios_mensual.py
+        continue-on-error: true
       # Clima: lluvia (Senamhi), temperatura del mar (NOAA) y estado del ENFEN. Senamhi y ENFEN son servidores del
       # Estado peruano: si no responden a GitHub, como Infobras y SUSALUD, se verá aquí.
       - id: lluvia
@@ -81,6 +85,7 @@ jobs:
         env:
           FEN: ${{ steps.fen.outcome }}
           IPC: ${{ steps.ipc.outcome }}
+          DIESEL: ${{ steps.diesel.outcome }}
           LLUVIA: ${{ steps.lluvia.outcome }}
           TSM: ${{ steps.tsm.outcome }}
           NINO12: ${{ steps.nino12.outcome }}
@@ -94,7 +99,8 @@ jobs:
             echo ""
             echo "| Fuente | Script | Resultado |"
             echo "| --- | --- | --- |"
-            for f in "Emergencia FEN (MEF)|fen_mef.py|$FEN" "IPC (INEI)|ipc_inei.py|$IPC" "Lluvia (Senamhi)|lluvia_senamhi.py|$LLUVIA" \
+            for f in "Emergencia FEN (MEF)|fen_mef.py|$FEN" "IPC (INEI)|ipc_inei.py|$IPC" \
+                     "Diésel (Osinergmin) y canasta estimada|diesel_osinergmin.py y precios_mensual.py|$DIESEL" "Lluvia (Senamhi)|lluvia_senamhi.py|$LLUVIA" \
                      "Temperatura del mar (NOAA)|tsm_paita.py|$TSM" "Niño 1+2 semanal (NOAA CPC)|nino12_cpc.py|$NINO12" \
                      "Temperatura del aire (ERA5-Land, Open-Meteo)|temperatura_piura.py|$TEMPERATURA" \
                      "Nivel de los ríos (Senamhi, se acumula)|rios_senamhi.py|$RIOS" \

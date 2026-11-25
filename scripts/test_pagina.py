@@ -23,6 +23,7 @@ Requiere Playwright (pip3 install playwright) y un navegador Chromium: usa Brave
 instalados (Playwright no trae navegador para macOS 12); otro, con la variable NAVEGADOR=/ruta/al/ejecutable.
 Uso: python3 scripts/test_pagina.py
 """
+import json
 import os
 import socket
 import subprocess
@@ -118,55 +119,47 @@ def main():
                 }""")
                 revisar(r["n"] >= 2 and not r["choques"] and not r["fuera"],
                         f"{ancho}px gráfico de dengue: {r['n']} rótulos, se enciman {r['choques']}, fuera {r['fuera']}")
-                # Precios de alimentos (SISAP): una fila por alimento, rayas según «Comparar con», cifras sin encimarse ni salirse
+                # Precios (25/11/2026): canasta estimada, un producto a la vez (con su lista), inflación y canasta oficial; la tarjeta del
+                # Resumen da la canasta estimada; el gráfico de la quincena pasó a la infografía (enlazada en el detalle)
                 pg.evaluate("location.hash = '#precios'")
-                pg.wait_for_timeout(500)
+                pg.wait_for_function("document.querySelector('#g-prod1 svg')", timeout=15000)
                 r = pg.evaluate("""() => {
-                    const g = () => document.querySelector('#g-alim svg'), elegir = (id, v) => { const s = document.getElementById(id);
-                        s.value = v; s.dispatchEvent(new Event('change')); };
-                    // rayas de lo habitual (sin contar la línea punteada que une la raya con la barra)
-                    const rayas = () => g().querySelectorAll('.alim-fila line:not([stroke-dasharray])').length, w = () => g().viewBox.baseVal.width;
-                    const cajas = () => [...g().querySelectorAll('text')].map(t => { const b = t.getBBox();
-                        return { t: t.textContent, x0: b.x, y0: b.y, x1: b.x + b.width, y1: b.y + b.height }; });
-                    const c = cajas(), choques = c.flatMap((a, i) => c.slice(i + 1).filter(b => a.x0 < b.x1 - 1 && b.x0 < a.x1 - 1
-                        && a.y0 < b.y1 - 1 && b.y0 < a.y1 - 1).map(b => a.t + ' / ' + b.t));
-                    const out = { filas: g().querySelectorAll('.alim-fila').length, n: D.sisap.productos.length, choques,
-                        fuera: c.filter(a => a.x0 < -1 || a.x1 > w() + 1).map(a => a.t), habitual: rayas(),
-                        esperadas: D.sisap.productos.filter(p => p.mayorista.habitual != null).length,
-                        // fuera de lo habitual: nombre en negrita y línea punteada, los mismos que dice el titular
-                        negritas: g().querySelectorAll('.alim-fila.fuera').length, punteadas: g().querySelectorAll('.alim-fila line[stroke-dasharray]').length,
-                        fuera_dato: D.sisap.productos.filter(p => fueraHabitual(p.mayorista)).length,
-                        // leyenda: 2 cuadrados (barras) y 1 raya
-                        cajas_ley: document.querySelectorAll('#panel-alim .leyenda .caja').length, raya_ley: !!document.querySelector('#panel-alim .leyenda .raya'),
-                        tit: document.getElementById('alim-tit').textContent };
-                    // simbología simple (24/11/2026): sin * ni † en los nombres; orden de la pestaña: mercados, inflación (un solo bloque
-                    // con selector) y canasta; la tarjeta del Resumen da los mercados primero
-                    out.simbolos = ![...g().querySelectorAll('.alim-fila .nombre')].some(t => /[*†]/.test(t.textContent));
-                    const orden = [...document.querySelectorAll('#precios-paneles > .panel')].map(x => x.id || x.querySelector('h3').textContent.slice(0, 12));
-                    out.orden = orden[0] === 'panel-alim' && orden[1] === 'panel-ipc' && orden.length === 3;
-                    out.ipc = document.querySelectorAll('#panel-ipc .grafico').length === 1 && !!$('f-ipc-graf')
-                      && document.querySelectorAll('#panel-ipc .cifras-ipc .cifra').length === 2;
+                    const elegir = (id, v) => { const s = document.getElementById(id); s.value = v; s.dispatchEvent(new Event('change')); };
+                    const out = {}, e = canastaEstimada(), M = D.mensual;
+                    const orden = [...document.querySelectorAll('#precios-paneles > .panel')].map(x => x.id || 'otro');
+                    out.orden = orden.join() === 'panel-canasta-est,panel-producto,panel-ipc,otro';
+                    out.canasta = $('panel-canasta-est').querySelector('.cifra').textContent.trim() === signo(e.v)
+                      && /no es una cifra oficial del INEI/.test($('panel-canasta-est').textContent) && /S\\/ [0-9]+ para una familia de 4/.test($('panel-canasta-est').textContent);
+                    const tarjeta = [...document.querySelectorAll('#resumen-paneles .panel')].find(p => /^La canasta básica de alimentos/.test(p.querySelector('h3')?.textContent || ''));
+                    out.resumen = tarjeta?.querySelector('.cifra')?.textContent.trim() === signo(e.v) && /estimación/.test(tarjeta.querySelector('h3').textContent);
+                    // por defecto, el de mayor diferencia acumulada hacia arriba; la lista va de mayor a menor
+                    const con = M.productos.filter(p => p.acumulada != null), max = con.reduce((a, b) => b.acumulada > a.acumulada ? b : a);
+                    const lista = [...document.querySelectorAll('#prod-lista [data-p]')];
+                    const difs = lista.map(b => con.find(p => p.nombre === b.dataset.p).acumulada);
+                    out.defecto = $('f-prod').value === max.nombre && difs.every((d, j) => !j || difs[j - 1] >= d) && lista.length === con.length;
+                    // gráficos: líneas de 2026, lo habitual, 2024 (punteada) y 2025; sombreado; marcas del ENFEN y del diésel; barras por mes
+                    const g1 = $('g-prod1');
+                    out.lineas = g1.querySelectorAll('polyline').length >= 4 && !!g1.querySelector('polyline[stroke-dasharray]') && !!g1.querySelector('polygon')
+                      && /^(Alerta ENFEN \\(13 feb\\.\\)|ENFEN)\\|(Sube el diésel \\(mar\\.\\)|Diésel)$/.test([...g1.querySelectorAll('.marca-shock')].map(t => t.textContent).join('|'))  // cortos en el celular
+                      && !!document.querySelector('#prod-ley1 .punteada');
+                    out.barras = $('g-prod2').querySelectorAll('rect[rx]').length === max.diferencia_var.slice(0, M.mes_fin).filter(v => v != null).length;
+                    out.diesel = $('g-diesel').querySelectorAll('polyline').length >= 4;
+                    // clic en la lista: cambia el producto, el titular y el selector
+                    lista.find(b => b.dataset.p === 'Papa amarilla').click();
+                    out.clic = $('f-prod').value === 'Papa amarilla' && /^Papa amarilla/.test($('prod-tit').textContent)
+                      && document.querySelector('#prod-lista [aria-pressed=true]').dataset.p === 'Papa amarilla';
+                    // «se separa»: primer mes desde el cual la diferencia supera el umbral y no vuelve
+                    const pa = M.productos.find(p => p.nombre === 'Papa amarilla');
+                    out.separa = pa.separa != null && pa.diferencia.slice(pa.separa - 1, M.mes_fin).every(d => d == null || Math.abs(d) > M.umbral_separa)
+                      && $('prod-tit').textContent.includes(MESES[pa.separa - 1]);
+                    elegir('f-prod', max.nombre);
+                    out.ipc = document.querySelectorAll('#panel-ipc .grafico').length === 1 && !!$('f-ipc-graf') && document.querySelectorAll('#panel-ipc .cifras-ipc .cifra').length === 2;
                     elegir('f-ipc-graf', 'mensual'); out.ipcMensual = !!document.querySelector('#g-ipc rect'); elegir('f-ipc-graf', 'anual');
-                    out.resumen = [...document.querySelectorAll('#resumen-paneles .panel h3')].some(h => /^Subieron [0-9]+ de [0-9]+ alimentos/.test(h.textContent));
-                    // cifra promedio sobre el gráfico y la misma en la tarjeta del Resumen
-                    const m = D.sisap.promedio.mayorista, prom = $('alim-prom').textContent;
-                    const tarjeta = [...document.querySelectorAll('#resumen-paneles .panel')].find(p => /^Subieron/.test(p.querySelector('h3')?.textContent || ''));
-                    out.promedio = /^En promedio, los alimentos (subieron|bajaron|no variaron)/.test(prom) && prom.includes(signo(m.habitual))
-                      && tarjeta?.querySelector('.cifra')?.textContent.trim() === signo(m.var) && $('alim-prom-n').textContent.includes(`${m.n} alimentos`);
-                    elegir('f-alim-orden', 'dif');
-                    const prim = g().querySelector('.alim-fila .nombre').textContent.replace(/[*†]/g, ''), difs = D.sisap.productos
-                        .filter(p => p.mayorista.habitual != null && p.mayorista.var != null).sort((a, b) => (b.mayorista.var - b.mayorista.habitual) - (a.mayorista.var - a.mayorista.habitual));
-                    out.orden = prim === difs[0].nombre; elegir('f-alim-orden', 'var');
-                    elegir('f-alim-comp', ''); out.sin = rayas();
-                    elegir('f-alim-tipo', 'minorista'); out.frase = document.getElementById('alim-tit').textContent;
-                    out.tabla = document.querySelector('#tabla-alim caption').textContent.includes('minoristas');
-                    elegir('f-alim-tipo', 'mayorista'); elegir('f-alim-comp', 'habitual');
+                    out.infografia = !!document.querySelector('#precios a[href="infografia/precios_quincena.html"]');
+                    out.tablas = document.querySelectorAll('#tabla-canasta tbody tr').length === D.canasta.correspondencia.length
+                      && document.querySelectorAll('#tabla-canasta-res tbody tr').length === M.anios.length + 1;
                     return out; }""")
-                revisar(r["promedio"] and r["simbolos"] and r["orden"] and r["ipc"] and r["ipcMensual"] and r["resumen"] and r["filas"] == r["n"] >= 19 and r["habitual"] == r["esperadas"] and r["sin"] == 0
-                        and r["negritas"] == r["punteadas"] == r["fuera_dato"] and r["cajas_ley"] == 2 and r["raya_ley"] and r["orden"]
-                        and r["tit"].startswith("Entre la 2.ª quincena") and "mayoristas" in r["tit"]
-                        and "minoristas" in r["frase"] and r["tabla"] and not r["choques"] and not r["fuera"],
-                        f"{ancho}px precios de alimentos: {r}")
+                revisar(all(r.values()), f"{ancho}px precios: {r}")
                 r = pg.evaluate("""() => ({ alto: Math.min(...[...document.querySelectorAll('.pestanas a')].map(a => a.getBoundingClientRect().height)),
                     compartir: !!document.getElementById('compartir'), siguientes: document.querySelectorAll('.siguiente a').length,
                     actualizado: document.getElementById('actualizado').textContent })""")
@@ -647,6 +640,24 @@ def main():
                     f"vulnerabilidad, zoom y vista: {rz}")
             revisar(r["sal"] == r["esperado"] and r["regla"] and r["desfasada"],
                     f"título de salud «{r['sal']}», esperado «{r['esperado']}», regla {r['regla']}, serie desfasada {r['desfasada']}")
+            pg.close()
+            # Infografía de la quincena (docs/infografia/): con los valores por defecto, exactamente las cifras de precios_sisap.json
+            # (las del gráfico que estaba en la pestaña); y el botón descarga un PNG
+            pg = nav.new_page(viewport={"width": 1100, "height": 900})
+            pg.goto(base.replace("index.html", "infografia/precios_quincena.html"))
+            pg.wait_for_function("window.INFOGRAFIA", timeout=20000)
+            py = json.loads((DOCS / "data" / "precios_sisap.json").read_text(encoding="utf-8"))
+            js = pg.evaluate("window.INFOGRAFIA")
+            claves = ("base", "reciente", "var", "anios", "habitual", "habitual_base", "habitual_reciente", "suficiente", "vs_anio_anterior")
+            dif = [(a["nombre"], t, k) for a, b in zip(py["productos"], js["productos"]) for t in ("mayorista", "minorista") for k in claves
+                   if (a[t][k] != {str(x): v for x, v in b[t][k].items()} if k == "anios" else a[t][k] != b[t][k])]
+            revisar(not dif and js["promedio"] == py["promedio"] and js["base"] == py["base"] and js["reciente"] == py["reciente"],
+                    f"infografía: {len(dif)} diferencias con precios_sisap.json {dif[:5]}")
+            with pg.expect_download() as d:
+                pg.click("#descargar")
+            ruta = d.value.path()
+            revisar(d.value.suggested_filename.endswith(".png") and ruta and Path(ruta).read_bytes()[:4] == b"\x89PNG",
+                    f"infografía: descarga {d.value.suggested_filename}")
             pg.close()
             # Aviso de datos viejos: con el reloj 60 días adelante deben aparecer avisos
             pg = nav.new_page()

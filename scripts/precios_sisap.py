@@ -221,3 +221,5 @@ def promedio_ponderado(productos, tipo):
 
 if __name__ == "__main__":
     guardar("precios_sisap.json", calcular(actualizar_historial()))
+    import precios_mensual  # series mensuales, historial para la infografía y canasta estimada
+    precios_mensual.main()

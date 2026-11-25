@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Precios de alimentos en Piura: la última quincena frente a lo habitual (infografía)</title>
+<style>
+  @font-face { font-family: "Nunito Sans"; font-weight: 400; font-display: swap; src: url(../fuentes/nunito-sans-latin-400-normal.woff2) format("woff2"); }
+  @font-face { font-family: "Nunito Sans"; font-weight: 700; font-display: swap; src: url(../fuentes/nunito-sans-latin-700-normal.woff2) format("woff2"); }
+  :root { --texto: #14202e; --texto-2: #3e4751; --texto-3: #56616e; --linea: #dbe2eb; --fondo: #eef2f7; --sube: #c2410c; --baja: #2563a8;
+    --acento: #2a78d6; --marino: #0b2545; font-family: "Nunito Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: var(--texto); }
+  body { margin: 0; background: var(--fondo); }
+  main { max-width: 960px; margin: 0 auto; padding: 20px 16px 40px; }
+  .controles { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px 12px; margin-bottom: 12px; font-size: 14px; color: var(--texto-2); }
+  .controles label { display: flex; flex-direction: column; gap: 4px; }
+  .controles select, .controles input { min-height: 40px; font: inherit; color: var(--texto); border: 1px solid var(--linea); border-radius: 8px; padding: 0 8px; background: #fff; }
+  .barra-acc { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
+  .barra-acc button { min-height: 44px; padding: 0 18px; border: 0; border-radius: 8px; background: var(--marino); color: #fff; font: 700 15px/1 inherit; cursor: pointer; }
+  .barra-acc a { color: var(--acento); font-size: 14px; }
+  .lamina { background: #fff; border-radius: 12px; padding: 24px; }
+  h1 { font-size: 22px; line-height: 1.25; margin: 0 0 6px; }
+  .frase { margin: 0 0 4px; font-size: 16px; }
+  .ud { margin: 0 0 12px; color: var(--texto-2); font-size: 14px; }
+  .prom { margin: 8px 0 2px; font-size: 17px; font-weight: 700; }
+  .nota { color: var(--texto-3); font-size: 13px; margin: 6px 0; }
+  .leyenda { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 14px; color: var(--texto-2); margin: 10px 0 6px; align-items: center; }
+  .leyenda .caja::before { content: ""; display: inline-block; width: 12px; height: 12px; border-radius: 2px; background: var(--c); margin-right: 6px; vertical-align: -1px; }
+  .leyenda .raya::before { content: ""; display: inline-block; width: 3px; height: 12px; background: var(--texto); margin-right: 6px; vertical-align: -1px; }
+  .grafico { position: relative; }
+  .grafico svg { display: block; width: 100%; height: auto; font: 12px "Nunito Sans", system-ui, sans-serif; fill: var(--texto-2); }
+  .grafico .alim-fila.fuera .nombre { font-weight: 700; }
+  .grafico .rotulo { font-weight: 700; fill: var(--texto); }
+  .fuente { color: var(--texto-3); font-size: 12px; margin-top: 12px; }
+  .error { color: var(--sube); font-weight: 700; }
+</style>
+</head>
+<body>
+<main>
+  <div class="controles">
+    <label>Último día<input type="date" id="f-corte"></label>
+    <label>Años de referencia, desde<select id="f-desde"></select></label>
+    <label>hasta<select id="f-hasta"></select></label>
+    <label>Mercado<select id="f-tipo"><option value="mayorista">Mayorista</option><option value="minorista">Minorista</option></select></label>
+    <label>Comparar con<select id="f-comp"></select></label>
+    <label>Ordenar por<select id="f-orden"><option value="var">Variación del año</option><option value="dif">Diferencia con lo habitual</option></select></label>
+  </div>
+  <div class="barra-acc"><button type="button" id="descargar">Descargar PNG</button>
+    <a href="../#precios">Volver a la pestaña Precios</a> <a id="enlace" href="#">Enlace a esta vista</a></div>
+  <div class="lamina" id="lamina">
+    <h1 id="titulo">Cargando…</h1>
+    <p class="frase" id="frase"></p>
+    <p class="ud" id="ud"></p>
+    <p class="prom" id="prom"></p>
+    <p class="nota" id="prom-n"></p>
+    <div class="leyenda"><span class="caja" style="--c:var(--sube)">Subió</span><span class="caja" style="--c:var(--baja)">Bajó</span><span class="raya" id="raya"></span></div>
+    <div class="grafico" id="grafico"></div>
+    <p class="nota" id="nota"></p>
+    <p class="fuente" id="fuente"></p>
+  </div>
+</main>
+<script src="precios_quincena.js"></script>
+</body>
+</html>
