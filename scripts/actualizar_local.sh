@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Actualiza desde esta computadora las fuentes que no responden a los servidores de GitHub:
-# Infobras (obras) y SUSALUD (camas del último mes, serie de 24 meses y ubicación RENIPRESS). Luego hace commit
+# Infobras (obras), SUSALUD (camas del último mes, serie de 24 meses y ubicación RENIPRESS) y los precios del SISAP
+# (exportados a mano en data/raw/sisap/). Luego hace commit
 # y push solo de esos archivos de datos.
 # Uso:  scripts/actualizar_local.sh            (actualiza, hace commit y push)
 #       scripts/actualizar_local.sh --sin-push (actualiza y hace commit, sin push; para probar)
@@ -8,7 +9,7 @@
 set -u
 
 cd "$(dirname "$0")/.." || exit 1
-ARCHIVOS="docs/data/infobras_piura.json docs/data/infobras_departamentos.json docs/data/camas_piura.json docs/data/camas_serie.json docs/data/ipress_piura.json"
+ARCHIVOS="docs/data/infobras_piura.json docs/data/infobras_departamentos.json docs/data/camas_piura.json docs/data/camas_serie.json docs/data/ipress_piura.json docs/data/precios_sisap.json data/sisap_piura.json"
 PUSH=1
 [ "${1:-}" = "--sin-push" ] && PUSH=0
 
@@ -35,6 +36,8 @@ echo "== SUSALUD, serie de 24 meses (unos 30 MB; SUSALUD revisa meses pasados, p
 python3 scripts/test_camas.py >/dev/null && python3 scripts/camas_serie.py || fallos="$fallos camas_serie.py"
 echo "== RENIPRESS, ubicación de los establecimientos (unos 20 MB)"
 python3 scripts/renipress.py || fallos="$fallos renipress.py"
+echo "== SISAP, precios de alimentos (lee los Excel exportados a mano en data/raw/sisap/)"
+python3 scripts/test_precios_sisap.py >/dev/null && python3 scripts/precios_sisap.py || fallos="$fallos precios_sisap.py"
 
 git add $ARCHIVOS
 if git diff --cached --quiet; then

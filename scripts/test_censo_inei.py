@@ -14,16 +14,25 @@ d["features"] = json.loads((DATOS / "censo_manzanas.json").read_text(encoding="u
 h10 = json.loads((DATOS / "censo_hex10.json").read_text(encoding="utf-8"))
 ks = [i["k"] for i in d["indicadores"]]
 
-assert ks == list("abcdefghij"), ks  # j: paredes de adobe o tapia (22/11/2026)
+# j: paredes de adobe o tapia (22/11/2026); q a an: ronda de variables nuevas (24/11/2026)
+NUEVOS = ["q", "r", "s", "t", "w", "x", "le", "y", "z", "k", "l", "o", "an"]
+assert ks == list("abcdefghij") + NUEVOS, ks
+UNID = {i["k"]: i["unidad"] for i in d["indicadores"]}
+MAG = {k for k, u in UNID.items() if u != "pct"}  # días y horas: promedio por vivienda, no un %
+assert UNID["r"] == "dias" and UNID["s"] == "horas" and len(MAG) == 2
+TOPE = {"r": 7, "s": 168}  # numerador ≤ tope × denominador
+assert {i["grupo"] for i in d["indicadores"]} == {"agua", "vivienda", "hogar", "poblacion"}
+assert {i["k"] for i in d["indicadores"] if i.get("rango")} == {"g", "le"}
 for nombre in ("censo_piura.json", "censo_hex10.json", "censo_manzanas.json"):
     assert (DATOS / nombre).stat().st_size < 3 * 2**20, f"{nombre} debe pesar menos de 3 MB"
 assert RUTA.stat().st_size < 0.5 * 2**20, "la base (se carga al abrir la pestaña) debe ser liviana"
 # 5 clases: 4 cortes fijos crecientes entre 0 y 100 (ronda 17: una escala en palabras para servicios y vivienda)
 cortes = {i["k"]: i["cortes"] for i in d["indicadores"]}
 for k, c in cortes.items():
-    assert len(c) == 4 and all(0 < a < b < 100 for a, b in zip(c, c[1:])), (k, c)
-assert all(cortes[k] == [5, 20, 50, 80] for k in "abcdhij")
-assert [len(i.get("palabras", [])) for i in d["indicadores"]] == [5, 5, 5, 5, 0, 0, 0, 5, 5, 5]
+    assert len(c) == 4 and all(0 < a < b < TOPE.get(k, 100) for a, b in zip(c, c[1:])), (k, c)
+assert all(cortes[k] == [5, 20, 50, 80] for k in ["a", "b", "c", "d", "h", "i", "j", "q", "t", "w", "x", "le", "y", "z"])
+assert cortes["r"] == [0.5, 1, 2, 4] and cortes["s"] == [42, 84, 126, 147]
+assert [len(i.get("palabras", [])) for i in d["indicadores"]] == [5, 5, 5, 5, 0, 0, 0, 5, 5, 5] + [5, 0, 0, 5, 5, 5, 5, 5, 5, 0, 0, 0, 0]
 assert cortes["e"] == [15, 20, 25, 30] and cortes["f"] == [4, 8, 12, 16] and cortes["g"] == [30, 50, 65, 80]
 assert "adobe" in [i for i in d["indicadores"] if i["k"] == "h"][0]["numerador"] and "no incluye adobe" in [i for i in d["indicadores"] if i["k"] == "h"][0]["numerador"]
 # Localidades: Ciudad de Piura primero y luego los centros poblados de 2000 viviendas o más, cada uno con su archivo
@@ -31,7 +40,7 @@ locs = d["localidades"]
 # desde el 20/11/2026, todo el departamento: la Ciudad de Piura, 7 centros poblados de la provincia y 18 del resto
 assert locs[0]["id"] == "metro" and locs[0]["nombre"] == "Ciudad de Piura" and len(locs) == 26, [x["id"] for x in locs]
 for x in locs:
-    assert all(0 <= x[k][0] <= x[k][1] for k in ks), x["id"]
+    assert all(0 <= x[k][0] <= TOPE.get(k, 1) * x[k][1] for k in ks), x["id"]
     if x["id"] == "metro":
         continue
     assert x["v"] >= 2000 and (DATOS / x["archivo"]).stat().st_size < 1 * 2**20, (x["id"], x["v"])
@@ -57,10 +66,13 @@ for f in d["features"]:
     assert f["id"].startswith(p["u"]) and p["u"] in d["distritos"], f["id"]
     for k in ks:
         n, den = p[k][:2]
-        assert 0 <= n <= den, (f["id"], k, p[k])  # porcentaje entre 0 y 100
+        assert 0 <= n <= TOPE.get(k, 1) * den, (f["id"], k, p[k])  # porcentaje entre 0 y 100 (días ≤ 7, horas ≤ 168)
         suma[p["u"]][k][0] += n
         suma[p["u"]][k][1] += den
     assert p["g"][0] <= p["g"][2] <= p["g"][1], (f["id"], p["g"])  # mínimo ≤ máximo ≤ población
+    assert p["le"][0] <= p["le"][2] <= p["le"][1], (f["id"], p["le"])
+    assert p["t"][1] == p["ho"] and p["k"][1] <= p["p"] and p["o"][1] == p["an"][1] == p["p"] - p["e"][0], f["id"]
+    assert p["r"][1] == p["s"][1] == p["c"][1], f["id"]  # días y horas: viviendas con red o pilón, como «sin agua todos los días»
     assert p["a"][1] == p["b"][1] == p["h"][1] == p["i"][1] == p["v"] and p["e"][1] == p["p"], f["id"]
     lon, lat = f["geometry"]["coordinates"][0][0][0] if f["geometry"]["type"] == "MultiPolygon" else f["geometry"]["coordinates"][0][0]
     assert -81.4 < lon < -79.2 and -6.4 < lat < -4.0, (f["id"], lon, lat)  # WGS84 (no UTM), dentro del departamento de Piura
@@ -96,7 +108,7 @@ for nivel in (hx, h10["features"]):  # los dos niveles suman lo mismo que las ma
     for k in ks:
         for j in (0, 1):
             assert sum(h["properties"][k][j] for h in nivel) == sum(p[k][j] for p in normales), (k, j)
-        assert all(0 <= h["properties"][k][0] <= h["properties"][k][1] for h in nivel), k
+        assert all(0 <= h["properties"][k][0] <= TOPE.get(k, 1) * h["properties"][k][1] for h in nivel), k
 assert sum(1 for h in hx if h["properties"]["n"]) > 0.8 * len(hx), "la mayoría de los sectores debe tener nombre"
 assert all(set(i["frase"]) and len(i["frase"]) == 3 for i in d["indicadores"])
 
@@ -106,7 +118,7 @@ assert c["con_poligono"] == sum(x["manzanas"] for x in locs)
 # Totales por distrito = manzanas del mapa + dispersas (en los denominadores de viviendas y población)
 for u, x in d["distritos"].items():
     for k in ks:
-        assert 0 <= x[k][0] <= x[k][1], (u, k)
+        assert 0 <= x[k][0] <= TOPE.get(k, 1) * x[k][1], (u, k)
     assert x["v"] == suma[u]["b"][1] + x["dispersas"]["v"], u
     assert x["p"] == suma[u]["e"][1] + x["dispersas"]["p"], u
     assert x["b"][0] >= suma[u]["b"][0] and x["e"][0] >= suma[u]["e"][0], u
@@ -114,8 +126,9 @@ print(f"OK: {len(ids)} manzanas, {len(ks)} indicadores, coincidencia {100 * c['t
 
 # Vista de número (ronda 17): densidad por hectárea de manzana. Cada sector trae el área de sus manzanas, que suma la de ellas,
 # y los cortes de densidad son fijos por grupo de indicadores
-dens = {i["k"]: i["densidad"] for i in d["indicadores"]}
+dens = {i["k"]: i["densidad"] for i in d["indicadores"] if "densidad" in i}
 assert all(dens[k] == [5, 10, 20, 40] for k in "abcdhijf") and dens["e"] == [10, 20, 40, 80] and dens["g"] == [25, 50, 100, 200]
+assert MAG.isdisjoint(dens), "días y horas no tienen vista de número"
 assert all(h["properties"]["ha"] > 0 for h in d["hexagonos"]["features"] + h10["features"])
 assert all("ha" in f["properties"] for f in d["features"])
 area_mz = sum(f["properties"]["ha"] for f in d["features"] if "km2" not in f["properties"])
@@ -135,3 +148,10 @@ res = json.loads((RUTA.parent / "censo_resumen.json").read_text(encoding="utf-8"
 assert res["sin_desague"] == locs[0]["a"], res["sin_desague"]
 assert res["distritos_sin_desague"] == [[x["nombre"], *x["a"]] for x in d["distritos"].values()], res["distritos_sin_desague"]
 assert sum(x[1] for x in res["distritos_sin_desague"]) == res["sin_desague"][0]
+
+# Cifras de control de los indicadores nuevos (24/11/2026): Ciudad de Piura y validaciones nuevas
+m = locs[0]
+assert abs(100 * m["k"][0] / m["k"][1] - 4.79) < 0.01 and abs(m["s"][0] / m["s"][1] - 72.46) < 0.01, (m["k"], m["s"])
+assert {v["bloque"] for v in d["validaciones"]} >= {"Con al menos una discapacidad + sin ninguna = población de 5 años o más",
+                                                     "Régimen de tenencia = total de hogares"}
+print("Indicadores nuevos: OK (discapacidad 4,79 % y 72,5 horas sin agua por semana en la Ciudad de Piura)")

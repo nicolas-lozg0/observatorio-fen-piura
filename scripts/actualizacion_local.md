@@ -83,6 +83,25 @@ python3 scripts/test_pagina.py
 - **Requisito, una sola vez:** `pip3 install playwright`. No hace falta `playwright install`: en macOS 12 Playwright no trae navegador, y la prueba usa Brave o Chrome si están instalados. Con otro navegador basado en Chromium: `NAVEGADOR=/ruta/al/ejecutable python3 scripts/test_pagina.py`.
 - **Dónde corre:** solo en tu computadora; no va en el workflow.
 
+## Precios de alimentos del SISAP (a mano, cada semana)
+
+El SISAP del Midagri no tiene descarga automática, así que la tabla se exporta a mano. Unos 3 minutos:
+
+1. Entra a http://sistemas.midagri.gob.pe/sisap/portal2/ciudades/ y elige la región **Piura**.
+2. Pestaña **Intervalo de tiempo**: «Desde» el 1 de enero del año en curso, «Hasta» hoy.
+3. Marca **todos los productos** de la lista y, en «Variables», **May. Precio Promedio** y **Min. Precio Promedio** (con
+   Ctrl o Cmd).
+4. **Consultar** y, cuando aparezca la tabla, **Herramientas → Exportar a Excel**.
+5. Guarda el archivo en `data/raw/sisap/` (reemplaza el del año en curso, por ejemplo `piura_2026.xls`).
+6. Corre `scripts/actualizar_local.sh`, o solo `python3 scripts/precios_sisap.py` para probar.
+
+El script suma los precios nuevos al historial `data/sisap_piura.json`, que sí se sube a GitHub, y recalcula
+`docs/data/precios_sisap.json`. La página avisa «Dato no actualizado» a los 14 días.
+
+- **Si una consulta larga vuelve vacía:** pasó con todo 2023. El script se detiene con un aviso; exporta por trimestres.
+- **Si el SISAP cambia el nombre de un producto:** ese alimento queda «sin dato». Hay que actualizar la lista `PRODUCTOS`
+  en `scripts/precios_sisap.py`.
+
 ## Comunicado del ENFEN (a mano, cada 15 días aproximadamente)
 
 La tarjeta del ENFEN en la pestaña Clima sale de `docs/data/enfen_comunicado.json`, que se llena a mano con cada comunicado oficial. Si el ENFEN publica uno nuevo, el paso «Aviso de comunicado nuevo del ENFEN» del workflow diario falla y el resumen lo dice; la página también avisa «Dato no actualizado» a los 20 días.

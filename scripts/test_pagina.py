@@ -81,7 +81,8 @@ def main():
                         const s = document.getElementById('{t}'), de = document.documentElement;
                         const visibles = [...document.querySelectorAll('.pestana')].filter(x => !x.hidden).map(x => x.id);
                         const actual = document.querySelector('.pestanas a[aria-current="page"]')?.getAttribute('href');
-                        const tablas = [...s.querySelectorAll('table')].filter(tb => !tb.closest('details'))
+                        // la lista de fuentes crece con cada fuente nueva: no es una tabla de datos larga
+                        const tablas = [...s.querySelectorAll('table')].filter(tb => !tb.closest('details') && !tb.querySelector('#fuentes-cuerpo'))
                             .map(tb => tb.querySelectorAll('tbody tr').length);
                         const desborde1 = de.scrollWidth - de.clientWidth;
                         s.querySelectorAll('details').forEach(d => d.open = true);
@@ -117,6 +118,55 @@ def main():
                 }""")
                 revisar(r["n"] >= 2 and not r["choques"] and not r["fuera"],
                         f"{ancho}px gráfico de dengue: {r['n']} rótulos, se enciman {r['choques']}, fuera {r['fuera']}")
+                # Precios de alimentos (SISAP): una fila por alimento, rayas según «Comparar con», cifras sin encimarse ni salirse
+                pg.evaluate("location.hash = '#precios'")
+                pg.wait_for_timeout(500)
+                r = pg.evaluate("""() => {
+                    const g = () => document.querySelector('#g-alim svg'), elegir = (id, v) => { const s = document.getElementById(id);
+                        s.value = v; s.dispatchEvent(new Event('change')); };
+                    // rayas de lo habitual (sin contar la línea punteada que une la raya con la barra)
+                    const rayas = () => g().querySelectorAll('.alim-fila line:not([stroke-dasharray])').length, w = () => g().viewBox.baseVal.width;
+                    const cajas = () => [...g().querySelectorAll('text')].map(t => { const b = t.getBBox();
+                        return { t: t.textContent, x0: b.x, y0: b.y, x1: b.x + b.width, y1: b.y + b.height }; });
+                    const c = cajas(), choques = c.flatMap((a, i) => c.slice(i + 1).filter(b => a.x0 < b.x1 - 1 && b.x0 < a.x1 - 1
+                        && a.y0 < b.y1 - 1 && b.y0 < a.y1 - 1).map(b => a.t + ' / ' + b.t));
+                    const out = { filas: g().querySelectorAll('.alim-fila').length, n: D.sisap.productos.length, choques,
+                        fuera: c.filter(a => a.x0 < -1 || a.x1 > w() + 1).map(a => a.t), habitual: rayas(),
+                        esperadas: D.sisap.productos.filter(p => p.mayorista.habitual != null).length,
+                        // fuera de lo habitual: nombre en negrita y línea punteada, los mismos que dice el titular
+                        negritas: g().querySelectorAll('.alim-fila.fuera').length, punteadas: g().querySelectorAll('.alim-fila line[stroke-dasharray]').length,
+                        fuera_dato: D.sisap.productos.filter(p => fueraHabitual(p.mayorista)).length,
+                        // leyenda: 2 cuadrados (barras) y 1 raya
+                        cajas_ley: document.querySelectorAll('#panel-alim .leyenda .caja').length, raya_ley: !!document.querySelector('#panel-alim .leyenda .raya'),
+                        tit: document.getElementById('alim-tit').textContent };
+                    // simbología simple (24/11/2026): sin * ni † en los nombres; orden de la pestaña: mercados, inflación (un solo bloque
+                    // con selector) y canasta; la tarjeta del Resumen da los mercados primero
+                    out.simbolos = ![...g().querySelectorAll('.alim-fila .nombre')].some(t => /[*†]/.test(t.textContent));
+                    const orden = [...document.querySelectorAll('#precios-paneles > .panel')].map(x => x.id || x.querySelector('h3').textContent.slice(0, 12));
+                    out.orden = orden[0] === 'panel-alim' && orden[1] === 'panel-ipc' && orden.length === 3;
+                    out.ipc = document.querySelectorAll('#panel-ipc .grafico').length === 1 && !!$('f-ipc-graf')
+                      && document.querySelectorAll('#panel-ipc .cifras-ipc .cifra').length === 2;
+                    elegir('f-ipc-graf', 'mensual'); out.ipcMensual = !!document.querySelector('#g-ipc rect'); elegir('f-ipc-graf', 'anual');
+                    out.resumen = [...document.querySelectorAll('#resumen-paneles .panel h3')].some(h => /^Subieron [0-9]+ de [0-9]+ alimentos/.test(h.textContent));
+                    // cifra promedio sobre el gráfico y la misma en la tarjeta del Resumen
+                    const m = D.sisap.promedio.mayorista, prom = $('alim-prom').textContent;
+                    const tarjeta = [...document.querySelectorAll('#resumen-paneles .panel')].find(p => /^Subieron/.test(p.querySelector('h3')?.textContent || ''));
+                    out.promedio = /^En promedio, los alimentos (subieron|bajaron|no variaron)/.test(prom) && prom.includes(signo(m.habitual))
+                      && tarjeta?.querySelector('.cifra')?.textContent.trim() === signo(m.var) && $('alim-prom-n').textContent.includes(`${m.n} alimentos`);
+                    elegir('f-alim-orden', 'dif');
+                    const prim = g().querySelector('.alim-fila .nombre').textContent.replace(/[*†]/g, ''), difs = D.sisap.productos
+                        .filter(p => p.mayorista.habitual != null && p.mayorista.var != null).sort((a, b) => (b.mayorista.var - b.mayorista.habitual) - (a.mayorista.var - a.mayorista.habitual));
+                    out.orden = prim === difs[0].nombre; elegir('f-alim-orden', 'var');
+                    elegir('f-alim-comp', ''); out.sin = rayas();
+                    elegir('f-alim-tipo', 'minorista'); out.frase = document.getElementById('alim-tit').textContent;
+                    out.tabla = document.querySelector('#tabla-alim caption').textContent.includes('minoristas');
+                    elegir('f-alim-tipo', 'mayorista'); elegir('f-alim-comp', 'habitual');
+                    return out; }""")
+                revisar(r["promedio"] and r["simbolos"] and r["orden"] and r["ipc"] and r["ipcMensual"] and r["resumen"] and r["filas"] == r["n"] >= 19 and r["habitual"] == r["esperadas"] and r["sin"] == 0
+                        and r["negritas"] == r["punteadas"] == r["fuera_dato"] and r["cajas_ley"] == 2 and r["raya_ley"] and r["orden"]
+                        and r["tit"].startswith("Entre la 2.ª quincena") and "mayoristas" in r["tit"]
+                        and "minoristas" in r["frase"] and r["tabla"] and not r["choques"] and not r["fuera"],
+                        f"{ancho}px precios de alimentos: {r}")
                 r = pg.evaluate("""() => ({ alto: Math.min(...[...document.querySelectorAll('.pestanas a')].map(a => a.getBoundingClientRect().height)),
                     compartir: !!document.getElementById('compartir'), siguientes: document.querySelectorAll('.siguiente a').length,
                     actualizado: document.getElementById('actualizado').textContent })""")
@@ -386,7 +436,9 @@ def main():
                   const dest = destacadas(datos), filasDest = [...document.querySelectorAll('#vul-localidades .par.destacada')].map(f => f.dataset.loc).sort().join();
                   const ciudad = datos.find(x => x.id === 'metro').lluvia;
                   r[anio] = { puntos: pts.sort().join() === datos.map(x => x.id + '|' + x.lluvia).sort().join(), barras: desde('#vul-localidades .par') === esperado,
-                    tabla: desde('#vul-tabla-loc tr') === esperado, grafico: desde('#vul-disp circle') === esperado,
+                    // Explorar relaciones, nivel localidad (lluvia de ese año contra el indicador): los mismos puntos que datosLocalidades
+                    tabla: desde('#vul-tabla-loc tr') === esperado, grafico: datosExplorar('loc', 'll:' + anio, 'c:' + vulInd().k)
+                      .map(q => clave(q.id, q.y, q.x)).sort().join() === esperado,
                     conLluvia: datos.every(x => typeof x.lluvia === 'number'), resaltadas: filasDest === [...dest].sort().join(),
                     frase: new RegExp(`^En ${anio} llovió más en .+La ciudad de Piura recibió ${num(ciudad)} mm`).test($('vul-lluvia-frase').textContent.replace(/\\s+/g, ' ')),
                     franjas: document.querySelectorAll('#vul-lluvia-leyenda .franjas-ley span').length, m1983: $('vul-lluvia-1983').hidden };
@@ -421,7 +473,44 @@ def main():
                            "estilos": True, "tercio": "a,b", "marca": "Mucha lluvia y sin desagüe", "ordenLluvia": True,
                            "primeras": True, "todas": True},
                     f"vulnerabilidad, lluvia y localidades: {rc}")
-            # Sincronía: con cada localidad y cada indicador (8 × 9), todos los bloques muestran el mismo indicador y la misma cifra
+            # Explorar relaciones (parte 3): manzanas en canvas con su mínimo de casos, correlación ponderada por viviendas, leyenda
+            # con círculos (provincia con todas las localidades; distrito con una), columnas de lluvia con separación opcional y
+            # clic que lleva el mapa a la manzana
+            rx = pg.evaluate("""async () => { const espera = ms => new Promise(r => setTimeout(r, ms)), r = {};
+                for (let k = 0; k < 100 && $('f-exp-x').disabled; k++) await espera(100);
+                const set = (id, v) => { const e = $(id); if (e.type === 'checkbox') e.checked = v; else e.value = v; e.dispatchEvent(new Event('change')); };
+                set('f-exp-x', 'll:2017'); set('f-exp-y', 'c:a'); set('f-exp-nivel', 'mz'); set('f-exp-loc', '');
+                await pintarExplorar();
+                const pts = expPintado.pts, a = D.censo.indicadores.find(i => i.k === 'a');
+                r.n = pts.length; r.minimo = pts.every(q => q.f.properties.a[1] >= 10 && !q.f.properties.km2);
+                r.valores = pts.slice(0, 200).every(q => q.y === valVul(a, ...q.f.properties.a.slice(0, 2)));
+                r.titular = /correlación ponderada por viviendas de -?[0-9]/.test($('exp-titular').textContent) && $('exp-titular').textContent.includes(num(pts.length));
+                r.leyenda = document.querySelectorAll('#exp-leyenda .circulo').length >= 5 && getComputedStyle(document.querySelector('#exp-leyenda .circulo'), '::before').borderRadius === '50%';
+                r.columnas = /en columnas/.test($('exp-nota').textContent);
+                const x0 = pts.slice(0, 50).map(q => q.sx); set('f-exp-separar', true); await pintarExplorar();
+                r.separa = expPintado.pts.slice(0, 50).some((q, j) => Math.abs(q.sx - x0[j]) > 0.5) && expPintado.pts.slice(0, 50).every(q => Math.abs(q.sx - (48 + q.x * 0)) >= 0);
+                set('f-exp-separar', false);
+                // correlación ponderada: recta creciente = 1, decreciente = −1; el peso cambia el resultado
+                const c = xs => corrPond(xs.map(([x, y, peso]) => ({ x, y, peso })));
+                r.corr = [c([[1, 2, 1], [2, 4, 1], [3, 6, 5]]), c([[1, 3, 1], [2, 2, 1], [3, 1, 1]])].map(v => v.toFixed(3)).join()
+                  + '|' + c([[0, 0, 1], [1, 0, 1], [2, 3, 1]]).toFixed(3) + ',' + c([[0, 0, 1], [1, 0, 10], [2, 3, 1]]).toFixed(3);  // 0,866 sin peso; 0,739 con peso 10 al medio
+                // una localidad: color por distrito (la Ciudad de Piura, sus 3 distritos)
+                set('f-exp-loc', 'metro'); await pintarExplorar();
+                r.distritos = document.querySelectorAll('#exp-leyenda .circulo').length === 3 && expPintado.pts.every(q => q.loc === 'metro');
+                // nivel localidad: un punto por localidad, con tamaño según viviendas
+                set('f-exp-loc', ''); set('f-exp-nivel', 'loc'); await pintarExplorar();
+                const pl = expPintado.pts, metro = pl.find(q => q.id === 'metro');
+                r.loc = pl.length === D.censo.localidades.length && pl.every(q => q.r <= 22 && q.r <= metro.r);
+                // clic en una manzana: el mapa va a ella (nivel de manzanas, con borde)
+                set('f-exp-nivel', 'mz'); set('f-exp-loc', 'metro'); await pintarExplorar();
+                const q = expPintado.pts[0]; await irDesdeExplorar(q); const m = await vulP;
+                r.clic = nivelDe(m) === 'mz' && !!vulCapas.resalte && m.getBounds().contains(L.geoJSON(q.f).getBounds().getCenter());
+                set('f-exp-loc', ''); quitarResalte(m); encuadrar(m); await vulNivel(m);
+                return r; }""")
+            revisar(rx == {**rx, "minimo": True, "valores": True, "titular": True, "leyenda": True, "columnas": True, "separa": True,
+                           "corr": "1.000,-1.000|0.866,0.739", "distritos": True, "loc": True, "clic": True} and rx["n"] > 10000,
+                    f"vulnerabilidad, explorar relaciones: {rx}")
+            # Sincronía: con cada localidad y cada indicador (26 × 23), todos los bloques muestran el mismo indicador y la misma cifra
             # total: título, cifra, frases (con su ícono), leyenda (reparto en servicios; simple en población), mapa (color del
             # grupo), sectores, ayuda, barras pareadas (fila elegida, base en viviendas o personas, orden inicial), tabla y gráfico
             # detallados, y desglose por distrito (solo en la Ciudad de Piura). En población no aparecen «crítico», «problema» ni «afectados»
@@ -433,28 +522,35 @@ def main():
                   for (const ind of D.censo.indicadores) {
                     $('f-vul').value = ind.k; $('f-vul').dispatchEvent(new Event('change')); await espera(60); await vulNivel(m); await espera(40);
                     combinaciones++;
-                    const i = vulInd(), t = vulTotal(i.k), loc = locActual(), metro = vulLoc === 'metro', gr = grupoVul(i), pT = pct(t[0], t[1]);
+                    // pT: el valor del indicador (% o, en días y horas, el promedio); mag: días u horas (sin íconos ni «de cada 10»)
+                    const i = vulInd(), t = vulTotal(i.k), loc = locActual(), metro = vulLoc === 'metro', gr = grupoVul(i), pT = valVul(i, t[0], t[1]), mag = esMag(i);
                     const filasF = [...document.querySelectorAll('#vul-frases .fila-casas')];
                     let capa = vulCapas[nivelDe(m)], l; capa?.eachLayer(x => { l ||= x; });
                     const sel = document.querySelector('#vul-localidades .par.sel');
-                    const fila = document.querySelector(`#vul-tabla-loc tr[data-loc="${vulLoc}"]`), punto = document.querySelector(`#vul-disp circle[data-loc="${vulLoc}"]`);
+                    const fila = document.querySelector(`#vul-tabla-loc tr[data-loc="${vulLoc}"]`), punto = datosExplorar('loc', 'c:' + i.k, 'c:' + i.k, vulLoc)[0];
                     const textoPob = ['vul-resumen', 'vul-mapa', 'vul-sectores', 'vul-lluvia-panel'].map(id => $(id).textContent).join(' ');
                     const ok = {
                       titulo: $('vul-titulo').textContent === tituloVul(i),
-                      cifra: $('vul-cifra').textContent.includes(vulPct(i, t)) && $('vul-cifra').textContent.includes(num(t[0])),
-                      frases: (metro ? filasF.length === 3 : filasF[0]?.querySelector('p').textContent.startsWith(loc.nombre + ':')
+                      cifra: $('vul-cifra').textContent.includes(vulPct(i, t)) && $('vul-cifra').textContent.includes(num(mag ? t[1] : t[0])),
+                      frases: mag ? filasF.length === (metro ? 3 : 2) && filasF.every(f => f.textContent.startsWith('En promedio') && !f.querySelector('svg'))
+                          && (metro || filasF[0].textContent.includes(` de ${loc.nombre} `) && filasF[0].textContent.includes(fmtVul(i, pT)))
+                        : (metro ? filasF.length === 3 : filasF[0]?.querySelector('p').textContent.startsWith(loc.nombre + ':')
                           && filasF[0].querySelector('p').textContent.includes(pctTxt(pT)))
                         && filasF.every(f => f.querySelector('path').getAttribute('d') === (gr.icono === 'persona' ? PERSONA : CASA)),
                       leyenda: gr.reparto ? !!document.querySelector('#vul-leyenda .reparto') && $('vul-leyenda').textContent.includes(nombreTexto(loc))
                         : !document.querySelector('#vul-leyenda .reparto') && !!document.querySelector('#vul-leyenda .leyenda-pob'),
                       // sin sectores con base suficiente (ej. Tambogrande, agua las 24 horas) el mapa queda vacío, y está bien
                       mapa: m.hasLayer(capa) && (l ? hexEstilo(l.feature).fillColor === token(gr.tonos[claseVul(i, l.feature)]) : !visibles(nivelDe(m)).features.length),
-                      sectores: gr.criterio ? !/mayor proporción/.test($('vul-criticos-titulo').textContent) : /mayor proporción de|base suficiente/.test($('vul-criticos-titulo').textContent),
+                      sectores: mag ? /Sectores con más|base suficiente/.test($('vul-criticos-titulo').textContent)
+                        : gr.criterio ? !/mayor proporción/.test($('vul-criticos-titulo').textContent) : /mayor proporción de|base suficiente/.test($('vul-criticos-titulo').textContent),
+                      // selector: el indicador está en el grupo que dice su «grupo»; días y horas sin vista de número
+                      grupo: $('f-vul').selectedOptions[0].parentElement.label === GRUPOS_SELECTOR[i.grupo]
+                        && $('f-vista-vul').querySelector('[value="num"]').disabled === mag,
                       ayuda: $('vul-ayuda').textContent === gr.ayuda,
                       barras: sel?.dataset.loc === vulLoc && +sel.dataset.p === pT && sel.querySelector('small').textContent.includes(gr.base)
                         && $('f-orden-loc').value === gr.orden,
                       tabla: +fila?.dataset.p === pT && $('vul-tabla-loc-cab').textContent.toLowerCase().includes(gr.base),
-                      grafico: +punto?.dataset.p === pT,
+                      grafico: punto?.y === pT && punto?.x === pT,
                       distritos: metro ? !$('vul-distritos').hidden && document.querySelector('#vul-tabla tr.total').textContent.includes(vulPct(i, t))
                         : $('vul-distritos').hidden && !$('vul-un-distrito').hidden && $('vul-un-distrito').textContent.includes(loc.nombre),
                       lenguaje: gr.criterio ? true : !/crític|problema|afectad/i.test(textoPob) };
@@ -466,7 +562,7 @@ def main():
                 $('f-vul').value = 'a'; $('f-vul').dispatchEvent(new Event('change')); await espera(800);  // que termine el movimiento del mapa
                 return { combinaciones, fallas }; }""")
             print(f"Sincronía de la pestaña Vulnerabilidad: {rs['combinaciones']} combinaciones, {len(rs['fallas'])} con fallas")
-            revisar(rs["combinaciones"] == 10 * 26 and not rs["fallas"], f"vulnerabilidad, sincronía: {rs['fallas'][:10]}")
+            revisar(rs["combinaciones"] == 23 * 26 and not rs["fallas"], f"vulnerabilidad, sincronía: {rs['fallas'][:10]}")
             # Zoom 15: hexágonos de 130 m (mínimo 20); zoom 16: manzanas (denominador 0 no se dibuja, extensas sin relleno, gris con
             # pocos casos); vista de número: densidad por hectárea de manzana en el mismo nivel; localidades sin el nivel de 130 m
             rz = pg.evaluate("""async () => { const m = await vulP, espera = ms => new Promise(r => setTimeout(r, ms));

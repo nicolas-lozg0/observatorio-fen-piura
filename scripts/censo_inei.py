@@ -37,7 +37,7 @@ LIMITES = CRUDO / "cartografia" / "distritos" / "Límites distritales - CPV2025"
 # Ciudad de Piura: se buscan por nombre en los tabulados (provincia de Piura) y se verifica su ubigeo
 DISTRITOS = ["PIURA", "CASTILLA", "VEINTISEIS DE OCTUBRE"]
 CODIGO = re.compile(r"\d{11}[0-9A-ZÑ]{3,4}")  # ubigeo (6) + zona (5) + manzana (3, o 4 con letra; 9999 = dispersas)
-MINIMO = {"viv": 10, "pob": 30}  # por debajo, la manzana va en gris («Pocos casos») en ese indicador
+MINIMO = {"viv": 10, "pob": 30, "hog": 10}  # por debajo, la manzana va en gris («Pocos casos») en ese indicador
 TOLERANCIA = 1e-5  # simplificación en grados (≈ 1 m en Piura)
 # Manzana «extensa»: el INEI la traza de calle a calle e incluye terreno sin viviendas (el campus de la UDEP, el
 # aeropuerto, chacras). Con más de 0,05 km² y menos de 1000 viviendas por km², su color cubriría ese terreno: se dibuja
@@ -51,9 +51,21 @@ PRECARIOS = ["quincha (cana con barro)", "piedra con barro", "madera (pona, torn
 # Adobe y tapia van en su propio indicador (j) desde el 22/11/2026: en la Ciudad de Piura son poco comunes, pero en la sierra
 # son frecuentes y muy frágiles ante lluvias fuertes. La tapia salió de «precario» para no mezclar los dos indicadores
 ADOBE_TAPIA = ["adobe", "tapia"]
+# Techos de caña o estera con barro, triplay-estera-carrizo y paja u hoja de palmera (q). La calamina o fibrocemento va solo
+# en la base de análisis (techo_calamina), hasta el visto bueno de Germán.
+TECHOS_PRECARIOS = ["cana o estera con torta de barro o cemento", "triplay - estera - carrizo", "paja, hoja de palmera y similares"]
+# Días y horas sin agua (r, s): punto medio de cada rango del censo. «Todos los días»: horas al día (22,5 para «22 a 23»).
+# «Algunos días»: días a la semana (5 para «4 a 6») y horas en esos días (23 para «22 a 24»).
+HORAS_DIA = {"de 1 a 3": 2, "de 4 a 6": 5, "de 7 a 9": 8, "de 10 a 12": 11, "de 13 a 15": 14, "de 16 a 18": 17, "de 19 a 21": 20,
+             "de 22 a 23": 22.5, "24 horas": 24}
+DIAS_ALG = {"1 dia": 1, "2 dias": 2, "3 dias": 3, "de 4 a 6 dias": 5}
+HORAS_ALG = {"de 1 a 3": 2, "de 4 a 6": 5, "de 7 a 9": 8, "de 10 a 12": 11, "de 13 a 15": 14, "de 16 a 18": 17, "de 19 a 21": 20,
+             "de 22 a 24 horas": 23}
 
-# Indicadores: k, rótulo, tipo (denominador de viviendas o de población), numerador y denominador en palabras.
-# Los de agua y desagüe se expresan como carencia para que, en todo el mapa, más oscuro sea más vulnerable.
+# Indicadores: k, rótulo, tipo (denominador de viviendas, hogares o población), numerador y denominador en palabras, grupo
+# del selector y unidad («pct»: numerador / denominador en %; «dias» u «horas»: numerador / denominador es un promedio por
+# vivienda, no un %). Se completan abajo con el grupo y la unidad de los 10 primeros. Los de agua y desagüe se expresan como
+# carencia para que, en todo el mapa, más oscuro sea más vulnerable.
 INDICADORES = [
     ("a", "Sin desagüe por red pública", "viv",
      "Viviendas cuyo servicio higiénico no está conectado a la red pública de desagüe (ni dentro de la vivienda ni fuera de ella dentro de la edificación)",
@@ -87,7 +99,66 @@ INDICADORES = [
     ("j", "Paredes de adobe o tapia", "viv",
      "Viviendas con paredes exteriores de adobe o tapia",
      "Viviendas particulares con ocupantes presentes"),
+    # Ronda de variables nuevas (24/11/2026)
+    ("q", "Techos de caña, estera, triplay o paja", "viv",
+     "Viviendas con techo de caña o estera con torta de barro o cemento, de triplay, estera o carrizo, o de paja u hoja de palmera "
+     "(no incluye calamina ni fibrocemento)",
+     "Viviendas particulares con ocupantes presentes"),
+    ("r", "Días sin agua por semana", "viv",
+     "Suma de los días sin agua de las viviendas: 0 si tienen agua todos los días; 7 menos los días con agua si la tienen algunos días "
+     "(punto medio del rango: 1, 2, 3 y 5 para «4 a 6»). Promedio = numerador / denominador, en días por semana",
+     "Viviendas con agua de red pública o pilón de uso público (el INEI solo pregunta la frecuencia a ellas)"),
+    ("s", "Horas sin agua por semana", "viv",
+     "Suma de las horas sin agua por semana de las viviendas, con el punto medio de cada rango. Con agua todos los días: "
+     "7 × (24 − horas al día; 22,5 para «22 a 23»). Con agua algunos días: 168 − días × horas (23 para «22 a 24»). Días y horas "
+     "vienen en cuadros separados: se supone que son independientes dentro de la manzana (el rango posible está en la base). "
+     "Promedio = numerador / denominador, en horas de las 168 de la semana",
+     "Viviendas con agua de red pública o pilón de uso público"),
+    ("t", "Sin refrigeradora", "hog",
+     "Hogares que no tienen refrigeradora o congeladora",
+     "Hogares en viviendas particulares con ocupantes presentes"),
+    ("w", "Sin internet fijo", "hog",
+     "Hogares sin conexión a internet fijo (pueden tener internet móvil)",
+     "Hogares en viviendas particulares con ocupantes presentes"),
+    ("x", "Basura sin recolector municipal", "hog",
+     "Hogares cuya basura no recoge el recolector municipal: total de hogares − hogares con recolector municipal (la pregunta "
+     "admite varias respuestas: las categorías suman 125 % de los hogares y no se suman)",
+     "Hogares en viviendas particulares con ocupantes presentes"),
+    ("le", "Cocinan con leña, carbón o bosta", "hog",
+     "Hogares que cocinan con leña, carbón o bosta, como mínimo: el mayor de los tres. La pregunta admite varias respuestas "
+     "(las categorías suman 148 % de los hogares) y el censo no dice cuántos usan más de uno; por eso se da el mínimo y, en cada "
+     "manzana, el máximo posible (la suma de los tres, sin pasar del total)",
+     "Hogares en viviendas particulares con ocupantes presentes"),
+    ("y", "Vivienda propia sin título", "hog",
+     "Hogares en vivienda propia sin título de propiedad",
+     "Hogares en viviendas particulares con ocupantes presentes"),
+    ("z", "Sin teléfono celular", "hog",
+     "Hogares sin teléfono celular",
+     "Hogares en viviendas particulares con ocupantes presentes"),
+    ("k", "Con alguna discapacidad", "pob",
+     "Personas de 5 años o más con al menos una dificultad o limitación permanente (ver, oír, hablar, caminar, usar brazos y "
+     "manos, recordar o relacionarse)",
+     "Población censada de 5 años o más"),
+    ("l", "Dificultad para caminar", "pob",
+     "Personas de 5 años o más con dificultad permanente para caminar o subir y bajar escaleras. No se suma «usar brazos y "
+     "manos»: una persona puede tener las dos (el rango de «movimiento» está en la base)",
+     "Población censada de 5 años o más"),
+    ("o", "Sin educación superior completa", "pob",
+     "Personas de 15 años o más sin superior no universitaria completa, universitaria completa ni posgrado: población de 15 años "
+     "o más − las de esos niveles. El censo no cruza educación con edad: incluye a jóvenes de 15 a 20 que aún no pueden haber "
+     "terminado (aproximación)",
+     "Población censada de 15 años o más (población − de 0 a 14 años)"),
+    ("an", "No sabe leer ni escribir", "pob",
+     "Personas de 15 años o más que no saben leer ni escribir",
+     "Población censada de 15 años o más (cuadro de alfabetismo)"),
 ]
+# Grupo del selector de la página: agua y saneamiento, vivienda, hogar (equipamiento, basura, combustible, tenencia, celular)
+# y población (edad, discapacidad, educación, seguro, alfabetismo)
+GRUPO = {**{k: "agua" for k in "abcdrs"}, **{k: "vivienda" for k in "hijq"}, **{k: "hogar" for k in ("t", "w", "x", "le", "y", "z")},
+         **{k: "poblacion" for k in ("e", "f", "g", "k", "l", "o", "an")}}
+UNIDAD = {"r": "dias", "s": "horas"}
+# Con rango: el valor es el mínimo seguro («al menos») y el máximo posible va tercero en cada [numerador, denominador, máximo]
+CON_RANGO = {"g", "le"}
 
 
 # Frases en lenguaje simple: [sujeto, verbo en singular, verbo en plural] para «1 de cada 4 viviendas no tiene…» y
@@ -103,6 +174,20 @@ FRASES = {
     "h": ["viviendas", "tiene paredes de material precario", "tienen paredes de material precario"],
     "j": ["viviendas", "tiene paredes de adobe o tapia", "tienen paredes de adobe o tapia"],
     "i": ["viviendas", "tiene piso de tierra", "tienen piso de tierra"],
+    "q": ["viviendas", "tiene techo de caña, estera, triplay o paja", "tienen techo de caña, estera, triplay o paja"],
+    # días y horas: «En promedio, las viviendas de Castilla pasan 2,3 días a la semana sin agua»
+    "r": ["viviendas con agua de red pública o pilón", "pasa", "pasan"],
+    "s": ["viviendas con agua de red pública o pilón", "pasa", "pasan"],
+    "t": ["hogares", "no tiene refrigeradora", "no tienen refrigeradora"],
+    "w": ["hogares", "no tiene internet fijo", "no tienen internet fijo"],
+    "x": ["hogares", "no tiene recojo municipal de basura", "no tienen recojo municipal de basura"],
+    "le": ["hogares", "cocina con leña, carbón o bosta", "cocinan con leña, carbón o bosta"],
+    "y": ["hogares", "vive en casa propia sin título", "viven en casa propia sin título"],
+    "z": ["hogares", "no tiene teléfono celular", "no tienen teléfono celular"],
+    "k": ["personas de 5 años o más", "tiene alguna discapacidad", "tienen alguna discapacidad"],
+    "l": ["personas de 5 años o más", "tiene dificultad para caminar", "tienen dificultad para caminar"],
+    "o": ["personas de 15 años o más", "no tiene educación superior completa", "no tienen educación superior completa"],
+    "an": ["personas de 15 años o más", "no sabe leer ni escribir", "no saben leer ni escribir"],
 }
 
 
@@ -152,7 +237,7 @@ def categorias(enc, prefijo, total):
     return cols
 
 
-def validar(datos, enc, P, V):
+def validar(datos, enc, P, V, H):
     """Comprueba que cada bloque sume su total. Devuelve una lista de {bloque, filas, diferencia}."""
     pob, viv = P["pob"], V["vpop"]
     dv, ev = datos["V"], enc["V"]
@@ -194,6 +279,11 @@ def validar(datos, enc, P, V):
          col("Disponibilidad de agua por red pública y pilón o pileta de uso público todos los días de la semana | No")),
         ("Total de servicio higiénico = viviendas con ocupantes presentes", dv[t_sh], dv[viv]),
         ("Con al menos un seguro + sin seguro = población", datos["P"][P["al_menos"]] + datos["P"][P["sin_seguro"]], datos["P"][pob]),
+        ("Con al menos una discapacidad + sin ninguna = población de 5 años o más",
+         datos["P"][P["disc_al_menos"]] + datos["P"][P["disc_ninguna"]], datos["P"][P["pob5"]]),
+        ("Población de 15 años o más (alfabetismo) = población − de 0 a 14", datos["P"][P["alf_total"]], datos["P"][pob] - datos["P"][P["e0_14"]]),
+        ("Alfabetismo: sí + no = total de 15 años o más", datos["P"][P["alf_si"]] + datos["P"][P["alf_no"]], datos["P"][P["alf_total"]]),
+        ("Régimen de tenencia = total de hogares", datos["H"][H["tenencia"]].sum(axis=1), datos["H"][H["hogares"]]),
     ]
     for nombre, a, b in cruces:
         dif = a - b
@@ -201,8 +291,50 @@ def validar(datos, enc, P, V):
     return res
 
 
-def indicadores(dp, dv, P, V):
-    """Numerador y denominador de cada indicador por manzana (tabla indexada por código)."""
+def emparejar(cd, vd, ch, vh, mismo_orden):
+    """Suma de días × horas de las viviendas con agua algunos días si se emparejan los dos cuadros de mayor a menor
+    (mismo_orden=True: el producto máximo) o al revés (el mínimo). cd/ch: conteos por rango; vd/vh: punto medio de cada rango."""
+    d = sorted(zip(vd, cd), reverse=True)
+    h = sorted(zip(vh, ch), reverse=mismo_orden)
+    i = j = 0
+    rd, rh = (d[0][1] if d else 0), (h[0][1] if h else 0)
+    total = 0.0
+    while i < len(d) and j < len(h):
+        k = min(rd, rh)
+        total += k * d[i][0] * h[j][0]
+        rd -= k
+        rh -= k
+        if rd == 0:
+            i += 1
+            rd = d[i][1] if i < len(d) else 0
+        if rh == 0:
+            j += 1
+            rh = h[j][1] if j < len(h) else 0
+    return total
+
+
+def agua_semana(dv, V):
+    """Días y horas sin agua por semana (r, s): suma por manzana con el punto medio de cada rango. Devuelve (días, horas con el
+    supuesto de independencia, horas mínimas posibles, horas máximas posibles)."""
+    import numpy as np
+    hd = np.array([HORAS_DIA[c] for c in V["horas_dia_cat"]])
+    dd, ha_ = np.array([DIAS_ALG[c] for c in V["dias_alg_cat"]]), np.array([HORAS_ALG[c] for c in V["horas_alg_cat"]])
+    Nd = dv[V["horas_dia"]].to_numpy()            # todos los días, por rango de horas
+    Ad = dv[V["dias_alg"]].to_numpy()             # algunos días, por número de días
+    Ah = dv[V["horas_alg"]].to_numpy()            # algunos días, por rango de horas
+    alg = Ad.sum(axis=1)
+    dias = (Ad * (7 - dd)).sum(axis=1)
+    h_todos = (Nd * 7 * (24 - hd)).sum(axis=1)
+    sd, sh = (Ad * dd).sum(axis=1), (Ah * ha_).sum(axis=1)
+    indep = h_todos + 168 * alg - np.divide(sd * sh, alg, out=np.zeros(len(alg)), where=alg > 0)
+    prod_max = np.array([emparejar(a, dd, b, ha_, True) for a, b in zip(Ad, Ah)])
+    prod_min = np.array([emparejar(a, dd, b, ha_, False) for a, b in zip(Ad, Ah)])
+    return dias, indep, h_todos + 168 * alg - prod_max, h_todos + 168 * alg - prod_min
+
+
+def indicadores(dp, dv, P, V, dh=None, H=None):
+    """Numerador y denominador de cada indicador por manzana (tabla indexada por código). Sin la hoja HOGAR (dh), solo los de
+    población y vivienda."""
     r = pd.DataFrame({"codigo": dp[0], "ubigeo": dp[1], "p": dp[P["pob"]], "v": dv[V["vpop"]]})
     T, ES, PR = dp[P["pob"]], dp[P["essalud"]], dp[P["privado"]]
     dobles = dp[P["seguros"]].sum(axis=1) - dp[P["al_menos"]]  # afiliaciones de más (personas con dos o más seguros)
@@ -220,6 +352,38 @@ def indicadores(dp, dv, P, V):
         "j": (dv[V["adobe_tapia"]].sum(axis=1), dv[V["vpop"]]),
         "i": (dv[V["tierra"]], dv[V["vpop"]]),
     }
+    # Ronda de variables nuevas
+    p15 = T - dp[P["e0_14"]]
+    sup = dp[P["sup_completa"]].sum(axis=1)
+    dias, h_ind, h_min, h_max = agua_semana(dv, V)
+    pares.update({
+        "q": (dv[V["techos_precarios"]].sum(axis=1), dv[V["vpop"]]),
+        "r": (pd.Series(dias, index=dv.index), dv[V["semana_total"]]),
+        "s": (pd.Series(h_ind, index=dv.index).round(), dv[V["semana_total"]]),
+        "k": (dp[P["disc_al_menos"]], dp[P["pob5"]]),
+        "l": (dp[P["caminar"]], dp[P["pob5"]]),
+        "o": ((p15 - sup).clip(lower=0), p15),
+        "an": (dp[P["alf_no"]], dp[P["alf_total"]]),
+    })
+    # base de análisis: rangos y la calamina (no van a la página)
+    r["s_min"], r["s_max"] = pd.Series(h_min, index=dv.index).round().astype(int), pd.Series(h_max, index=dv.index).round().astype(int)
+    cam, bra = dp[P["caminar"]], dp[P["brazos"]]
+    r["mov_min"] = pd.concat([cam, bra], axis=1).max(axis=1).astype(int)
+    r["mov_max"] = pd.concat([cam + bra, dp[P["disc_al_menos"]]], axis=1).min(axis=1).astype(int)
+    r["cal_n"] = dv[V["techo_calamina"]].astype(int)
+    if dh is not None:
+        TH = dh[H["hogares"]]
+        comb = dh[H["combustible"]]
+        pares.update({
+            "t": (TH - dh[H["refri"]], TH),
+            "w": (TH - dh[H["internet_fijo"]], TH),
+            "x": (TH - dh[H["recolector"]], TH),
+            "le": (comb.max(axis=1), TH),
+            "y": (dh[H["sin_titulo"]], TH),
+            "z": (TH - dh[H["celular"]], TH),
+        })
+        r["ho"] = TH.astype(int)  # hogares (para el mínimo de casos del grupo «hog»; «h» es el indicador de paredes)
+        r["le_max"] = pd.concat([comb.sum(axis=1), TH], axis=1).min(axis=1).astype(int)
     for k, (n, d) in pares.items():
         r[k + "_n"], r[k + "_d"] = n.astype(int), d.astype(int)
     r["g_max"] = g_max.astype(int)
@@ -236,11 +400,22 @@ OVERPASS_ESPEJOS = ["https://overpass-api.de/api/interpreter", "https://overpass
 ESCALA = [5, 20, 50, 80]
 PALABRAS = ["Casi ninguna", "Pocas", "Menos de la mitad", "Más de la mitad", "Casi todas"]
 CORTES = {**{k: ESCALA for k in "abcdhij"}, "e": [15, 20, 25, 30], "f": [4, 8, 12, 16], "g": [30, 50, 65, 80]}
+# Cortes de los indicadores nuevos (24/11/2026), fijados con su distribución por manzana (notas/avance_tarea_conjunta.md, parte 2).
+# Los de vivienda y hogar que son carencias usan la escala en palabras; días y horas, clases redondas en su unidad.
+CORTES.update({"q": ESCALA, "t": ESCALA, "w": ESCALA, "x": ESCALA, "le": ESCALA, "y": ESCALA, "z": ESCALA,
+               "r": [0.5, 1, 2, 4], "s": [42, 84, 126, 147],  # horas: 6, 12, 18 y 21 horas al día sin agua
+               "k": [3, 5, 8, 12], "l": [1, 2, 4, 6], "o": [60, 70, 80, 90], "an": [2, 4, 8, 15]})
 # Clases de la vista de número: afectados por hectárea de manzana (densidad neta, sin calles ni terreno vacío, para que
 # no cambie entre niveles). Viviendas y mayores de 65 comparten escala; menores de 15 y sin seguro son muchas más personas.
 DENSIDAD = {**{k: [5, 10, 20, 40] for k in "abcdhijf"}, "e": [10, 20, 40, 80], "g": [25, 50, 100, 200]}
+# Indicadores nuevos: hogares y viviendas comparten la escala de viviendas; personas, según cuántas son. Días y horas no tienen
+# vista de número (no son personas ni viviendas afectadas): la página la desactiva.
+DENSIDAD.update({**{k: [5, 10, 20, 40] for k in ("q", "t", "w", "x", "le", "y", "z", "k", "l", "an")}, "o": [25, 50, 100, 200]})
 NOTAS = {"e": "Más alto = más población dependiente (no es una falta de servicios).",
-         "f": "Más alto = más población dependiente (no es una falta de servicios)."}
+         "f": "Más alto = más población dependiente (no es una falta de servicios).",
+         "r": "Promedio de las viviendas con agua de red pública o pilón; las que la tienen todos los días cuentan 0.",
+         "s": "Promedio de las viviendas con agua de red pública o pilón, de las 168 horas de la semana.",
+         "o": "Aproximación: incluye a jóvenes de 15 a 20 años que aún no pueden haber terminado estudios superiores."}
 # Localidades además de Ciudad de Piura: centros poblados de los otros distritos del departamento con al menos estas
 # viviendas, contando sus manzanas dispersas (ronda 16: con 2000 entraban 7 de la provincia; desde el 20/11/2026, todo el
 # departamento: 25). Cada centro poblado va por separado, también los vecinos de Sullana. Nombre con tildes para la página.
@@ -266,16 +441,16 @@ def hexagonos(unidos, claves, res):
     filas = unidos[~unidos["extensa"]].copy()
     cen = filas["geometry"].map(lambda g: g.centroid)
     filas["hex"] = [h3.latlng_to_cell(c.y, c.x, res) for c in cen]
-    cols = ["p", "v", "g_max", "km2"] + [k + s for k in claves for s in ("_n", "_d")]
+    cols = ["p", "v", "ho", "g_max", "le_max", "km2"] + [k + s for k in claves for s in ("_n", "_d")]
     suma = filas.groupby("hex")[cols].sum()
     suma["m"] = filas.groupby("hex").size()
     suma["u"] = filas.groupby("hex")["ubigeo"].agg(lambda s: s.value_counts().index[0])  # distrito con más manzanas
     feats = []
     for cell, r in suma.iterrows():
         anillo = [[round(lng, DECIMALES), round(lat, DECIMALES)] for lat, lng in h3.cell_to_boundary(cell)]
-        props = {"u": r["u"], "m": int(r["m"]), "p": int(r["p"]), "v": int(r["v"]), "ha": round(float(r["km2"]) * 100, 2)}  # ha de manzanas
+        props = {"u": r["u"], "m": int(r["m"]), "p": int(r["p"]), "v": int(r["v"]), "ho": int(r["ho"]), "ha": round(float(r["km2"]) * 100, 2)}  # ha de manzanas
         for k in claves:
-            props[k] = [int(r[k + "_n"]), int(r[k + "_d"])] + ([int(r["g_max"])] if k == "g" else [])
+            props[k] = [int(r[k + "_n"]), int(r[k + "_d"])] + ([int(r[k + "_max"])] if k in CON_RANGO else [])
         lat, lng = h3.cell_to_latlng(cell)
         feats.append({"type": "Feature", "id": cell, "properties": props, "centro": [round(lat, 5), round(lng, 5)],
                       "geometry": {"type": "Polygon", "coordinates": [anillo + anillo[:1]]}})
@@ -368,12 +543,12 @@ def resumen(localidades, distritos):
 
 def cargar(prefijo):
     """Lee los tabulados, deja las manzanas cuyo ubigeo empieza con `prefijo` y ubica las columnas de los indicadores.
-    Devuelve (datos, enc, P, V). La usan este script y lluvia_manzanas.py."""
+    Devuelve (datos, enc, P, V, H). La usan este script y lluvia_manzanas.py."""
     datos, enc = {}, {}
-    for h, nombre in (("P", "POBLACION"), ("V", "VIVIENDA")):
+    for h, nombre in (("P", "POBLACION"), ("V", "VIVIENDA"), ("H", "HOGAR")):
         datos[h], enc[h] = leer_hoja(nombre)
-    if (datos["P"][0] != datos["V"][0]).any():
-        sys.exit("Las hojas POBLACION y VIVIENDA no traen las mismas manzanas en el mismo orden")
+    if (datos["P"][0] != datos["V"][0]).any() or (datos["P"][0] != datos["H"][0]).any():
+        sys.exit("Las hojas POBLACION, VIVIENDA y HOGAR no traen las mismas manzanas en el mismo orden")
 
     sel = datos["P"][1].str.startswith(prefijo)
     for h in datos:
@@ -390,6 +565,14 @@ def cargar(prefijo):
          "essalud": cP(seg + "ESSALUD"), "privado": cP(seg + "Seguro privado de salud"),
          "seguros": [cP(seg + s) for s in ("Seguro Integral de Salud (SIS)", "ESSALUD", "Seguro de Fuerzas Armadas o Policiales",
                                            "Seguro privado de salud", "Otro seguro")]}
+    dis = "Población censada de 5 y más años de edad | Con alguna dificultad o limitación permanente para | "
+    niv = "Población censada de 3 y más años de edad | Nivel educativo alcanzado | "
+    alf = "Población censada de 15 y más años de edad | Sabe leer y escribir | Total | "
+    P.update({"pob5": cP(dis + "Población censada de 5 y más años de edad"), "disc_al_menos": cP(dis + "Con al menos una discapacidad"),
+              "disc_ninguna": cP(dis + "Sin ninguna discapacidad"), "caminar": cP(dis + "Caminar o subir y bajar escaleras"),
+              "brazos": cP(dis + "Usar brazos y manos para comer, vestirse, bañarse u otras actividades"),
+              "sup_completa": [cP(niv + c) for c in ("Sup. no univ. completa", "Sup. univ. completa", "Maestría - Doctorado")],
+              "alf_total": cP(alf + "Total"), "alf_si": cP(alf + "Sí"), "alf_no": cP(alf + "No")})
     par = "Material predominante en las paredes exteriores | "
     sem = "Disponibilidad de agua por red pública y pilón o pileta de uso público todos los días de la semana | "
     sh = "Servicio higiénico está conectado | "
@@ -403,7 +586,23 @@ def cargar(prefijo):
          "dia_24": cV("Disponibilidad de agua todos los días | Rango de horas | 24 horas"),
          "sh_total": cV(sh + "Total"), "red_dentro": cV(sh + "Red pública de desagüe dentro de la vivienda"),
          "red_fuera": cV(sh + "Red pública de desagüe fuera de la vivienda pero dentro de la edificación")}
-    return datos, enc, P, V
+    tec = "Material predominante en los techos | "
+    td, ta = "Disponibilidad de agua todos los días | Rango de horas | ", "Disponibilidad de agua algunos días | "
+    V.update({"techos_precarios": [cV(tec + m) for m in TECHOS_PRECARIOS],
+              "techo_calamina": cV(tec + "Planchas de calamina, fibra de cemento o similares"),
+              "horas_dia_cat": list(HORAS_DIA), "horas_dia": [cV(td + c) for c in HORAS_DIA],
+              "dias_alg_cat": list(DIAS_ALG), "dias_alg": [cV(ta + "Número de días | " + c) for c in DIAS_ALG],
+              "horas_alg_cat": list(HORAS_ALG), "horas_alg": [cV(ta + "Rango de horas | " + c) for c in HORAS_ALG]})
+    cH = lambda t: columna(enc["H"], t)
+    eq, comb = "Equipos y servicios con que cuenta el hogar | ", "Energía o combustible que utiliza el hogar para cocinar | "
+    H = {"hogares": cH("Total de hogares en viviendas particulares con ocupantes presentes"),
+         "tenencia": categorias(enc["H"], "Régimen de tenencia", -1),
+         "sin_titulo": cH("Régimen de tenencia | Propia, sin título de propiedad"),
+         "refri": cH(eq + "Refrigeradora o congeladora"), "internet_fijo": cH(eq + "Conexión a internet fijo"),
+         "celular": cH(eq + "Teléfono celular"),
+         "recolector": cH("El hogar ¿cómo desechan la basura o residuos sólidos? | Por recolector municipal (camión, triciclo u otro)"),
+         "combustible": [cH(comb + c) for c in ("Leña", "Carbón", "Bosta, estiércol")]}
+    return datos, enc, P, V, H
 
 
 def main():
@@ -413,7 +612,7 @@ def main():
     import shapely
     from shapely.geometry import mapping
 
-    datos, enc, P, V = cargar(DEPARTAMENTO)
+    datos, enc, P, V, H = cargar(DEPARTAMENTO)
 
     # Distritos de Ciudad de Piura: ubigeo verificado en los datos, no supuesto
     dp0 = datos["P"]
@@ -424,14 +623,14 @@ def main():
         sys.exit(f"Se esperaban {len(DISTRITOS)} distritos y se encontraron {ubis}")
     print("Ubigeos de Ciudad de Piura:", ubis)
 
-    validaciones = validar(datos, enc, P, V)
+    validaciones = validar(datos, enc, P, V, H)
     for v in validaciones:
         print(f"  {'OK ' if not v['filas_con_diferencia'] else 'DIF'} {v['bloque']}: "
               f"{v['filas_con_diferencia']} filas con diferencia (suma {v['diferencia']})")
     sP = datos["P"][P["seguros"]].sum().sum() - datos["P"][P["al_menos"]].sum()
     print(f"Seguros: la suma de los tipos supera a «al menos un seguro» en {sP} (no son excluyentes)")
 
-    ind = indicadores(datos["P"], datos["V"], P, V)
+    ind = indicadores(datos["P"], datos["V"], P, V, datos["H"], H)
     ind["ccpp"] = datos["P"][6].values
     ind["nombre_ccpp"] = datos["P"][5].values
     # Localidad de cada manzana: Ciudad de Piura (los 3 distritos completos) o un centro poblado urbano de otro distrito
@@ -497,9 +696,9 @@ def main():
 
     claves = [k for k, *_ in INDICADORES]
     unidos["feat"] = [{"type": "Feature", "id": r["codigo"],
-                       "properties": {"u": r["ubigeo"], "p": int(r["p"]), "v": int(r["v"]), "ha": round(float(r["km2"]) * 100, 3),
+                       "properties": {"u": r["ubigeo"], "p": int(r["p"]), "v": int(r["v"]), "ho": int(r["ho"]), "ha": round(float(r["km2"]) * 100, 3),
                                       **({"km2": round(float(r["km2"]), 3)} if r["extensa"] else {}),  # solo en las extensas
-                                      **{k: [int(r[k + "_n"]), int(r[k + "_d"])] + ([int(r["g_max"])] if k == "g" else []) for k in claves}},
+                                      **{k: [int(r[k + "_n"]), int(r[k + "_d"])] + ([int(r[k + "_max"])] if k in CON_RANGO else []) for k in claves}},
                        "geometry": (lambda g: {"type": g["type"], "coordinates": redondear(g["coordinates"])})(mapping(geo))}
                       for (_, r), geo in zip(unidos.iterrows(), geoms)]
 
@@ -508,8 +707,10 @@ def main():
         disp = d["codigo"].str.endswith("9999")
         t = {"manzanas": int((~disp & d["codigo"].isin(unidos["codigo"])).sum()),
              "dispersas": {"grupos": int(disp.sum()), "p": int(d.loc[disp, "p"].sum()), "v": int(d.loc[disp, "v"].sum())},
-             "p": int(d["p"].sum()), "v": int(d["v"].sum()), **{k: [int(d[k + "_n"].sum()), int(d[k + "_d"].sum())] for k in claves}}
-        t["g"].append(int(d["g_max"].sum()))
+             "p": int(d["p"].sum()), "v": int(d["v"].sum()), "ho": int(d["ho"].sum()),
+             **{k: [int(d[k + "_n"].sum()), int(d[k + "_d"].sum())] for k in claves}}
+        for k in CON_RANGO:
+            t[k].append(int(d[k + "_max"].sum()))
         return t
 
     distritos = {u: {"nombre": ubis[u], **totales(d)} for u, d in ind[ind["loc"] == "metro"].groupby("ubigeo")}
@@ -524,7 +725,9 @@ def main():
         print(f"{nombre}: {len(u)} manzanas, {len(hexs)} hexágonos de 350 m (ocultos {oculto[9]:.1f} % de las viviendas) "
               f"y {len(hexs10)} de 130 m (ocultos {oculto[10]:.1f} %); con nombre: {sum(1 for h in hexs if h['properties']['n'])}")
         b = shapely.bounds(shapely.union_all(u["geometry"].values))
-        fila = {"id": loc, "nombre": nombre, "caja": [[round(b[1], 4), round(b[0], 4)], [round(b[3], 4), round(b[2], 4)]],
+        # ubigeo de la localidad (la Ciudad de Piura, el del distrito de Piura): provincia y distrito en «Explorar relaciones»
+        ubi = "200101" if loc == "metro" else u["ubigeo"].iloc[0]
+        fila = {"id": loc, "nombre": nombre, "u": ubi, "caja": [[round(b[1], 4), round(b[0], 4)], [round(b[3], 4), round(b[2], 4)]],
                 **totales(ind[ind["loc"] == loc])}
         if loc == "metro":
             metro_hex = hexs
@@ -549,8 +752,10 @@ def main():
         "ambito": "Departamento de Piura: Ciudad de Piura (distritos de Piura, Castilla y Veintiséis de Octubre) y los centros poblados "
                   f"urbanos de {LOCALIDAD_MIN} viviendas o más de los otros distritos",
         "minimo": MINIMO,
-        "indicadores": [{"k": k, "rotulo": rot, "tipo": t, "numerador": n, "denominador": d, "frase": FRASES[k],
-                         "cortes": CORTES[k], "densidad": DENSIDAD[k], **({"palabras": PALABRAS} if CORTES[k] is ESCALA else {}),
+        "indicadores": [{"k": k, "rotulo": rot, "tipo": t, "grupo": GRUPO[k], "unidad": UNIDAD.get(k, "pct"), "numerador": n,
+                         "denominador": d, "frase": FRASES[k], "cortes": CORTES[k],
+                         **({"densidad": DENSIDAD[k]} if k in DENSIDAD else {}), **({"rango": True} if k in CON_RANGO else {}),
+                         **({"palabras": PALABRAS} if CORTES[k] is ESCALA else {}),
                          **({"nota": NOTAS[k]} if k in NOTAS else {})} for k, rot, t, n, d in INDICADORES],
         "hexagonos": {"resolucion": 9, "minimo": NIVELES[9], "nombres": "© colaboradores de OpenStreetMap (ODbL)", "features": metro_hex},
         "validaciones": validaciones,

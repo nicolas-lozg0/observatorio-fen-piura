@@ -33,6 +33,9 @@
     --gris-ref: #aab4c0;  /* líneas de referencia que no deben competir (temperatura de 1997 y 2016) */
     --gris-ref-claro: #ccd3dc;  /* referencia secundaria (temperatura de 2016) */
     --calor: #f08c2a;  /* sombreado de la temperatura sobre lo normal (con opacidad) */
+    --sube: #c2410c; --baja: #2563a8;  /* precios: subió (malo para quien compra) / bajó; validados para daltonismo */
+    /* Categórica (Explorar relaciones: provincias o distritos), los puestos 1 a 7 de la paleta validada de dataviz, en orden fijo */
+    --cat1: #2a78d6; --cat2: #eb6834; --cat3: #1baf7a; --cat4: #eda100; --cat5: #e87ba4; --cat6: #008300; --cat7: #6250d6;
     --aviso-amarillo: #f6cd3d; --aviso-naranja: #f08c2a; --aviso-rojo: #c62828;  /* avisos oficiales del Senamhi (siempre con su nombre) */
     /* Vulnerabilidad (sectores y manzanas, 5 clases): crema casi neutra → rojo oscuro, claridad pareja en OKLCH (0,96 a
        0,30). Validada con dataviz tal como se ve (multiplicada por el fondo del mapa): claridad monótona, saltos ≥ 0,06,
@@ -74,6 +77,8 @@
       --texto: #f0efec; --texto-2: #c3c2b7; --texto-3: #9a998f; --gris-ref: #5f6772; --gris-ref-claro: #474d56; --calor: #f59e0b; --titulo: #9ec5f4;
       --acento: #3987e5; --acento-suave: #23364d; --pista: #23364d; --alerta: #f59e0b; --alerta-suave: #2a2a27; --neutro: #2a2a27;
       --comp1: #916a18; --comp2: #914766; --comp3: #5da16d;  /* oscuro: ΔE 11,0 / 15,2; rosa 2,7:1, con rótulo visible */
+      --sube: #e0612a; --baja: #3987e5;
+      --cat1: #3987e5; --cat2: #d95926; --cat3: #199e70; --cat4: #c98500; --cat5: #d55181; --cat6: #0ca30c; --cat7: #9085e9;
       --o1: #f2f7fe; --o2: #a9ccf6; --o3: #5e9be6; --o4: #2d68b8; --o5: #1f4170; --o-resto: #8a8a82;
       --oi1: #14202e; --oi2: #14202e; --oi3: #14202e; --oi4: #fff; --oi5: #fff; --oi-resto: #14202e;
     }
@@ -84,6 +89,8 @@
     --texto: #f0efec; --texto-2: #c3c2b7; --texto-3: #9a998f; --gris-ref: #5f6772; --gris-ref-claro: #474d56; --calor: #f59e0b; --titulo: #9ec5f4;
     --acento: #3987e5; --acento-suave: #23364d; --pista: #23364d; --alerta: #f59e0b; --alerta-suave: #2a2a27; --neutro: #2a2a27;
     --comp1: #916a18; --comp2: #914766; --comp3: #5da16d;
+    --sube: #e0612a; --baja: #3987e5;
+    --cat1: #3987e5; --cat2: #d95926; --cat3: #199e70; --cat4: #c98500; --cat5: #d55181; --cat6: #0ca30c; --cat7: #9085e9;
     --o1: #f2f7fe; --o2: #a9ccf6; --o3: #5e9be6; --o4: #2d68b8; --o5: #1f4170; --o-resto: #8a8a82;
     --oi1: #14202e; --oi2: #14202e; --oi3: #14202e; --oi4: #fff; --oi5: #fff; --oi-resto: #14202e;
   }
@@ -468,11 +475,17 @@
     .par-nombre { grid-column: 1 / -1; flex-direction: row; flex-wrap: wrap; align-items: baseline; gap: 0 var(--e2); }
     .par-barra .barra { width: calc((100% - 4.5rem) * var(--p) / 100); }
     .par-barra b { left: calc((100% - 4.5rem) * var(--p) / 100 + 6px); } }
-  /* Dispersión de localidades: nombres en tinta de texto; el cuadrante, discreto */
-  .dispersion { max-width: 900px; margin-top: var(--e2); }
-  .dispersion .nombre-punto { fill: var(--texto-2); font-size: var(--t-xs); }
-  .dispersion circle { cursor: pointer; }
-  .dispersion circle:focus-visible { outline: none; stroke: var(--marino); stroke-width: 3; }
+  /* Explorar relaciones: puntos en un canvas (unas 12.000 manzanas); el globo y la marca del punto, encima */
+  .explorar { position: relative; max-width: 960px; margin-top: var(--e2); }
+  .explorar canvas { display: block; width: 100%; touch-action: manipulation; cursor: crosshair; }
+  .explorar .globo { white-space: normal; max-width: 300px; }
+  .explorar .globo.tocado { pointer-events: auto; }
+  .explorar .globo button { margin-top: var(--e2); min-height: 40px; }
+  .explorar .exp-marca { position: absolute; border: 2px solid var(--texto); border-radius: 50%; pointer-events: none; display: none; }
+  .filtros-exp { max-width: 960px; }
+  .filtros-exp .check { flex-direction: row; align-items: center; gap: var(--e2); align-self: end; min-height: 44px; }
+  .filtros-exp .check input { width: auto; min-height: 0; }
+  .leyenda .circulo::before { width: 10px; height: 10px; border-radius: 50%; vertical-align: 0; }
   .filtros-vul { grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); max-width: 900px; }
   /* Leyenda de Vulnerabilidad: barra apilada sin cifras y una grilla de 5 columnas del mismo ancho debajo (etiqueta, rango, %);
      en menos de 640 px, una lista de 5 filas con barrita */
@@ -547,6 +560,9 @@
   #vul-distritos .cuerpo-detalle { max-width: 720px; }
   .vul-cifra { font: 800 var(--t-md)/1.2 var(--f-titulo); color: var(--titulo); margin: 0; }
   #vul-distritos .casos, #vulnerabilidad .tabla .casos { display: block; font-size: var(--t-xs); font-weight: 400; color: var(--texto-3); }
+  /* Fuentes: tabla de indicadores de Vulnerabilidad, por grupo del selector */
+  #vul-indicadores .casos { display: block; font-size: var(--t-xs); color: var(--texto-3); }
+  #vul-indicadores .grupo-fila th { text-align: left; background: var(--fondo); font-size: var(--t-sm); }
   @media (max-width: 600px) { #vul-distritos th, #vulnerabilidad .tabla th { white-space: normal; } }  /* la tabla cabe sin desplazarse */
 
   .lista-corta { margin: 0; padding-left: var(--e5); font-size: var(--t-sm); }
@@ -616,6 +632,8 @@
     border-radius: var(--r-control); box-shadow: var(--sombra-flotante); font-size: var(--t-sm); color: var(--texto); }
 
   /* ===== Formularios y tablas ===== */
+  .filtros-alim { max-width: 720px; }
+  .prom-alim { font-size: var(--t-md); font-weight: 700; color: var(--titulo); margin: 0 0 var(--e1); }
   .filtros { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: var(--e2); margin-bottom: var(--e3); }
   .filtros label, .control { display: flex; flex-direction: column; gap: var(--e1); font-size: var(--t-sm); color: var(--texto-2); min-width: 0; }
   .filtros select, .filtros input { width: 100%; }
@@ -652,6 +670,21 @@
   /* Temperatura: leyenda en una línea; la franja normal como caja; 1997, 2016 y la frase se ocultan bajo 640 px */
   .leyenda .caja-normal::before { width: 14px; height: 10px; background: var(--neutro); }
   @media (max-width: 639px) { .solo-ancho { display: none !important; } }
+  .alim-fila { cursor: default; } .alim-fila:hover .alim-fondo { fill: var(--fondo); }
+  /* Inflación: dos cifras lado a lado en la misma tarjeta (en celular, una bajo otra) y un solo gráfico con selector */
+  .cifras-ipc { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: var(--e3) var(--e5); margin: var(--e2) 0; }
+  .cifras-ipc .et { font-size: var(--t-sm); color: var(--texto-2); }
+  .filtros-ipc { max-width: 320px; }
+  /* Canasta básica compacta: texto a la izquierda y la serie (sin ejes) a la derecha; en celular, una bajo otra */
+  .canasta-compacta { display: grid; grid-template-columns: minmax(0, 1fr) minmax(220px, 38%); gap: var(--e3) var(--e5); align-items: center; }
+  .canasta-compacta .chispa { max-width: 100%; }
+  @media (max-width: 639px) { .canasta-compacta { grid-template-columns: 1fr; } }
+  .leyenda .raya::before { width: 3px; height: 12px; background: var(--texto); vertical-align: -1px; }
+  /* barras: cuadrado relleno con las esquinas de la barra; separador entre los cuadrados y la raya */
+  .leyenda .caja::before { width: 12px; height: 12px; border-radius: 2px; vertical-align: -1px; }
+  .leyenda .sep-ley { align-self: stretch; border-left: 1px solid var(--linea); }
+  .leyenda .sep-ley::before { display: none; }
+  .alim-fila.fuera text.nombre { font-weight: 700; }
   .leyenda { display: flex; flex-wrap: wrap; gap: var(--e1) var(--e4); font-size: var(--t-sm); color: var(--texto-2); margin: var(--e1) 0 var(--e2); }
   .leyenda span::before { content: ""; display: inline-block; width: 14px; height: 3px; border-radius: 2px;
     background: var(--c); vertical-align: middle; margin-right: var(--e2); }
@@ -892,7 +925,7 @@
           <label>Ver<select id="f-vista-vul" disabled><option value="pct">Porcentaje</option><option value="num">Número por hectárea</option></select></label>
         </div>
         <p class="nota" id="vul-ayuda"></p>
-        <p class="nota"><a href="#vul-indicadores-def">¿Cómo se calcula cada indicador?</a></p>
+        <p class="nota"><a href="#vul-indicadores-def" onclick="document.getElementById('vul-indicadores-det').open = true">¿Cómo se calcula cada indicador?</a></p>
       </div>
       <!-- 2. Resumen del indicador -->
       <div class="panel ancho" id="vul-resumen">
@@ -942,7 +975,25 @@
         <p class="nota">Cruce descriptivo entre localidades; no muestra causalidad ni qué viviendas se inundaron. Lluvia estimada por
           satélite (CHIRPS, ~5,5 km).</p>
       </div>
-      <!-- 6. Detalle -->
+      <!-- 6. Explorar relaciones: dispersión de dos variables cualesquiera, por manzana o por localidad (pedido de Germán Vega) -->
+      <div class="panel ancho" id="vul-explorar">
+        <h3>Explorar relaciones</h3>
+        <p class="frase" id="exp-titular">Cargando…</p>
+        <div class="filtros filtros-exp">
+          <label>Eje horizontal<select id="f-exp-x" disabled></select></label>
+          <label>Eje vertical<select id="f-exp-y" disabled></select></label>
+          <label>Nivel<select id="f-exp-nivel" disabled><option value="mz">Manzana</option><option value="loc">Localidad</option></select></label>
+          <label>Localidad<select id="f-exp-loc" disabled><option value="">Todas</option></select></label>
+          <label class="check"><input type="checkbox" id="f-exp-separar"> Separar puntos superpuestos</label>
+        </div>
+        <div class="leyenda" id="exp-leyenda"></div>
+        <div class="grafico explorar" id="exp-grafico"><canvas role="img" aria-label="Gráfico de dispersión"></canvas>
+          <span class="exp-marca"></span><div class="globo"></div></div>
+        <p class="nota" id="exp-nota"></p>
+        <p class="nota">Correlación descriptiva; no implica causalidad. Lluvia estimada por satélite (CHIRPS, ~5,5 km): no dice qué viviendas
+          se inundaron.</p>
+      </div>
+      <!-- 7. Detalle -->
       <div class="panel ancho" id="vul-detalle">
         <h3>Detalle</h3>
         <details class="detalle" id="vul-distritos">
@@ -959,9 +1010,6 @@
         <details class="detalle" id="vul-detallado">
           <summary><span class="ver">Ver datos detallados</span><span class="ocultar">Ocultar datos detallados</span></summary>
           <div class="cuerpo-detalle">
-            <h4 class="vul-sub" id="vul-disp-titulo"></h4>
-            <div class="grafico dispersion" id="vul-disp"></div>
-            <p class="nota" id="vul-disp-nota"></p>
             <div class="tabla"><table class="tabla-loc"><thead id="vul-tabla-loc-cab"></thead><tbody id="vul-tabla-loc"></tbody></table></div>
           </div>
         </details>
@@ -1012,12 +1060,16 @@
   <!-- ===================== PRECIOS ===================== -->
   <section class="pestana" id="precios" aria-labelledby="t-precios" hidden>
     <h2 id="t-precios">¿Cómo están los precios?</h2>
-    <p class="intro">El <span data-g="ipc">índice de precios al consumidor (IPC)</span> de Piura y el costo de la canasta básica, según el INEI.</p>
+    <p class="intro">Los precios de <span id="n-alim">varios</span> alimentos en los mercados de Piura (Midagri), la <span data-g="ipc">inflación</span> de la
+      ciudad (INEI) y el costo de la canasta básica.</p>
     <div class="paneles" id="precios-paneles"></div>
     <details class="detalle">
       <summary><span class="ver">Ver detalle</span><span class="ocultar">Ocultar detalle</span></summary>
       <div class="cuerpo-detalle">
-        <h3>Serie mensual del IPC de Piura</h3>
+        <h3 id="t-alim-tabla">Precios de alimentos en los mercados de Piura</h3>
+        <div class="tabla"><table class="ancha min-640" id="tabla-alim"></table></div>
+        <p class="nota" id="alim-insuficientes"></p>
+        <h3>Inflación (IPC) de Piura, serie mensual</h3>
         <div class="tabla alta"><table class="ancha min-640">
           <thead><tr><th>Mes</th><th class="n">Variación mensual</th><th class="n">Acumulada en el año</th>
             <th class="n">En 12 meses</th><th class="n">Nacional, en 12 meses</th><th>Informe</th></tr></thead>
@@ -1025,7 +1077,10 @@
         </table></div>
         <h3>Líneas de pobreza por dominio (soles por persona al mes)</h3>
         <div class="tabla"><table class="ancha min-640" id="tabla-pobreza"></table></div>
-        <h3>Notas de método</h3>
+        <h3 id="como-precios">Cómo se calcula</h3>
+        <h4 class="vul-sub">Precios en los mercados</h4>
+        <ul class="metodo nota" id="alim-notas"></ul>
+        <h4 class="vul-sub">Inflación (IPC)</h4>
         <ul class="metodo nota" id="ipc-notas"></ul>
       </div>
     </details>
@@ -1050,10 +1105,14 @@
     </div>
     <div class="panel" id="vul-indicadores-def">
       <h3>Vulnerabilidad: cómo se calcula cada indicador</h3>
-      <div class="tabla"><table class="ancha min-640">
-        <thead><tr><th>Indicador</th><th class="nombre">Numerador</th><th class="nombre">Denominador</th><th class="n">Ciudad de Piura</th></tr></thead>
-        <tbody id="vul-indicadores"></tbody>
-      </table></div>
+      <!-- 23 indicadores en 4 grupos: en un desplegable, como toda tabla de más de 15 filas -->
+      <details class="detalle" id="vul-indicadores-det">
+        <summary><span class="ver">Ver numerador y denominador de cada indicador</span><span class="ocultar">Ocultar la tabla</span></summary>
+        <div class="tabla"><table class="ancha min-640">
+          <thead><tr><th>Indicador</th><th class="nombre">Numerador</th><th class="nombre">Denominador</th><th class="n">Ciudad de Piura</th></tr></thead>
+          <tbody id="vul-indicadores"></tbody>
+        </table></div>
+      </details>
       <h4 class="vul-sub">Notas de método de la pestaña Vulnerabilidad</h4>
       <ul class="metodo nota" id="vul-notas"></ul>
     </div>
@@ -1201,7 +1260,9 @@
             día con datos; si ninguna registró lluvia, lo dice. El estado de alerta se copia del comunicado del ENFEN.</li>
           <li><strong>Precios.</strong> «Subieron» o «bajaron» según el signo de la variación mensual (0,00 % = «no variaron»).
             La variación en 12 meses se compara con la nacional: «mayor» o «menor» si la diferencia es de 0,1 puntos o más;
-            si no, «similar».</li>
+            si no, «similar». Alimentos: «subió» si la variación es de 1 % o más, «bajó» si es de −1 % o menos y «casi no cambió»
+            en el resto; «fuera de lo habitual» nombra hasta 2 alimentos que se alejan 5 puntos o más de la mediana de los 4 años
+            anteriores en las mismas fechas.</li>
         </ul>
         <h3>Cómo se valida cada dato</h3>
         <ul class="metodo">
@@ -1250,7 +1311,7 @@ const PRELIMINAR = 2;  // últimas semanas del año en curso: preliminares (punt
 const NIVELES = [["E", "Gobierno nacional"], ["R", "Gobierno regional"], ["M", "Gobiernos locales"]];
 const PESTANAS = ["resumen", "clima", "dengue", "gasto", "obras", "vulnerabilidad", "salud", "precios", "fuentes"];
 // Días que puede pasar una fuente sin actualizarse antes de avisar "Dato no actualizado desde…"
-const PLAZOS = { obras: 35, camas: 45, gasto: 3, inv: 3, fen: 3, d26: 14, ipc: 45, lluvia: 2, tsm: 4, enfen: 20, imerg: 2, nino12: 14, temp: 12, rios: 2 };
+const PLAZOS = { obras: 35, camas: 45, gasto: 3, inv: 3, fen: 3, d26: 14, ipc: 45, lluvia: 2, tsm: 4, enfen: 20, imerg: 2, nino12: 14, temp: 12, rios: 2, sisap: 14 };
 
 // Todas las definiciones de la página en un solo objeto: términos (subrayados en el texto) y cálculos ("Cómo se calcula")
 const DEFINICIONES = {
@@ -1352,7 +1413,7 @@ function aFecha(s) {
   return iso ? new Date(+iso[1], iso[2] - 1, +iso[3]) : dmy ? new Date(+dmy[3], dmy[2] - 1, +dmy[1]) : null;
 }
 const DATOS = () => ({ obras: D.obras, camas: D.camas, gasto: D.gasto, inv: D.invMeta, fen: D.fen, d26: D.d26, ipc: D.ipc,
-  lluvia: D.lluvia, tsm: D.tsm, enfen: D.enfen, imerg: D.imerg, nino12: D.nino12, temp: D.temp, rios: D.rios });
+  lluvia: D.lluvia, tsm: D.tsm, enfen: D.enfen, imerg: D.imerg, nino12: D.nino12, temp: D.temp, rios: D.rios, sisap: D.sisap });
 // Distintivo de estado: desactualizado (reloj) o en trámite (reloj de arena); lo pendiente se dice en la frase del panel
 const ICONO_ESTADO = {
   desactualizado: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
@@ -1404,7 +1465,9 @@ const entidadObra = raw => D.nombres?.infobras?.[String(raw ?? "").replace(/\s+/
 const lista = xs => xs.length < 2 ? xs.join("") : xs.slice(0, -1).join(", ") + " y " + xs.at(-1);
 
 async function cargar(nombre) {
-  try { const r = await fetch(`data/${nombre}`); if (r.ok) return await r.json(); } catch (e) {}
+  // «no-cache»: el navegador confirma con el servidor que su copia sigue vigente (304 si no cambió). Sin esto, una página nueva
+  // puede combinarse con datos viejos guardados (pasó con censo_piura.json: la pestaña Vulnerabilidad no cargaba)
+  try { const r = await fetch(`data/${nombre}`, { cache: "no-cache" }); if (r.ok) return await r.json(); } catch (e) {}
   return null;
 }
 
@@ -2374,15 +2437,28 @@ async function crearMapaObras() {
 const CENSO = { fuente: "INEI, Censos Nacionales 2025, tabulados por manzana entregados el 13/11/2026", url: "https://www.inei.gob.pe/",
   fecha_corte: "2026-11-13" };  // para la tabla de fuentes, sin cargar el archivo
 const TONOS_V = ["--v1", "--v2", "--v3", "--v4", "--v5"];  // 5 clases; los cortes (fijos) vienen con cada indicador
-const UNIDAD = { viv: ["vivienda", "viviendas"], pob: ["persona", "personas"] };
+const UNIDAD = { viv: ["vivienda", "viviendas"], hog: ["hogar", "hogares"], pob: ["persona", "personas"] };
+// Grupos del selector (vienen con cada indicador en «grupo»); el tipo (viv, hog, pob) define la base y el estilo (GRUPOS_VUL)
+const GRUPOS_SELECTOR = { agua: "Agua y saneamiento", vivienda: "Vivienda", hogar: "Hogar", poblacion: "Población" };
+// Unidad de cada indicador: «pct» (numerador / denominador en %) o una magnitud (días u horas por semana: promedio por vivienda,
+// numerador / denominador). TOPE_MAG: el máximo posible, para el largo de las barras. Todo lo que muestra un valor pasa por aquí.
+const TOPE_MAG = { dias: 7, horas: 168 };
+const esMag = i => !!TOPE_MAG[i.unidad];
+const valVul = (i, n, d) => esMag(i) ? (d > 0 ? n / d : null) : pct(n, d);
+const fmtVul = (i, v) => v == null ? "sin dato" : i.unidad === "dias" ? `${num(v, 1)} ${Math.abs(v - 1) < 0.05 ? "día" : "días"}`
+  : i.unidad === "horas" ? `${num(v, 0)} horas` : pctTxt(v);
+// largo de una barra de 0 a 100: el % o la parte del máximo posible (7 días, 168 horas)
+const largoVul = (i, v) => v == null ? 0 : esMag(i) ? 100 * v / TOPE_MAG[i.unidad] : v;
 let vulP, vulColores, vulLoc = "metro";
 const vulInd = () => D.censo.indicadores.find(i => i.k === $("f-vul").value);
 const vulPocos = (i, den) => den < D.censo.minimo[i.tipo];
 const locActual = () => D.censo.localidades.find(x => x.id === vulLoc);
 const vulTotal = k => { const x = locActual()[k]; return [x[0], x[1], x[2] ?? 0]; };
-const vulPct = (i, [n, d, max]) => (i.k === "g" ? "al menos " : "") + pctTxt(pct(n, d));
+// valor con su unidad; los indicadores con rango (seguro, combustible) dan el mínimo seguro: «al menos …»
+const vulPct = (i, [n, d, max]) => (i.rango ? "al menos " : "") + fmtVul(i, valVul(i, n, d));
+const rangoTxt = (i, v) => `entre ${pctTxt(pct(v[0], v[1]))} y ${pctTxt(pct(v[2], v[1]))}`;
 const minuscula = s => s.charAt(0).toLowerCase() + s.slice(1);
-const clasePct = (i, n, d) => i.cortes.filter(c => 100 * n / d >= c).length;  // 0 a 4; cada clase incluye su límite inferior
+const clasePct = (i, n, d) => { const v = valVul(i, n, d) ?? 0; return i.cortes.filter(c => v >= c).length; };  // 0 a 4; cada clase incluye su límite inferior
 // Niveles: hasta zoom 14, hexágonos de 350 m (H3 9); zoom 15, de 130 m (H3 10), solo en la Ciudad de Piura (en los pueblos,
 // menos densos, ocultaba hasta el 42 % de las viviendas); desde 16 (en las localidades, desde 15), manzanas. Un nivel a la vez.
 // La vista de número usa los mismos niveles: su medida (afectados por hectárea de manzana) no depende del tamaño del sector.
@@ -2398,7 +2474,20 @@ const TEXTOS_VUL = {
   g: ["Personas sin EsSalud ni seguro privado", "de personas sin EsSalud ni seguro privado"],
   h: ["Viviendas con paredes de material precario", "donde casi ninguna tiene paredes de material precario", "donde casi todas las tienen"],
   i: ["Viviendas con piso de tierra", "donde casi ninguna tiene piso de tierra", "donde casi todas lo tienen"],
-  j: ["Viviendas con paredes de adobe o tapia", "donde casi ninguna tiene paredes de adobe o tapia", "donde casi todas las tienen"] };
+  j: ["Viviendas con paredes de adobe o tapia", "donde casi ninguna tiene paredes de adobe o tapia", "donde casi todas las tienen"],
+  q: ["Viviendas con techos de caña, estera, triplay o paja", "donde casi ninguna tiene techos de caña, estera, triplay o paja", "donde casi todas los tienen"],
+  r: ["Días sin agua por semana", "con menos de medio día sin agua por semana", "con 4 días o más sin agua por semana"],
+  s: ["Horas sin agua por semana", "con menos de 42 horas sin agua por semana (6 al día)", "con 147 horas o más sin agua por semana (21 al día)"],
+  t: ["Hogares sin refrigeradora", "donde casi todos tienen refrigeradora", "donde casi ninguno la tiene"],
+  w: ["Hogares sin internet fijo", "donde casi todos tienen internet fijo", "donde casi ninguno lo tiene"],
+  x: ["Hogares sin recojo municipal de basura", "donde casi todos tienen recojo municipal de basura", "donde casi ninguno lo tiene"],
+  le: ["Hogares que cocinan con leña, carbón o bosta", "donde casi ninguno cocina con leña, carbón o bosta", "donde casi todos lo hacen"],
+  y: ["Hogares en vivienda propia sin título", "donde casi ninguno vive en casa propia sin título", "donde casi todos viven así"],
+  z: ["Hogares sin teléfono celular", "donde casi todos tienen celular", "donde casi ninguno lo tiene"],
+  k: ["Personas con alguna discapacidad", "de personas con alguna discapacidad"],
+  l: ["Personas con dificultad para caminar", "de personas con dificultad para caminar"],
+  o: ["Personas sin educación superior completa", "de personas sin educación superior completa"],
+  an: ["Personas que no saben leer ni escribir", "de personas que no saben leer ni escribir"] };
 // Rótulo en lenguaje simple de las localidades que están a la vez entre las de más lluvia y las de mayor % del indicador
 // (barras pareadas y su titular). Se define aquí, junto a los textos de cada indicador, y en ningún otro lugar.
 // Dos grupos de indicadores (por el tipo de base: viviendas o personas). Todo lo que cambia entre grupos sale de aquí: nombre
@@ -2410,16 +2499,24 @@ const GRUPOS_VUL = {
     ayuda: "% muestra dónde el problema es más común; número, dónde hay más hogares afectados.",
     // «Barranco: 3 de cada 10 viviendas no tienen desagüe por red pública (31,9 %)»
     frase: (i, nombre, p) => { const [prop, plural] = decimos(p), [sujeto, sing, plu] = i.frase;
-      return `${nombre}: ${i.k === "g" ? "al menos " : ""}${prop} ${sujeto} ${plural ? plu : sing} (${pctTxt(p)})`; },
+      return `${nombre}: ${i.rango ? "al menos " : ""}${prop} ${sujeto} ${plural ? plu : sing} (${pctTxt(p)})`; },
     // los 5 sectores donde más de la mitad está en la situación del indicador, por número
     sectores: (hs, i) => hs.filter(h => h.properties[i.k][0] > h.properties[i.k][1] / 2)
       .sort((a, b) => b.properties[i.k][0] - a.properties[i.k][0]).slice(0, 5),
     criterio: i => `más de la mitad de las ${i.frase[0]} ${i.frase[2]}`, ordenSectores: "número" },
+  // hogares: como servicios y vivienda (carencias, casas), con su base
+  hog: { nombre: "Hogar", tonos: TONOS_V, icono: "casa", reparto: true, orden: "p", base: "hogares", afectados: "hogares afectados",
+    ayuda: "% muestra dónde la carencia es más común; número, dónde hay más hogares afectados.",
+    frase: (i, nombre, p) => { const [prop, plural] = decimos(p), [sujeto, sing, plu] = i.frase;
+      return `${nombre}: ${i.rango ? "al menos " : ""}${prop} ${sujeto} ${plural ? plu : sing} (${pctTxt(p)})`; },
+    sectores: (hs, i) => hs.filter(h => h.properties[i.k][0] > h.properties[i.k][1] / 2)
+      .sort((a, b) => b.properties[i.k][0] - a.properties[i.k][0]).slice(0, 5),
+    criterio: i => `más de la mitad de los ${i.frase[0]} ${i.frase[2]}`, ordenSectores: "número" },
   pob: { nombre: "Población", tonos: ["--p1", "--p2", "--p3", "--p4", "--p5"], icono: "persona", reparto: false, orden: "lluvia",
     base: "personas", afectados: "personas de este grupo",
     ayuda: "% muestra dónde la proporción es más alta; número, dónde vive más gente de este grupo.",
     // «Veintiséis de Octubre: 24,7 % de las personas son menores de 15 años», sin redondear a «de cada 10»
-    frase: (i, nombre, p) => `${nombre}: ${i.k === "g" ? "al menos " : ""}${pctTxt(p)} de las ${i.frase[0]} ${i.frase[2]}`,
+    frase: (i, nombre, p) => `${nombre}: ${i.rango ? "al menos " : ""}${pctTxt(p)} de las ${i.frase[0]} ${i.frase[2]}`,
     // los 5 sectores de mayor porcentaje (entre los que se dibujan: base mínima del mapa)
     sectores: (hs, i) => [...hs].sort((a, b) => pct(...b.properties[i.k].slice(0, 2)) - pct(...a.properties[i.k].slice(0, 2))).slice(0, 5),
     criterio: null, ordenSectores: "porcentaje" },
@@ -2428,13 +2525,22 @@ const grupoVul = (i = vulInd()) => GRUPOS_VUL[i.tipo];
 const LLUVIA_Y = { a: "Mucha lluvia y sin desagüe", b: "Mucha lluvia y sin agua de red", c: "Mucha lluvia y agua cortada",
   d: "Mucha lluvia y agua cortada", e: "Mucha lluvia y muchos niños", f: "Mucha lluvia y muchos adultos mayores",
   g: "Mucha lluvia y poca cobertura de salud", h: "Mucha lluvia y viviendas frágiles", i: "Mucha lluvia y pisos de tierra",
-  j: "Mucha lluvia y adobe o tapia" };
+  j: "Mucha lluvia y adobe o tapia", q: "Mucha lluvia y techos frágiles", r: "Mucha lluvia y días sin agua",
+  s: "Mucha lluvia y horas sin agua", t: "Mucha lluvia y sin refrigeradora", w: "Mucha lluvia y sin internet fijo",
+  x: "Mucha lluvia y basura sin recoger", le: "Mucha lluvia y cocina a leña", y: "Mucha lluvia y casa sin título",
+  z: "Mucha lluvia y sin celular", k: "Mucha lluvia y discapacidad", l: "Mucha lluvia y dificultad para caminar",
+  o: "Mucha lluvia y poca educación superior", an: "Mucha lluvia y analfabetismo" };
 // Para el titular de la comparación: «La combinación de mucha lluvia y … se da en …»
 const COMBINACION = { a: "falta de desagüe", b: "falta de agua de red", c: "agua cortada", d: "agua cortada", e: "muchos niños",
-  f: "muchos adultos mayores", g: "poca cobertura de salud", h: "viviendas frágiles", i: "pisos de tierra", j: "paredes de adobe o tapia" };
+  f: "muchos adultos mayores", g: "poca cobertura de salud", h: "viviendas frágiles", i: "pisos de tierra", j: "paredes de adobe o tapia",
+  q: "techos frágiles", r: "muchos días sin agua", s: "muchas horas sin agua", t: "hogares sin refrigeradora", w: "hogares sin internet fijo",
+  x: "basura sin recojo municipal", le: "cocina con leña, carbón o bosta", y: "casas sin título", z: "hogares sin celular",
+  k: "personas con discapacidad", l: "personas con dificultad para caminar", o: "poca educación superior", an: "analfabetismo" };
 const tituloVul = i => TEXTOS_VUL[i.k]?.[0] ?? i.rotulo;
 const puntasVul = i => { const x = TEXTOS_VUL[i.k] || []; return x.length === 3 ? x.slice(1)
   : [`con menos de ${i.cortes[0]} % ${x[1] ?? ""}`, `con ${i.cortes.at(-1)} % o más`]; };
+// «En promedio, las viviendas con agua de red pública o pilón de Castilla pasan 2,3 días a la semana sin agua»
+const fraseMag = (i, nombre, v) => `En promedio, las ${i.frase[0]} de ${nombre} ${i.frase[2]} ${fmtVul(i, v)} a la semana sin agua`;
 const TEXTO_NIVEL = { h9: "Cada hexágono es un sector de unos 350 m.", h10: "Hexágonos de unos 130 m.", mz: "Se ven las manzanas." };
 let vulVista = "pct";
 const vulNum = () => vulVista === "num";
@@ -2452,8 +2558,8 @@ async function crearVul() {
   vulDatos.metro = { h9: D.censo.hexagonos };
   for (const i of D.censo.indicadores) DEFINICIONES["vul_" + i.k] = [i.rotulo, `Numerador: ${i.numerador}. Denominador: ${i.denominador}.`];
   const s = $("f-vul"), sl = $("f-loc");
-  s.innerHTML = Object.entries(GRUPOS_VUL).map(([t, gr]) => `<optgroup label="${gr.nombre}">${D.censo.indicadores.filter(i => i.tipo === t)
-    .map(i => `<option value="${i.k}">${esc(i.rotulo)}</option>`).join("")}</optgroup>`).join("");
+  s.innerHTML = Object.entries(GRUPOS_SELECTOR).map(([g_, nombre]) => `<optgroup label="${nombre}">${D.censo.indicadores.filter(i => i.grupo === g_)
+    .map(i => `<option value="${i.k}">${esc(i.rotulo)}${esMag(i) ? ` (${i.unidad})` : ""}</option>`).join("")}</optgroup>`).join("");
   $("f-orden-loc").value = grupoVul().orden;
   sl.innerHTML = D.censo.localidades.map(x => `<option value="${x.id}">${esc(x.nombre)}</option>`).join("");
   s.disabled = sl.disabled = $("f-vista-vul").disabled = false;
@@ -2497,8 +2603,7 @@ const lluviaJ = () => lluviaSect?.anios.indexOf(Number(anioLluvia())) ?? -1;
 const enPct = () => LLUVIA_MODO === "pct" && !!lluviaSect?.normal;
 const lluviaUnidad = () => enPct() ? "% de lo normal" : "mm";
 // valor del año elegido en un arreglo [un valor por año…, normal (si la hay)]
-function lluviaDe(arr) {
-  const j = lluviaJ();
+function lluviaDe(arr, j = lluviaJ()) {
   if (!arr || j < 0) return null;
   return enPct() ? (arr.at(-1) > 0 ? Math.round(100 * arr[j] / arr.at(-1)) : null) : arr[j];
 }
@@ -2511,7 +2616,7 @@ const rangoFranja = (c, k, u) => k === 0 ? `menos de ${num(c[0])} ${u}` : k === 
 // detallado (scripts/test_pagina.py comprueba que todos muestren lo mismo)
 function datosLocalidades(i) {
   return D.censo.localidades.map(x => { const [n, d, max] = x[i.k], ll = lluviaSect?.localidades[x.id];
-    return { id: x.id, nombre: x.nombre, viviendas: x.v, base: i.tipo === "pob" ? x.p : x.v, n, d, max, p: pct(n, d), clase: clasePct(i, n, d),
+    return { id: x.id, nombre: x.nombre, viviendas: x.v, base: i.tipo === "pob" ? x.p : i.tipo === "hog" ? x.ho : x.v, n, d, max, p: valVul(i, n, d), clase: clasePct(i, n, d),
       lluvia: lluviaDe(ll?.prom), centro: ll?.centro }; });
 }
 // Tercio superior: entre las ⌈n/3⌉ más altas de cada variable (con 26 localidades, las 9 primeras; los empates entran)
@@ -2537,6 +2642,7 @@ async function iniciarLluviaVul() {
   s.onchange = () => { pintarComparacion(vulInd()); pintarMapaLluviaVul(); };
   pintarComparacion(vulInd());
   pintarMapaLluviaVul();
+  iniciarExplorar();
 }
 
 /* Mapa «Lluvia en los Niños anteriores»: franjas de lluvia del año elegido en todo el departamento, con una cifra por franja,
@@ -2622,69 +2728,16 @@ function lluviaGlobo(f) {
   const x = lluviaDe(arr);
   return x == null ? "" : `<br><span class="nota-globo">Lluvia de enero a abril de ${anioLluvia()} en esta zona: ${lluviaTxt(x)} (celda de ~5,5 km)</span>`;
 }
-// Gráfico detallado (desplegable): lluvia contra % del indicador, una burbuja por localidad. Tamaño fijo: con 8 puntos y la
-// Ciudad de Piura con 10 veces más viviendas que la mayoría, una escala por tamaño solo la hacía tapar a las demás; las
-// viviendas van en el globo y en la tabla. Sin medianas ni cuadrantes (la lectura guiada está en las barras pareadas).
-function pintarDispersion(i, filas) {
-  const el = $("vul-disp"), a = anioLluvia(), un = lluviaUnidad();
-  if (!el || !i) return;
-  const pts = filas.filter(p => p.lluvia != null && p.p != null);
-  if (!pts.length) { el.innerHTML = `<p class="nota">${lluviaSect ? "Sin datos de lluvia para ese año." : "Cargando la lluvia…"}</p>`; return; }
-  const W = Math.max(300, Math.min(900, el.clientWidth || 640)), celular = W < 500, H = celular ? 300 : 340, R = 7;
-  const m = { l: 44, r: 16, t: 26, b: 40 };
-  const maxX = Math.max(...pts.map(p => p.lluvia)), maxY = Math.max(...pts.map(p => p.p));
-  const paso = [50, 100, 250, 500, 1000].find(p => maxX / p <= 6), topeX = Math.ceil(maxX * 1.05 / paso) * paso;
-  const pasoY = [10, 20, 25].find(p => maxY / p <= 5) || 25, topeY = Math.min(100, Math.ceil(maxY * 1.05 / pasoY) * pasoY);
-  const X = v => m.l + v * (W - m.l - m.r) / topeX, Y = v => H - m.b - v * (H - m.t - m.b) / topeY;
-  let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(`Lluvia de enero a abril de ${a} y ${minuscula(tituloVul(i))}, por localidad`)}">`;
-  for (let v = 0; v <= topeY; v += pasoY)
-    svg += `<line x1="${m.l}" x2="${W - m.r}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--linea)"/><text x="${m.l - 6}" y="${Y(v) + 4}" text-anchor="end">${num(v)} %</text>`;
-  for (let v = 0; v <= topeX; v += paso)
-    svg += `<line x1="${X(v)}" x2="${X(v)}" y1="${H - m.b}" y2="${H - m.b + 4}" stroke="var(--texto-3)"/><text x="${X(v)}" y="${H - m.b + 16}" text-anchor="middle">${num(v)}</text>`;
-  svg += `<line x1="${m.l}" x2="${W - m.r}" y1="${H - m.b}" y2="${H - m.b}" stroke="var(--texto-3)"/>
-    <text x="${(m.l + W - m.r) / 2}" y="${H - 4}" text-anchor="middle">Lluvia de enero a abril de ${a} (${un})</text>
-    <text x="${celular ? 0 : m.l}" y="12">% ${esc(minuscula(tituloVul(i)))}</text>`;
-  // nombres: a la derecha; si no cabe, a la izquierda, arriba o abajo; si choca en las cuatro, solo en el globo
-  const cajas = pts.map(p => [X(p.lluvia) - R, Y(p.p) - R, X(p.lluvia) + R, Y(p.p) + R]), etiquetas = [];
-  const choca = r => r[0] < m.l || r[2] > W - m.r || r[1] < m.t - 8 || r[3] > H - m.b || cajas.some(q => r[0] < q[2] && r[2] > q[0] && r[1] < q[3] && r[3] > q[1]);
-  for (const p of [...pts].sort((a, b) => b.viviendas - a.viviendas)) {
-    const w = 6.6 * p.nombre.length, cx = X(p.lluvia), cy = Y(p.p);
-    const ok = [[cx + R + 4, cy + 4, "start"], [cx - R - 4, cy + 4, "end"], [cx, cy - R - 6, "middle"], [cx, cy + R + 14, "middle"]]
-      .find(([x, y, an]) => { const x0 = an === "start" ? x : an === "end" ? x - w : x - w / 2; return !choca([x0, y - 12, x0 + w, y + 3]); });
-    if (!ok) continue;
-    const [x, y, an] = ok, x0 = an === "start" ? x : an === "end" ? x - w : x - w / 2;
-    cajas.push([x0, y - 12, x0 + w, y + 3]);
-    etiquetas.push(`<text x="${x}" y="${y}" text-anchor="${an}" class="nombre-punto">${esc(p.nombre)}</text>`);
-  }
-  for (const p of pts)
-    svg += `<circle cx="${X(p.lluvia)}" cy="${Y(p.p)}" r="${R}" fill="var(--q4)" stroke="${p.id === vulLoc ? "var(--marino)" : "var(--superficie)"}"
-      stroke-width="2" tabindex="0" data-loc="${p.id}" data-p="${p.p}" data-ll="${p.lluvia}"
-      data-t="${esc(`${p.nombre}: ${lluviaTxt(p.lluvia)}; ${pctTxt(p.p)} ${minuscula(tituloVul(i))}; ${num(p.base)} ${grupoVul(i).base}`)}"/>`;
-  el.innerHTML = svg + etiquetas.join("") + `</svg><div class="globo"></div>`;
-  const globo = el.querySelector(".globo");
-  el.querySelectorAll("circle").forEach(c => {
-    const ver = () => { const caja = el.getBoundingClientRect(), b = c.getBoundingClientRect();
-      globo.textContent = c.dataset.t; globo.style.display = "block";
-      const px = b.left + b.width / 2 - caja.left;
-      globo.style.left = Math.max(0, px > caja.width / 2 ? px - globo.offsetWidth - 12 : px + 12) + "px";
-      globo.style.top = (b.top - caja.top) + "px"; };
-    c.addEventListener("pointerenter", ver); c.addEventListener("focus", ver); c.addEventListener("click", ver);
-    c.addEventListener("pointerleave", () => globo.style.display = "none"); c.addEventListener("blur", () => globo.style.display = "none");
-  });
-  $("vul-disp-titulo").textContent = `Lluvia de ${a} y ${minuscula(tituloVul(i))}, por localidad`;
-  $("vul-disp-nota").textContent = `Cada punto es una localidad (tamaño fijo; sus ${grupoVul(i).base}, en el globo y en la tabla). Eje horizontal:
-    lluvia de enero a abril, promedio de sus manzanas ponderado por viviendas.`;
-}
 // Tabla del desplegable (misma función de datos)
 function pintarTablaLoc(i, filas) {
   const u = UNIDAD[i.tipo];
   const base = grupoVul(i).base;
   // 3 columnas para que entre en el celular: la base (viviendas o personas) va bajo el nombre, como en la tabla por distrito
   $("vul-tabla-loc-cab").innerHTML = `<tr><th>Localidad (${base})</th><th class="n">Lluvia ene.–abr. ${anioLluvia()} (${lluviaUnidad()})</th>
-    <th class="n">${esc(i.rotulo)} (% y casos de total)</th></tr>`;
+    <th class="n">${esc(i.rotulo)} (${esMag(i) ? `promedio; ${UNIDAD[i.tipo][1]}` : "% y casos de total"})</th></tr>`;
   $("vul-tabla-loc").innerHTML = filas.map(x => `<tr data-loc="${x.id}" data-p="${x.p}" data-ll="${x.lluvia}"><td>${esc(x.nombre)}<span
-    class="casos">${num(x.base)} ${base}</span></td><td class="n">${x.lluvia == null ? "—" : num(x.lluvia)}</td><td class="n">${x.p == null ? "—" : pctTxt(x.p)}<span
-    class="casos">${num(x.n)} de ${num(x.d)}</span></td></tr>`).join("");
+    class="casos">${num(x.base)} ${base}</span></td><td class="n">${x.lluvia == null ? "—" : num(x.lluvia)}</td><td class="n">${x.p == null ? "—" : fmtVul(i, x.p)}<span
+    class="casos">${esMag(i) ? `${num(x.d)} ${u[1]}` : `${num(x.n)} de ${num(x.d)}`}</span></td></tr>`).join("");
 }
 // Encuadre: la Ciudad de Piura, en los sectores que reúnen el 90 % de las viviendas (los rurales alejan mucho el mapa);
 // otra localidad, en su caja
@@ -2774,11 +2827,16 @@ function vulGloboBase(f) {
 // Las dos medidas: el porcentaje y el número, con su densidad
 function vulGloboDato(cab, i, v, u, f) {
   if (vulPocos(i, v[1])) return cab + `pocos casos (${num(v[1])} ${v[1] === 1 ? u[0] : u[1]} en este indicador)`;
-  return cab + vulPct(i, v) + (i.k === "g" ? ` (entre ${pctTxt(pct(v[0], v[1]))} y ${pctTxt(pct(v[2], v[1]))})` : "") +
+  if (esMag(i)) return cab + `${fmtVul(i, valVul(i, v[0], v[1]))} en promedio<br>${num(v[1])} ${u[1]} con agua de red pública o pilón`;
+  return cab + vulPct(i, v) + (i.rango ? ` (${rangoTxt(i, v)})` : "") +
     `<br>${num(v[0])} de ${num(v[1])} ${u[1]}<br>${num(densidad(i, f), 1)} por hectárea de manzana (${num(f.properties.ha, 1)} ha)`;
 }
 function cambiarVul(ev) {
   vulColores = null;
+  // días y horas no son viviendas afectadas: no hay «número por hectárea»
+  const sv = $("f-vista-vul"), mag = esMag(vulInd());
+  sv.querySelector('[value="num"]').disabled = mag;
+  if (mag && vulVista === "num") { vulVista = sv.value = "pct"; }
   if (ev?.target?.id === "f-vul") $("f-orden-loc").value = grupoVul().orden;  // orden inicial de las barras según el grupo
   for (const n of ["h9", "h10", "mz"]) vulCapas[n]?.clearLayers().addData(visibles(n));  // cambia qué elementos tienen base suficiente
   vulP?.then(m => { if (m) { m.closePopup(); quitarResalte(m); vulNivel(m); } });
@@ -2797,6 +2855,7 @@ const CASA = "M10 1 L20 9 H17 V19 H3 V9 H0 Z";  // silueta sólida: techo y cuer
 const PERSONA = "M10 0.5 a3.6 3.6 0 1 1 0 7.2 a3.6 3.6 0 1 1 0 -7.2 Z M3.5 19.5 V14 a6.5 5.5 0 0 1 13 0 V19.5 Z";  // cabeza y cuerpo
 // Una fila de 10 íconos (casas en servicios y vivienda, personas en población) con la frase del grupo
 function filaCasas(i, nombre, x, ref) {
+  if (esMag(i)) return `<div class="fila-casas${ref ? " ref" : ""}"><p>${fraseMag(i, nombre, valVul(i, x[0], x[1]))}.</p></div>`;
   const p = pct(x[0], x[1]) ?? 0, gr = grupoVul(i), texto = gr.frase(i, nombre, p);
   return `<div class="fila-casas${ref ? " ref" : ""}"><p>${texto}.</p>${casasSvg(p, texto, gr)}</div>`;
 }
@@ -2826,6 +2885,8 @@ const etiquetasVul = (i, n = vulNum()) => !n && i.palabras ? i.palabras : NIVELE
 function rangosVul(i, n = vulNum()) {
   if (n) { const c = i.densidad; return [`menos de ${c[0]} por ha`, ...c.slice(1).map((b, j) => `${c[j]}–${b} por ha`), `${c.at(-1)} o más por ha`]; }
   const c = i.cortes;
+  if (esMag(i)) { const u = i.unidad === "dias" ? "días" : "h", f = v => num(v, v % 1 ? 1 : 0);
+    return [`menos de ${f(c[0])} ${u}`, ...c.slice(1).map((b, j) => `${f(c[j])}–${f(b)} ${u}`), `${f(c.at(-1))} ${u} o más`]; }
   return [0, ...c].map((a, j) => j === c.length ? (a >= 75 ? `${a}–100 %` : `${a} % o más`) : i.palabras || a ? `${a}–${c[j]} %` : `menos de ${c[0]} %`);
 }
 // Enteros que suman 100 (mayor resto): se redondea hacia abajo y lo que falta va a las clases con mayor parte decimal
@@ -2851,7 +2912,7 @@ function fraseBarra(i, base) {
   if (!tot) return "";
   if (!vulNum()) {
     const verbo = i.tipo === "viv" ? ["está", "están"] : ["vive", "viven"];
-    const parte = j => { const r = ent[j]; return r ? `${r} ${verbo[r === 1 ? 0 : 1]}` : `${base[j] ? "menos de 1" : "ninguna"} ${verbo[0]}`; };
+    const parte = j => { const r = ent[j]; return r ? `${r} ${verbo[r === 1 ? 0 : 1]}` : `${base[j] ? "menos de 1" : i.tipo === "hog" ? "ninguno" : "ninguna"} ${verbo[0]}`; };
     const [baja, alta] = puntasVul(i);
     return `De cada 100 ${esc(i.frase[0])} de ${loc}, ${parte(0)} en sectores ${esc(baja)} y ${parte(4)} en sectores ${esc(alta)}.`;
   }
@@ -2874,7 +2935,7 @@ function vulLeyenda(nivel = "h9") {
   if (!gr.reparto) {  // población: el mapa con su leyenda basta
     $("vul-leyenda").innerHTML = `<p class="leyenda cajas leyenda-pob">${et.map((e, j) => `<span style="${color(j)}">${esc(e)}: ${esc(rg[j])}</span>`).join("")}</p>
       <p class="nota leyenda-nota">${vulNum() ? `Color: ${esc(gr.afectados)} por hectárea de manzana (sin calles ni terreno vacío).`
-        : `Color: % de ${u[1]} en cada sector de 350 m.`}${notaMin} ${i.nota && !vulNum() ? esc(i.nota) : ""}</p>`;
+        : esMag(i) ? `Color: ${esc(minuscula(i.rotulo))}, promedio de cada sector de 350 m.` : `Color: % de ${u[1]} en cada sector de 350 m.`}${notaMin} ${i.nota && !vulNum() ? esc(i.nota) : ""}</p>`;
     return ayudas($("vul-leyenda"));
   }
   const base = repartoVul(i), ent = enteros100(base), txt = j => pctClase(ent[j], base[j]), tot = base.reduce((a, b) => a + b, 0) || 1;
@@ -2891,7 +2952,8 @@ function vulLeyenda(nivel = "h9") {
     </div>
     <p class="nota leyenda-nota">${vulNum() ? `La barra reparte las ${u[1]} afectadas de los sectores de 350 m de ${loc} según la densidad de su sector.
       Hectárea de manzana: sin contar calles ni terreno vacío; 1 hectárea ≈ una cuadra de 100 × 100 m.`
-      : `La barra reparte las ${u[1]} de los sectores de 350 m de ${loc} según la clase de su sector.`}${notaMin}
+      : `La barra reparte las ${esMag(i) ? esc(i.frase[0]) : u[1]} de los sectores de 350 m de ${loc} según la clase de su sector${
+        esMag(i) ? ` (promedio de ${esc(minuscula(i.rotulo))})` : ""}.`}${notaMin}
       ${i.nota && !vulNum() ? esc(i.nota) : ""}</p>`;
   const rep = $("vul-leyenda").querySelector(".reparto");
   const marcar = j => rep.querySelectorAll("[data-clase]").forEach(e => e.classList.toggle("atenuada", j != null && e.dataset.clase !== j));
@@ -2902,16 +2964,17 @@ function vulLeyenda(nivel = "h9") {
 function pintarVulTextos() {
   const c = D.censo, i = vulInd(), t = vulTotal(i.k), u = UNIDAD[i.tipo], loc = locActual(), metro = vulLoc === "metro";
   $("vul-titulo").textContent = tituloVul(i);
-  $("vul-cifra").innerHTML = `${esc(loc.nombre)}: ${vulPct(i, t)} <span class="nota">(${num(t[0])} de ${num(t[1])} ${u[1]})</span>`;
+  $("vul-cifra").innerHTML = `${esc(loc.nombre)}: ${vulPct(i, t)} <span class="nota">(${esMag(i) ? `promedio de ${num(t[1])} ${u[1]}`
+    : `${num(t[0])} de ${num(t[1])} ${u[1]}`})</span>`;
   // Frases con casas: en la Ciudad de Piura, sus 3 distritos de mayor a menor %; en otra localidad, ella y la Ciudad de Piura
   // como referencia. Siempre 10 casas por fila, para comparar entre filas
   const ds = Object.values(c.distritos), pm = c.localidades[0];
-  const filas = metro ? [...ds].sort((a, b) => pct(b[i.k][0], b[i.k][1]) - pct(a[i.k][0], a[i.k][1])).map(x => [esc(lugar(x.nombre)), x[i.k]])
+  const filas = metro ? [...ds].sort((a, b) => valVul(i, ...b[i.k].slice(0, 2)) - valVul(i, ...a[i.k].slice(0, 2))).map(x => [esc(lugar(x.nombre)), x[i.k]])
     : [[esc(loc.nombre), loc[i.k]], ["Ciudad de Piura (referencia)", pm[i.k]]];
   $("vul-frases").innerHTML = filas.map(([nombre, x], j) => filaCasas(i, nombre, x, j && !metro)).join("");
   $("vul-ayuda").textContent = grupoVul(i).ayuda;
   $("vul-def").textContent = vulNum() ? `El color muestra cuántas ${grupoVul(i).afectados} hay por hectárea de manzana (concentración), no el porcentaje.`
-    : `Porcentaje sobre: ${minuscula(i.denominador)}.`;
+    : `${esMag(i) ? "Promedio" : "Porcentaje"} sobre: ${minuscula(i.denominador)}.`;
   vulP?.then(m => m && vulNivel(m));
   if (!vulP) vulLeyenda("h9");
   pintarCriticos(i);
@@ -2920,7 +2983,8 @@ function pintarVulTextos() {
   $("vul-pie").innerHTML = `Fuente: ${esc(c.fuente)}. Nombres de los sectores: ${esc(c.hexagonos.nombres)} · ${boton}`;
   $("vul-calculo").innerHTML = nota;
   const fila = (nombre, x, fuerte) => `<tr${fuerte ? ' class="total"' : ""}><td>${fuerte ? `<strong>${nombre}</strong>` : nombre}<span
-    class="casos">${num(x.manzanas)} manzanas</span></td><td class="n">${vulPct(i, x[i.k])}<span class="casos">${num(x[i.k][0])} de ${num(x[i.k][1])}</span></td></tr>`;
+    class="casos">${num(x.manzanas)} manzanas</span></td><td class="n">${vulPct(i, x[i.k])}<span class="casos">${esMag(i) ? `${num(x[i.k][1])} ${u[1]}`
+    : `${num(x[i.k][0])} de ${num(x[i.k][1])}`}</span></td></tr>`;
   $("vul-tabla").innerHTML = ds.map(x => fila(esc(lugar(x.nombre)), x)).join("") + fila("Ciudad de Piura", { ...pm, [i.k]: pm[i.k] }, true);
   // el desglose por distrito es de la Ciudad de Piura (3 distritos); cada otra localidad está en un solo distrito
   $("vul-distritos").hidden = !metro;
@@ -2930,21 +2994,21 @@ function pintarVulTextos() {
   const disp = pm.dispersas;
   $("vul-nota-tabla").innerHTML = `El porcentaje de cada distrito suma los numeradores y los denominadores de sus manzanas (no promedia
     porcentajes). Incluye ${num(disp.grupos)} grupos de ${g("dispersas", "manzanas dispersas")} (${num(disp.p)} personas y ${num(disp.v)}
-    viviendas), que no aparecen en el mapa.${i.k === "g" ? ` En este indicador, el valor real de la Ciudad de Piura está entre
-    ${pctTxt(pct(pm.g[0], pm.g[1]))} y ${pctTxt(pct(pm.g[2], pm.g[1]))}.` : ""}`;
+    viviendas), que no aparecen en el mapa.${i.rango ? ` En este indicador, el valor real de la Ciudad de Piura está ${rangoTxt(i, pm[i.k])}.` : ""}`;
   ayudas($("vulnerabilidad"));
 }
 // Sectores (los elige el grupo): en servicios, los 5 más críticos (más de la mitad, por número); en población, los 5 de mayor
 // porcentaje. Cada fila: nombre y distrito, una barra (largo = base del sector; relleno = casos) y la cifra
 function pintarCriticos(i) {
   const u = UNIDAD[i.tipo], loc = locActual(), metro = vulLoc === "metro", gr = grupoVul(i), ind = esc(minuscula(tituloVul(i)));
-  const crit = vulDatos[vulLoc]?.h9 ? gr.sectores(hexVisibles().features, i) : [];
+  const mag = esMag(i), porValor = hs => [...hs].sort((a, b) => valVul(i, ...b.properties[i.k].slice(0, 2)) - valVul(i, ...a.properties[i.k].slice(0, 2))).slice(0, 5);
+  const crit = vulDatos[vulLoc]?.h9 ? (mag ? porValor : gr.sectores)(hexVisibles().features, i) : [];
   const k = crit.length;
   const porDist = {};
   for (const h of crit) porDist[lugarDe(h)] = (porDist[lugarDe(h)] || 0) + 1;
   const [dist, dn] = Object.entries(porDist).sort((a, b) => b[1] - a[1])[0] || [];
   const suma = crit.reduce((s, h) => s + h.properties[i.k][0], 0), lugarTxt = esc(nombreTexto(loc));
-  if (gr.criterio) {
+  if (gr.criterio && !mag) {
     const afect = gr.afectados, cr = gr.criterio(i);
     $("vul-criticos-titulo").innerHTML = !k ? `En ningún sector de ${lugarTxt} ${esc(cr)}`
       : k < 5 ? `Solo ${k === 1 ? "1 sector cumple" : `${k} sectores cumplen`} el criterio${metro ? `; ${dn === k ? (k === 1 ? "está" : `los ${k} están`)
@@ -2954,15 +3018,15 @@ function pintarCriticos(i) {
     $("vul-criticos-sub").innerHTML = `${g("sector", "Sectores")} donde ${esc(cr)}, ordenados por número de ${u[1]}.`;
   } else {
     $("vul-criticos-titulo").innerHTML = !k ? `Ningún sector de ${lugarTxt} tiene base suficiente`
-      : `Sectores con mayor proporción de ${ind}${metro && k > 1 ? (dn === k ? `: los ${k} están en ${dist}` : `: ${dn} de ${k} están en ${dist}`) : ""}`;
-    $("vul-criticos-sub").innerHTML = `${g("sector", "Sectores")} de 350 m con al menos ${hexVisibles().features.length ? (vulDatos[vulLoc].h9.minimo) : ""} ${u[1]}, ordenados por porcentaje.`;
+      : `${mag ? `Sectores con más ${ind}` : `Sectores con mayor proporción de ${ind}`}${metro && k > 1 ? (dn === k ? `: los ${k} están en ${dist}` : `: ${dn} de ${k} están en ${dist}`) : ""}`;
+    $("vul-criticos-sub").innerHTML = `${g("sector", "Sectores")} de 350 m con al menos ${hexVisibles().features.length ? (vulDatos[vulLoc].h9.minimo) : ""} ${u[1]}, ordenados por ${mag ? "promedio" : "porcentaje"}.`;
   }
   const maxD = Math.max(1, ...crit.map(h => h.properties[i.k][1]));
   $("vul-criticos").innerHTML = crit.map(h => { const [n, d] = h.properties[i.k];
     return `<li><button type="button" class="fila-critico" data-hex="${h.id}">
       <span class="nombre-crit"><b>${nombreSector(h)}</b> <span class="dist">${lugarDe(h)}</span></span>
-      <span class="barra-crit" style="--t:${100 * d / maxD};--c:var(${gr.tonos[3]})"><span style="--p:${100 * n / d}"></span></span>
-      <span class="cifra-crit">${num(n)} de ${num(d)} ${u[1]} (${num(pct(n, d), gr.criterio ? 0 : 1)} %)</span></button></li>`; }).join("");
+      <span class="barra-crit" style="--t:${100 * d / maxD};--c:var(${gr.tonos[3]})"><span style="--p:${largoVul(i, valVul(i, n, d))}"></span></span>
+      <span class="cifra-crit">${mag ? `${fmtVul(i, valVul(i, n, d))} en promedio (${num(d)} ${u[1]})` : `${num(n)} de ${num(d)} ${u[1]} (${num(pct(n, d), gr.criterio ? 0 : 1)} %)`}</span></button></li>`; }).join("");
   $("vul-criticos").onclick = ev => { const b = ev.target.closest("[data-hex]"); if (b) irASector(b.dataset.hex); };
   ayudas($("vul-criticos-sub"));
 }
@@ -2991,7 +3055,7 @@ function pintarComparacion(i) {
   const maxL = Math.max(...filas.map(f => f.lluvia ?? 0)) || 1, ind = minuscula(tituloVul(i)), marca = MARCA_DESTACADA(i);
   const conLluvia = lluviaJ() >= 0;
   $("f-orden-loc").options[0].textContent = i.rotulo;  // «Ordenar por: Sin desagüe por red pública | lluvia»
-  $("vul-pares-cab").innerHTML = `<span></span><span>Lluvia de enero a abril de ${a} (${lluviaUnidad()})</span><span>% ${esc(ind)}</span>`;
+  $("vul-pares-cab").innerHTML = `<span></span><span>Lluvia de enero a abril de ${a} (${lluviaUnidad()})</span><span>${esMag(i) ? `${esc(i.rotulo)} (promedio; barra de 0 a ${TOPE_MAG[i.unidad]})` : `% ${esc(ind)}`}</span>`;
   const PRIMERAS = 10, siempre = x => x.id === "metro" || x.id === vulLoc;
   $("vul-localidades").innerHTML = ord.map((x, j) => `<li class="par${dest.has(x.id) ? " destacada" : ""}${x.id === vulLoc ? " sel" : ""}${
       x.id === "metro" ? " ciudad" : ""}" data-loc="${x.id}" data-p="${x.p}" data-ll="${x.lluvia}"${x.id === vulLoc ? ' aria-current="true"' : ""}${
@@ -3001,43 +3065,245 @@ function pintarComparacion(i) {
       ? `<span class="marca-par">${esc(marca)}</span>` : ""}</span>
     <span class="par-barra" role="img" aria-label="${esc(`Lluvia: ${lluviaTxt(x.lluvia)}`)}" style="--p:${conLluvia ? 100 * (x.lluvia ?? 0) / maxL : 0};--c:var(--q4)"><span class="barra"></span>
       <b>${conLluvia ? lluviaTxt(x.lluvia) : "…"}</b></span>
-    <span class="par-barra" role="img" aria-label="${esc(`${tituloVul(i)}: ${vulPct(i, [x.n, x.d, x.max])}`)}" style="--p:${x.p ?? 0};--c:var(${grupoVul(i).tonos[x.clase]})"><span class="barra borde"></span>
+    <span class="par-barra" role="img" aria-label="${esc(`${tituloVul(i)}: ${vulPct(i, [x.n, x.d, x.max])}`)}" style="--p:${largoVul(i, x.p)};--c:var(${grupoVul(i).tonos[x.clase]})"><span class="barra borde"></span>
       <b>${x.p == null ? "sin dato" : vulPct(i, [x.n, x.d, x.max])}</b></span></li>`).join("");
   const bt = $("vul-ver-todas");
   bt.hidden = ord.length <= PRIMERAS;
   bt.textContent = paresTodas ? `Ver solo las ${PRIMERAS} primeras` : `Ver las ${ord.length} localidades`;
   bt.setAttribute("aria-expanded", paresTodas);
   bt.onclick = () => { paresTodas = !paresTodas; pintarComparacion(vulInd()); };
-  const sumN = filas.reduce((s, x) => s + x.n, 0), prom = pct(sumN, filas.reduce((s, x) => s + x.d, 0));
-  $("vul-prom").textContent = `Promedio de las ${filas.length} zonas urbanas: ${pctTxt(prom)} ${ind} (suma numeradores y denominadores; no promedia porcentajes). `
+  const sumN = filas.reduce((s, x) => s + x.n, 0), prom = valVul(i, sumN, filas.reduce((s, x) => s + x.d, 0));
+  $("vul-prom").textContent = `Promedio de las ${filas.length} zonas urbanas: ${fmtVul(i, prom)} ${esMag(i) ? "" : ind} (suma numeradores y denominadores; no promedia ${esMag(i) ? "promedios" : "porcentajes"}). `
     + `Resaltadas: las que están a la vez entre las ${Math.ceil(filas.length / 3)} con más lluvia y entre las ${Math.ceil(filas.length / 3)} con más ${ind}.`;
   // Titular directo (los dos grupos): dónde llovió más (las 3 localidades) y cuánto vale el indicador ahí en conjunto (suma
   // numeradores y denominadores) frente al total; después, dónde se da la combinación de mucha lluvia y valor alto
   // (tercio superior de las dos variables), con el texto del indicador. Sin rangos, que se superponían y no decían nada
   const porLl = filas.filter(x => x.lluvia != null && x.p != null).sort((p, q) => q.lluvia - p.lluvia), top = porLl.slice(0, 3);
-  const enConjunto = xs => pct(xs.reduce((s, x) => s + x.n, 0), xs.reduce((s, x) => s + x.d, 0));
-  const ps = porLl.map(x => x.p), PARECIDAS = 5, alMenos = i.k === "g" ? "al menos " : "";
+  const enConjunto = xs => valVul(i, xs.reduce((s, x) => s + x.n, 0), xs.reduce((s, x) => s + x.d, 0));
+  // localidades «parecidas»: 5 puntos en %; en días y horas, la misma parte del máximo (0,35 días; 8 horas)
+  const ps = porLl.map(x => x.p), PARECIDAS = esMag(i) ? TOPE_MAG[i.unidad] / 20 : 5, alMenos = i.rango ? "al menos " : "";
   const nombres = xs => lista(xs.map(x => `<strong>${esc(x.nombre)}</strong>`));
   const rs = ord.filter(x => dest.has(x.id));
   let tit;
   if (!conLluvia || !porLl.length) tit = "Cargando la lluvia…";
   else {
-    tit = `En ${a} llovió más en ${nombres(top)}. Ahí, en conjunto, ${alMenos}el ${pctTxt(enConjunto(top))} de las ${esc(i.frase[0])}
+    tit = esMag(i) ? `En ${a} llovió más en ${nombres(top)}. Ahí, en promedio, las ${esc(i.frase[0])} ${esc(i.frase[2])} ${fmtVul(i, enConjunto(top))}
+      a la semana sin agua, frente a ${fmtVul(i, prom)} en el total de las ${filas.length} localidades.`
+      : `En ${a} llovió más en ${nombres(top)}. Ahí, en conjunto, ${alMenos}el ${pctTxt(enConjunto(top))} de las ${esc(i.frase[0])}
       ${esc(i.frase[2])}, frente al ${pctTxt(prom)} del total de las ${filas.length} localidades.`;
     if (Math.max(...ps) - Math.min(...ps) <= PARECIDAS)
-      tit += ` Las ${porLl.length} localidades están a ${num(Math.max(...ps) - Math.min(...ps), 1)} puntos o menos entre sí.`;
+      tit += ` Las ${porLl.length} localidades están a ${esMag(i) ? fmtVul(i, Math.max(...ps) - Math.min(...ps)) : `${num(Math.max(...ps) - Math.min(...ps), 1)} puntos`} o menos entre sí.`;
     tit += rs.length ? ` La combinación de mucha lluvia y ${esc(COMBINACION[i.k])} se da en ${lista(rs.map(x =>
         `<strong>${esc(x.nombre)}</strong> (${vulPct(i, [x.n, x.d, x.max])})`))}.`
       : ` Ninguna localidad está a la vez entre las de más lluvia y las de más ${esc(ind)}.`;
   }
   $("vul-comp-titular").innerHTML = tit + (a === "1983" ? ` En 1983 el satélite subestima mucho la lluvia de la costa: compárese con cuidado.` : "");
-  pintarDispersion(i, filas);
   pintarTablaLoc(i, filas);
 }
+/* ---------- Explorar relaciones: dos variables cualesquiera, un punto por manzana o por localidad ---------- */
+// Variables: «c:k» (indicador k del censo) o «ll:año» (lluvia de enero a abril). Usa las funciones de datos del mapa y las
+// barras: valVul (valor), vulPocos (mínimo de casos: 10 viviendas u hogares, 30 personas), lluviaDe (lluvia del año) y, por
+// localidad, los totales de D.censo.localidades (los mismos de datosLocalidades). Las manzanas (unas 12.000) van en un canvas.
+// Color: provincia si se ven todas las localidades (7 colores; con 23 distritos no se distinguirían); distrito si se elige una.
+const PROVINCIAS = { "2001": "Piura", "2002": "Ayabaca", "2003": "Huancabamba", "2004": "Morropón", "2005": "Paita", "2006": "Sullana",
+  "2007": "Talara", "2008": "Sechura" };
+const CATEG = ["--cat1", "--cat2", "--cat3", "--cat4", "--cat5", "--cat6", "--cat7"];
+let expIniciado = false, expCargaP = null, expPts = [], expPintado = null;
+const expVar = v => { const [t, k] = v.split(":");
+  return t === "ll" ? { lluvia: true, anio: +k } : { i: D.censo.indicadores.find(x => x.k === k) }; };
+const expJ = a => lluviaSect?.anios.indexOf(a) ?? -1;
+const expRotulo = V => V.lluvia ? `Lluvia de enero a abril de ${V.anio} (${lluviaUnidad()})`
+  : `${tituloVul(V.i)} (${esMag(V.i) ? `${V.i.unidad}, promedio` : `% de ${UNIDAD[V.i.tipo][1]}`})`;
+const expFmt = (V, v) => V.lluvia ? lluviaTxt(v) : fmtVul(V.i, v);
+const nombreDist = u => { const d = lluviaSect?.distritos.find(x => x.u === u); return d ? lugar(d.n) : u; };
+// Puntos de un nivel: { id, loc, u, x, y, peso (viviendas), v, p, f }. Sin dato o con pocos casos en un eje, la manzana no entra
+function datosExplorar(nivel, vx, vy, loc = "") {
+  const X = expVar(vx), Y = expVar(vy), censo = [X, Y].filter(V => !V.lluvia);
+  if (nivel === "loc") return D.censo.localidades.filter(x => !loc || x.id === loc).map(x => {
+    const val = V => V.lluvia ? lluviaDe(lluviaSect?.localidades[x.id]?.prom, expJ(V.anio)) : valVul(V.i, x[V.i.k][0], x[V.i.k][1]);
+    return { id: x.id, nombre: x.nombre, loc: x.id, u: x.u, x: val(X), y: val(Y), peso: x.v, v: x.v, p: x.p,
+      ho: x.ho };
+  }).filter(q => q.x != null && q.y != null);
+  const out = [];
+  for (const l of D.censo.localidades) {
+    if (loc && l.id !== loc) continue;
+    for (const f of vulDatos[l.id]?.mz?.features || []) {
+      const pr = f.properties;
+      if (pr.km2) continue;  // manzanas extensas: el mapa tampoco las colorea
+      if (!censo.length && pr.v < D.censo.minimo.viv) continue;  // lluvia contra lluvia: las de 10 viviendas o más
+      const val = V => { if (V.lluvia) { const c = lluviaDet?.manzanas[f.id]; return c == null ? null : lluviaDe(lluviaDet.celdas[c], expJ(V.anio)); }
+        const q = pr[V.i.k]; return !q[1] || vulPocos(V.i, q[1]) ? null : valVul(V.i, q[0], q[1]); };
+      const x = val(X), y = val(Y);
+      if (x != null && y != null) out.push({ id: f.id, loc: l.id, u: pr.u, x, y, peso: pr.v, v: pr.v, p: pr.p, ho: pr.ho, f });
+    }
+  }
+  return out;
+}
+// Correlación de Pearson ponderada (peso = viviendas)
+function corrPond(ps) {
+  let sw = 0, sx = 0, sy = 0;
+  for (const q of ps) { sw += q.peso; sx += q.peso * q.x; sy += q.peso * q.y; }
+  if (!sw) return null;
+  const mx = sx / sw, my = sy / sw;
+  let cxy = 0, cxx = 0, cyy = 0;
+  for (const q of ps) { const dx = q.x - mx, dy = q.y - my; cxy += q.peso * dx * dy; cxx += q.peso * dx * dx; cyy += q.peso * dy * dy; }
+  return cxx > 0 && cyy > 0 ? cxy / Math.sqrt(cxx * cyy) : null;
+}
+const fuerzaCorr = r => { const a = Math.abs(r); return a < .1 ? "casi nula" : a < .3 ? "débil" : a < .5 ? "moderada" : "fuerte"; };
+// Desplazamiento fijo de cada punto (de −0,5 a 0,5) a partir de su código: la misma separación en cada dibujo
+const semilla = id => { let h = 2166136261; for (let k = 0; k < id.length; k++) h = Math.imul(h ^ id.charCodeAt(k), 16777619); return ((h >>> 0) % 1000) / 1000 - .5; };
+const pasoEje = max => [0.5, 1, 2, 5, 10, 20, 25, 50, 100, 200, 250, 500, 1000].find(p => max / p <= 6) || 2000;
+// Categoría (color) de un punto: provincia con todas las localidades; distrito con una
+function expCategorias(pts, loc) {
+  const clave = q => loc ? q.u : q.u.slice(0, 4);
+  // orden fijo: el color sigue a la provincia (o al distrito, por ubigeo), no a su puesto ni a lo que se ve
+  const orden = loc ? [...new Set(pts.map(clave))].sort() : [...new Set(D.censo.localidades.map(x => x.u.slice(0, 4)))].sort();
+  const presentes = orden.filter(c => pts.some(q => clave(q) === c));
+  const color = c => CATEG[Math.max(0, orden.indexOf(c)) % CATEG.length];
+  return { clave, presentes, color, nombre: c => loc ? nombreDist(c) : PROVINCIAS[c] };
+}
+async function expCargar(nivel, loc) {
+  if (nivel !== "mz") return;
+  const locs = loc ? [loc] : D.censo.localidades.map(x => x.id);
+  await Promise.all([cargarLluviaDetalle(), ...locs.map(l => datosNivel(l, "mz"))]);
+}
+function iniciarExplorar() {
+  if (expIniciado || !D.censo || !lluviaSect) return;
+  expIniciado = true;
+  const opts = Object.entries(GRUPOS_SELECTOR).map(([g_, nombre]) => `<optgroup label="${nombre}">${D.censo.indicadores.filter(i => i.grupo === g_)
+    .map(i => `<option value="c:${i.k}">${esc(i.rotulo)}${esMag(i) ? ` (${i.unidad})` : ""}</option>`).join("")}</optgroup>`).join("")
+    + `<optgroup label="Lluvia de enero a abril">${lluviaSect.anios.map(a => `<option value="ll:${a}">Lluvia ${a}</option>`).join("")}</optgroup>`;
+  $("f-exp-x").innerHTML = $("f-exp-y").innerHTML = opts;
+  $("f-exp-x").value = `ll:${ANIO_LLUVIA}`; $("f-exp-y").value = "c:a";
+  $("f-exp-loc").innerHTML = `<option value="">Todas</option>` + D.censo.localidades.map(x => `<option value="${x.id}">${esc(x.nombre)}</option>`).join("");
+  for (const id of ["f-exp-x", "f-exp-y", "f-exp-nivel", "f-exp-loc", "f-exp-separar"]) { $(id).disabled = false; $(id).onchange = pintarExplorar; }
+  const el = $("exp-grafico"), cv = el.querySelector("canvas"), globo = el.querySelector(".globo"), marca = el.querySelector(".exp-marca");
+  const cerca = ev => { const P = expPintado; if (!P) return null; const b = cv.getBoundingClientRect(), mx = ev.clientX - b.left, my = ev.clientY - b.top;
+    let mejor = null, dm = P.nivel === "mz" ? 64 : Infinity;
+    for (const q of P.pts) { const d = (q.sx - mx) ** 2 + (q.sy - my) ** 2, lim = P.nivel === "mz" ? 64 : (q.r + 6) ** 2; if (d < dm && d <= lim) { dm = d; mejor = q; } }
+    return mejor; };
+  const ver = (q, tocado) => {
+    if (!q) { globo.style.display = marca.style.display = "none"; return; }
+    const P = expPintado, X = expVar(P.vx), Y = expVar(P.vy), base = [X, Y].some(V => V.i?.tipo === "pob");
+    globo.innerHTML = (P.nivel === "mz" ? `<strong>Manzana <span class="cod">${esc(q.id)}</span></strong><br>${esc(nombreDist(q.u))} · ${
+        esc(D.censo.localidades.find(x => x.id === q.loc).nombre)}` : `<strong>${esc(q.nombre)}</strong>`) +
+      `<br>${esc(expRotulo(X).replace(/ \(.*\)$/, ""))}: <strong>${expFmt(X, q.x)}</strong><br>${esc(expRotulo(Y).replace(/ \(.*\)$/, ""))}: <strong>${expFmt(Y, q.y)}</strong>` +
+      `<br>${num(q.v)} viviendas${base ? ` · ${num(q.p)} personas` : ""}` +
+      (tocado ? `<br><button type="button" class="mas">${P.nivel === "mz" ? "Ver la manzana en el mapa" : "Ver la localidad en el mapa"}</button>` : "");
+    globo.classList.toggle("tocado", !!tocado);
+    globo.style.display = "block";
+    const w = el.clientWidth, gx = q.sx > w / 2 ? q.sx - globo.offsetWidth - 12 : q.sx + 12;
+    globo.style.left = Math.max(0, Math.min(w - globo.offsetWidth, gx)) + "px";
+    globo.style.top = Math.max(0, q.sy - globo.offsetHeight / 2) + "px";
+    const r = (P.nivel === "mz" ? 4 : q.r) + 3;
+    Object.assign(marca.style, { display: "block", left: q.sx - r + "px", top: q.sy - r + "px", width: 2 * r + "px", height: 2 * r + "px" });
+    const bt = globo.querySelector("button"); if (bt) bt.onclick = () => irDesdeExplorar(q);
+  };
+  cv.addEventListener("pointermove", ev => { if (ev.pointerType === "mouse") ver(cerca(ev)); });
+  cv.addEventListener("pointerleave", ev => { if (ev.pointerType === "mouse") ver(null); });
+  // ratón: clic = ir al mapa; táctil: el toque abre el globo con un botón para ir al mapa
+  cv.addEventListener("click", ev => { const q = cerca(ev); if (!q) return ver(null);
+    if (ev.pointerType === "mouse" || matchMedia("(hover: hover)").matches) irDesdeExplorar(q); else ver(q, true); });
+  pintarExplorar();
+}
+// Clic en un punto: el mapa por sectores va a esa manzana (zoom de manzanas, con borde) o a esa localidad
+async function irDesdeExplorar(q) {
+  const m = await vulP;
+  if (!m) return;
+  if (vulLoc !== q.loc) { $("f-loc").value = q.loc; await cambiarLoc(); }
+  $("vul-mapa").scrollIntoView({ behavior: "smooth", block: "start" });
+  if (!q.f) return;
+  m.fitBounds(L.geoJSON(q.f).getBounds(), { maxZoom: 17, animate: false });
+  await vulNivel(m);
+  quitarResalte(m);
+  vulCapas.resalte = L.geoJSON(q.f, { interactive: false, style: { fill: false, weight: 4, color: token("--texto") } }).addTo(m);
+}
+async function pintarExplorar() {
+  const el = $("exp-grafico");
+  if (!expIniciado || !el) return;
+  const vx = $("f-exp-x").value, vy = $("f-exp-y").value, nivel = $("f-exp-nivel").value, loc = $("f-exp-loc").value;
+  const X = expVar(vx), Y = expVar(vy), clave = [vx, vy, nivel, loc].join("|");
+  if (nivel === "mz") {
+    $("exp-titular").textContent = "Cargando las manzanas…";
+    await (expCargaP = expCargar(nivel, loc));
+    if ([$("f-exp-x").value, $("f-exp-y").value, $("f-exp-nivel").value, $("f-exp-loc").value].join("|") !== clave) return;  // cambió mientras cargaba
+  }
+  const pts = datosExplorar(nivel, vx, vy, loc), cat = expCategorias(pts, loc), conLluvia = X.lluvia || Y.lluvia;
+  const separar = $("f-exp-separar").checked && nivel === "mz" && conLluvia;
+  const cv = el.querySelector("canvas"), W = Math.max(280, el.clientWidth || 640), celular = W < 500, H = celular ? 360 : 460, dpr = window.devicePixelRatio || 1;
+  cv.width = W * dpr; cv.height = H * dpr; cv.style.height = H + "px";
+  const ctx = cv.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+  const m = { l: 48, r: 24, t: 14, b: 46 };
+  const maxX = Math.max(0, ...pts.map(q => q.x)), maxY = Math.max(0, ...pts.map(q => q.y));
+  // tope del eje: un paso redondo sobre el máximo; en %, nunca más de 100
+  const tope = (V, max, paso) => { const t = Math.max(paso, Math.ceil(max * 1.03 / paso) * paso); return !V.lluvia && !esMag(V.i) ? Math.min(100, t) : t; };
+  const px = pasoEje(maxX || 1), py = pasoEje(maxY || 1), topeX = tope(X, maxX, px), topeY = tope(Y, maxY, py);
+  const sx = v => m.l + v * (W - m.l - m.r) / topeX, sy = v => H - m.b - v * (H - m.t - m.b) / topeY;
+  const col = n => token(n), fuente = `12px ${getComputedStyle(document.body).fontFamily}`;
+  ctx.font = fuente; ctx.lineWidth = 1;
+  ctx.strokeStyle = col("--linea"); ctx.fillStyle = col("--texto-3");
+  ctx.textAlign = "right"; ctx.textBaseline = "middle";
+  for (let v = 0; v <= topeY + 1e-9; v += py) { ctx.beginPath(); ctx.moveTo(m.l, sy(v)); ctx.lineTo(W - m.r, sy(v)); ctx.stroke(); ctx.fillText(num(v, v % 1 ? 1 : 0), m.l - 6, sy(v)); }
+  ctx.textAlign = "center"; ctx.textBaseline = "top";
+  const cadaX = celular && topeX / px > 4 ? 2 : 1;
+  for (let v = 0, k = 0; v <= topeX + 1e-9; v += px, k++) { ctx.beginPath(); ctx.moveTo(sx(v), m.t); ctx.lineTo(sx(v), H - m.b); ctx.stroke();
+    if (k % cadaX === 0) ctx.fillText(num(v, v % 1 ? 1 : 0), sx(v), H - m.b + 6); }
+  ctx.fillStyle = col("--texto-2"); ctx.fillText(expRotulo(X), (m.l + W - m.r) / 2, H - 18);
+  ctx.save(); ctx.translate(12, (m.t + H - m.b) / 2); ctx.rotate(-Math.PI / 2); ctx.textBaseline = "middle"; ctx.fillText(expRotulo(Y), 0, 0); ctx.restore();
+  // puntos: manzanas pequeñas y semitransparentes; localidades con área según viviendas (raíz cuadrada, tope 22 px)
+  const ancho = W - m.l - m.r, colores = Object.fromEntries(cat.presentes.map(c => [c, col(cat.color(c))]));
+  for (const q of pts) {
+    q.sx = sx(q.x) + (separar && X.lluvia ? semilla(q.id) * Math.min(14, ancho / 40) : 0);
+    q.sy = sy(q.y) - (separar && Y.lluvia ? semilla(q.id + "y") * 14 : 0);
+    q.r = nivel === "mz" ? (celular ? 1.8 : 2.2) : Math.min(22, 4 + .055 * Math.sqrt(q.v));
+  }
+  if (nivel === "mz") {
+    ctx.globalAlpha = .35;
+    for (const q of pts) { ctx.fillStyle = colores[cat.clave(q)]; ctx.beginPath(); ctx.arc(q.sx, q.sy, q.r, 0, 2 * Math.PI); ctx.fill(); }
+    ctx.globalAlpha = 1;
+  } else {
+    const sup = col("--superficie");
+    for (const q of [...pts].sort((a, b) => b.r - a.r)) { ctx.globalAlpha = .8; ctx.fillStyle = colores[cat.clave(q)]; ctx.beginPath(); ctx.arc(q.sx, q.sy, q.r, 0, 2 * Math.PI); ctx.fill();
+      ctx.globalAlpha = 1; ctx.strokeStyle = sup; ctx.lineWidth = 2; ctx.stroke(); }
+    // nombres: a la derecha, a la izquierda, arriba o abajo del punto; si choca en las cuatro, solo en el globo
+    ctx.font = `600 ${fuente}`; ctx.fillStyle = col("--texto"); ctx.textBaseline = "middle";
+    const cajas = pts.map(q => [q.sx - q.r, q.sy - q.r, q.sx + q.r, q.sy + q.r]);
+    for (const q of [...pts].sort((a, b) => b.v - a.v)) {
+      const w = ctx.measureText(q.nombre).width, h = 14;
+      const pos = [[q.sx + q.r + 4, q.sy, "left"], [q.sx - q.r - 4, q.sy, "right"], [q.sx, q.sy - q.r - 9, "center"], [q.sx, q.sy + q.r + 9, "center"]]
+        .map(([x, y, a]) => [x, y, a, a === "left" ? x : a === "right" ? x - w : x - w / 2])
+        .find(([, y, , x0]) => x0 >= 0 && x0 + w <= W && y - h / 2 >= 0 && y + h / 2 <= H - m.b
+          && !cajas.some(c => x0 < c[2] && x0 + w > c[0] && y - h / 2 < c[3] && y + h / 2 > c[1]));
+      if (!pos) continue;
+      const [x, y, a, x0] = pos; cajas.push([x0, y - h / 2, x0 + w, y + h / 2]);
+      ctx.textAlign = a; ctx.fillText(q.nombre, x, y);
+    }
+  }
+  expPintado = { pts, nivel, vx, vy };
+  el.querySelector(".globo").style.display = el.querySelector(".exp-marca").style.display = "none";
+  // titular: correlación ponderada por viviendas, con el número de puntos
+  const r = corrPond(pts), unid = nivel === "mz" ? ["manzana", "manzanas"] : ["localidad", "localidades"];
+  $("exp-titular").textContent = pts.length < 3 ? `Muy pocos puntos para medir la relación (${pts.length} ${pts.length === 1 ? unid[0] : unid[1]}).`
+    : r == null ? `Una de las dos variables no cambia entre ${unid[1]}: no hay correlación que medir (${num(pts.length)} ${unid[1]}).`
+    : `Relación ${fuerzaCorr(r)}${Math.abs(r) >= .1 ? ` y ${r > 0 ? "positiva" : "negativa"}` : ""}: correlación ponderada por viviendas de ${
+      num(r, 2)} (${num(pts.length)} ${unid[1]}).`;
+  $("exp-grafico").querySelector("canvas").setAttribute("aria-label", `${expRotulo(Y)} contra ${expRotulo(X)}: ${pts.length} ${unid[1]}. ${$("exp-titular").textContent}`);
+  $("exp-leyenda").innerHTML = (loc ? "" : `<span class="sin-muestra">Provincia:</span>`) + cat.presentes.map(c =>
+    `<span class="circulo" style="--c:var(${cat.color(c)})">${esc(cat.nombre(c))}</span>`).join("");
+  const minTxt = `${nivel === "mz" ? `Un punto por manzana con 10 viviendas u hogares o más (30 personas en los indicadores de población); sin las
+    manzanas muy extensas.` : "Un punto por localidad; su tamaño, según sus viviendas."} Color: ${loc ? "distrito" : "provincia"}.`;
+  $("exp-nota").textContent = minTxt + (nivel === "mz" && conLluvia ? " Las manzanas de una misma celda de lluvia (~5,5 km) comparten el mismo valor y se ven en columnas."
+    + (separar ? " Con «Separar puntos superpuestos», cada punto se corre un poco al azar a lo largo del eje de la lluvia (el valor no cambia)." : "") : "")
+    + (nivel === "mz" ? " Clic en un punto (o tócalo y usa el botón): el mapa por sectores va a esa manzana." : "");
+}
+
 function pintarVulDetalle() {
   const c = D.censo, k = c.coincidencia, val = c.validaciones, malas = val.filter(v => v.filas_con_diferencia);
-  $("vul-indicadores").innerHTML = c.indicadores.map(i => { const t = c.localidades.find(x => x.id === "metro")[i.k];
-    return `<tr><td>${esc(i.rotulo)}</td><td>${esc(i.numerador)}</td><td>${esc(i.denominador)}</td><td class="n">${vulPct(i, t)}</td></tr>`; }).join("");
+  const pm = c.localidades.find(x => x.id === "metro");
+  $("vul-indicadores").innerHTML = Object.entries(GRUPOS_SELECTOR).map(([g_, nombre]) => `<tr class="grupo-fila"><th colspan="4">${nombre}</th></tr>` +
+    c.indicadores.filter(i => i.grupo === g_).map(i => `<tr><td>${esc(i.rotulo)}<span class="casos">${esMag(i) ? `${i.unidad} por semana (promedio)`
+      : `% de ${UNIDAD[i.tipo][1]}`}</span></td><td>${esc(i.numerador)}${i.nota ? ` <span class="nota">${esc(i.nota)}</span>` : ""}</td><td>${esc(i.denominador)}</td><td class="n">${
+      vulPct(i, pm[i.k])}${i.rango ? `<span class="casos">${rangoTxt(i, pm[i.k])}</span>` : ""}</td></tr>`).join("")).join("");
   $("vul-notas").innerHTML = [
     `Ámbito: ${esc(c.ambito)}. Es una primera exploración: cada indicador se mira por separado, sin índices ni ponderaciones.`,
     `Las ${num(k.tabuladas)} manzanas con datos se unieron a la cartografía de manzanas del INEI por su código (ubigeo, zona y
@@ -3052,7 +3318,18 @@ function pintarVulDetalle() {
       a la vez. Por eso «Sin EsSalud ni seguro privado» da el mínimo (población menos EsSalud menos privado) y el rango posible. Es una
       aproximación: no mide informalidad laboral, porque el censo no pregunta por el empleo.`,
     `Agua: el INEI pregunta si hay agua todos los días solo a las viviendas con red pública o pilón, y las horas solo a las que la tienen
-      todos los días; por eso los tres indicadores de agua tienen bases distintas.`,
+      todos los días; por eso los indicadores de agua tienen bases distintas.`,
+    `Días y horas sin agua por semana son promedios, no porcentajes: se usa el punto medio de cada rango del censo. Las horas de las
+      viviendas con agua algunos días combinan dos cuadros (días y horas) que el INEI publica por separado: se supone que son
+      independientes dentro de la manzana. El rango posible (emparejando días y horas de mayor a menor, o al revés) es estrecho: en el
+      90 % de las manzanas, menos de 2,5 horas entre un extremo y otro. El rango de cada manzana está en la base de análisis.`,
+    `Basura y combustible para cocinar: la pregunta admite varias respuestas (las categorías suman 125 % y 148 % de los hogares). Por eso
+      «sin recolector municipal» es el total menos los hogares con recolector municipal, y «leña, carbón o bosta» da el mínimo seguro (el
+      mayor de los tres) y el rango posible.`,
+    `Discapacidad: «con al menos una» más «sin ninguna» suma la población de 5 años o más en todas las manzanas. Los tipos de dificultad no
+      se suman: una persona puede tener varios (los tipos suman 1,7 veces el total con discapacidad).`,
+    `Educación: el censo no cruza el nivel educativo con la edad. «Sin educación superior completa» se calcula sobre la población de 15
+      años o más e incluye a jóvenes que aún no pueden haber terminado estudios superiores (aproximación).`,
     `Mapa: polígonos de manzana simplificados (alrededor de 1 m) y límites distritales del INEI (Censo 2025). Fondo de OpenStreetMap.`,
   ].map(x => `<li>${x}</li>`).join("");
   ayudas($("vul-indicadores-def"));
@@ -3316,43 +3593,257 @@ function graficoMeses(el, meses, series, tipo = "lineas", op = {}) {
   zona.addEventListener("pointerleave", () => { globo.style.display = "none"; guia.setAttribute("visibility", "hidden"); });
 }
 
+// Orden por importancia (ronda de jerarquía, 24/11/2026): los mercados (semanal, alimentos de la región) primero; la inflación
+// (mensual) en un solo bloque con sus dos cifras y un gráfico con selector; la canasta (anual) compacta al final
 function pintarPrecios() {
   const p = D.ipc, el = $("precios-paneles");
-  const sisap = panel({ titulo: "Evolución de precios de productos: limón, papa, arroz, huevos y otros", clase: "pendiente ancho reserva-grafico",
-    frase: `En preparación con datos del SISAP del MIDAGRI, que publica precios mayoristas y minoristas en Piura. Aquí irá un gráfico
-      que compare la evolución de varios productos; falta resolver la descarga, porque el SISAP no ofrece archivos descargables.
-      <a href="http://sistemas.midagri.gob.pe/sisap/portal2/ciudades/" target="_blank" rel="noopener">Ver el SISAP</a>` });
-  if (!p?.serie?.length) {
-    el.innerHTML = sinDatos("IPC de Piura", "precios del INEI") + panelCanasta() + sisap;
-    graficoCanasta();
-    return;
-  }
-  const s = p.serie.slice(-24), u = p.serie.at(-1), pie = `INEI, ${mesTxt(u.mes)}, publicado el ${fecha(u.publicado)}`;
-  el.innerHTML =
-    panel({ titulo: "Variación mensual", calc: ["mensual"], cifra: pct2(u.mensual), vence: "ipc", ud: `${mesTxt(u.mes)}; nacional: ${pct2(u.nacional_mensual)}`,
-      frase: frasePrecios(u)[0], pie }) +
-    panel({ titulo: "Variación en 12 meses", calc: ["doce"], cifra: pct2(u.doce_meses), ud: `nacional: ${pct2(u.nacional_doce_meses)}`, vence: "ipc",
-      mini: chispa(s.map(x => x.doce_meses), "Variación en 12 meses del IPC de Piura, últimos 24 meses"),
-      frase: frasePrecios(u)[1], pie }) +
-    panel({ titulo: "Inflación anual: Piura frente al promedio nacional", clase: "ancho", pie,
-      ud: "Cuánto subieron los precios respecto al mismo mes del año anterior",
-      extra: `<div class="leyenda"><span style="--c:var(--acento)">Piura</span><span style="--c:var(--comp1)">Nacional</span></div>
-        <div class="grafico" id="g-ipc-12"></div>` }) +
-    panel({ titulo: "Variación mensual de Piura", clase: "ancho", pie,
-      extra: `<p class="nota antes-grafico">Barras hacia abajo: meses en que los precios bajaron.</p><div class="grafico" id="g-ipc-mes"></div>` }) +
-    panelCanasta() + sisap;
-  graficosIPC(); graficoCanasta();
+  if (D.sisap) $("n-alim").textContent = alimentosVisibles(D.sisap, "mayorista").length;
+  el.innerHTML = panelAlimentos() + panelIPC() + panelCanasta();
+  activarAlimentos(); activarIPC(); graficoCanasta();
+  if (!p?.serie?.length) return;
   $("ipc-cuerpo").innerHTML = [...p.serie].reverse().map(x => `<tr><td>${esc(mesTxt(x.mes))}</td><td class="n">${pct2(x.mensual)}</td>
     <td class="n">${pct2(x.acumulada)}</td><td class="n">${pct2(x.doce_meses)}</td><td class="n">${pct2(x.nacional_doce_meses)}</td>
     <td><a href="${esc(x.pdf)}" target="_blank" rel="noopener">PDF</a></td></tr>`).join("");
   const control = p.serie.find(x => x.mes === "2026-02");
   $("ipc-notas").innerHTML = `<li>${fuente(p)} Cuadro 2: variación porcentual del IPC nacional y de principales ciudades. Cada
       informe se publica el día 1 con los datos del mes anterior.</li>
+    <li>El INEI no publica en un formato legible por programa el IPC de Piura por grupos de consumo (por ejemplo, «Alimentos y bebidas no
+      alcohólicas»): solo aparece en notas de prensa regionales y en una serie anual. Por eso no se muestra.</li>
     <li>Dato de control, febrero de 2026: ${control ? `${pct2(control.mensual)} mensual y ${pct2(control.doce_meses)} en 12 meses
       (${control.mensual === 0.48 && control.doce_meses === 2.28 ? "coincide con el valor esperado, 0,48 % y 2,28 %" :
       `<span class="revisar">no coincide con 0,48 % y 2,28 %</span>`})` : "fuera de la serie cargada"}.</li>
     <li>Coherencia: la variación en 12 meses y la acumulada se comparan con las mensuales compuestas.
       ${p.avisos?.length ? `<span class="revisar">${p.avisos.map(esc).join("; ")}.</span>` : "Todos los meses verificables coinciden."}</li>`;
+}
+// Inflación en un solo bloque: titular generado, la variación mensual y la de 12 meses lado a lado, y un gráfico con selector
+// («Inflación anual frente al país» o «Variación mensual»; son los dos gráficos de antes, sin repetir sus cifras en otras tarjetas)
+let ipcGraf = "anual";
+function tituloIPC(u) {
+  const dif = u.doce_meses - u.nacional_doce_meses, comp = dif >= 0.1 ? "más que" : dif <= -0.1 ? "menos que" : "lo mismo que";
+  return u.doce_meses >= 0 ? `En 12 meses, los precios en Piura subieron ${comp} el promedio nacional`
+    : `En 12 meses, los precios en Piura bajaron (${pct2(u.doce_meses)}); en el país, ${pct2(u.nacional_doce_meses)}`;
+}
+function panelIPC() {
+  const p = D.ipc;
+  if (!p?.serie?.length) return sinDatos("Inflación en Piura", "precios del INEI");
+  const u = p.serie.at(-1), pie = `INEI, ${mesTxt(u.mes)}, publicado el ${fecha(u.publicado)}`;
+  return panel({ id: "panel-ipc", titulo: tituloIPC(u), clase: "ancho", vence: "ipc", calc: ["mensual", "doce"], pie,
+    extra: `<div class="cifras-ipc">
+        <div><div class="et">Variación mensual</div><div class="cifra">${pct2(u.mensual)}</div><div class="ud">${mesTxt(u.mes)}; nacional ${pct2(u.nacional_mensual)}</div></div>
+        <div><div class="et">En 12 meses</div><div class="cifra">${pct2(u.doce_meses)}</div><div class="ud">nacional ${pct2(u.nacional_doce_meses)}</div></div></div>
+      <div class="filtros filtros-ipc"><label>Gráfico<select id="f-ipc-graf"><option value="anual">Inflación anual frente al país</option>
+        <option value="mensual">Variación mensual</option></select></label></div>
+      <div id="ipc-leyenda"></div><div class="grafico" id="g-ipc"></div>` });
+}
+function activarIPC() {
+  const sel = $("f-ipc-graf");
+  if (!sel) return;
+  sel.value = ipcGraf;
+  sel.onchange = () => { ipcGraf = sel.value; graficosIPC(); };
+  graficosIPC();
+}
+// Precios de alimentos en los mercados de Piura (SISAP): variación de la 2.ª quincena del mes anterior al mes en curso, con una
+// raya en lo habitual de esas mismas fechas (mediana de los 4 años anteriores) o en lo que pasó en un año elegido
+let alimTipo = "mayorista", alimComp = "habitual", alimOrden = "var";
+const signo = v => v == null ? "sin dato" : `${v >= 0.05 ? "+" : v <= -0.05 ? "−" : ""}${num(Math.abs(v), 1)} %`;
+const yLista = xs => xs.join(", ").replace(/, ([^,]*)$/, " y $1");
+function periodoAlim(s) {
+  const r = s.reciente[1], dia = +r.slice(8), fin = new Date(+r.slice(0, 4), +r.slice(5, 7), 0).getDate();
+  const mb = MESES[+s.base[0].slice(5, 7) - 1], mr = MESES[+r.slice(5, 7) - 1];
+  return { base: `la 2.ª quincena de ${mb}`, corto: `2.ª quincena de ${mb}`, reciente: dia < fin ? `${mr} (hasta el ${dia})` : mr,
+    anio: +s.reciente[0].slice(0, 4) };
+}
+const sueleTxt = h => h >= 0.5 ? `suele subir ${num(h, 1)} %` : h <= -0.5 ? `suele bajar ${num(-h, 1)} %` : "suele mantenerse";
+// «Fuera de lo habitual»: la variación del año en curso se aleja 5 puntos o más de la mediana de los 4 años anteriores (con 1 a
+// 7 fechas por quincena, menos que eso puede ser ruido). Lo usan el titular, el resaltado del gráfico, la tabla y el Resumen.
+const UMBRAL_HABITUAL = 5;
+const fueraHabitual = x => x.var != null && x.habitual != null && Math.abs(x.var - x.habitual) >= UMBRAL_HABITUAL;
+// Productos del gráfico: con al menos s.minimo_fechas fechas con precio en cada periodo del año en curso (los demás van en el
+// detalle: «Sin datos suficientes este periodo»)
+const alimentosVisibles = (s, tipo) => s.productos.filter(p => p[tipo].suficiente !== false && p[tipo].var != null);
+// Titular en dos líneas, desde los datos: [cuántos subieron, cuáles están fuera de lo habitual (3 como máximo y «N más»)]
+function fraseAlimentos(s, tipo) {
+  const P = periodoAlim(s), xs = alimentosVisibles(s, tipo).map(p => ({ n: p.nombre, ...p[tipo] }));
+  const sube = xs.filter(x => x.var >= 1).length;
+  const l1 = `Entre ${P.base} y ${P.reciente}, subieron ${sube} de ${xs.length} alimentos en los mercados ${tipo}s de Piura`;
+  const raros = xs.filter(fueraHabitual).sort((a, b) => Math.abs(b.var - b.habitual) - Math.abs(a.var - a.habitual));
+  const nombra = raros.slice(0, 3).map(x => `${x.n.toLowerCase()} (${signo(x.var)}; ${sueleTxt(x.habitual)})`);
+  if (raros.length > 3) nombra.push(`${raros.length - 3} más`);
+  const l2 = raros.length ? `Fuera de lo habitual: ${yLista(nombra)}`
+    : `Ningún alimento se aleja ${UMBRAL_HABITUAL} puntos o más de lo habitual en estas fechas`;
+  return [l1, l2];
+}
+// Cifra resumen: promedio ponderado (pesos del IPC por subclase) de los alimentos del gráfico que tienen lo habitual
+function promedioAlim(s, tipo) {
+  const m = s.promedio?.[tipo];
+  if (!m) return null;
+  const v = m.var, verbo = v >= 0.05 ? `subieron ${num(v, 1)} %` : v <= -0.05 ? `bajaron ${num(-v, 1)} %` : "no variaron";
+  return { m, txt: `En promedio, los alimentos ${verbo} (lo habitual en estas fechas: ${signo(m.habitual)})`,
+    n: `Promedio ponderado por el peso de cada alimento en la canasta del IPC, con los ${m.n} alimentos que tienen raya de lo habitual
+      (<a href="#como-precios" class="ir-como">cómo se calcula</a>).` };
+}
+function panelAlimentos() {
+  const s = D.sisap, titulo = "Precios de alimentos en los mercados de Piura";
+  if (!s) return sinDatos(titulo, "precios del SISAP (Midagri)");
+  const P = periodoAlim(s), a = s.anios;
+  return panel({ id: "panel-alim", titulo: `<span id="alim-tit">${titulo}</span>`, clase: "ancho", vence: "sisap",
+    ud: `Variación del precio promedio por kg: ${P.base} frente a ${P.reciente}`,
+    frase: `<span id="alim-frase"></span>`,
+    extra: `<p class="prom-alim" id="alim-prom"></p><p class="nota" id="alim-prom-n"></p><div class="filtros filtros-alim">
+        <label>Mercado<select id="f-alim-tipo"><option value="mayorista">Mayorista</option><option value="minorista">Minorista</option></select></label>
+        <label>Comparar con<select id="f-alim-comp"><option value="habitual">Lo habitual (${a[0]}-${a.at(-1)})</option>${
+          [...a].reverse().map(x => `<option value="${x}">Lo que pasó en ${x}</option>`).join("")}<option value="">Sin comparación</option></select></label>
+        <label>Ordenar por<select id="f-alim-orden"><option value="var">Variación de ${P.anio}</option><option value="dif">Diferencia con lo habitual</option></select></label></div>
+      <div class="leyenda"><span class="caja" style="--c:var(--sube)">Subió</span><span class="caja" style="--c:var(--baja)">Bajó</span><span
+        class="sep-ley" aria-hidden="true"></span><span class="raya" id="alim-raya"></span></div>
+      <div class="grafico" id="g-alim"></div><p class="nota" id="alim-nota"></p>`,
+    pie: `Fuente: ${enlace(s)}. Datos al ${fecha(s.fecha_corte)}. Tabla, nombres del SISAP y <a href="#como-precios" class="ir-como">cómo se calcula</a>, en el detalle.` });
+}
+function activarAlimentos() {
+  const t = $("f-alim-tipo"), c = $("f-alim-comp"), o = $("f-alim-orden");
+  if (!t) return;
+  t.value = alimTipo; c.value = alimComp; o.value = alimOrden;
+  t.onchange = () => { alimTipo = t.value; graficoAlimentos(); };
+  c.onchange = () => { alimComp = c.value; graficoAlimentos(); };
+  o.onchange = () => { alimOrden = o.value; graficoAlimentos(); };
+  graficoAlimentos();
+}
+function graficoAlimentos() {
+  const el = $("g-alim"), s = D.sisap;
+  if (!el || !s) return;
+  const tipo = alimTipo, comp = alimComp, P = periodoAlim(s);
+  const ref = x => comp === "habitual" ? x.habitual : comp ? x.anios[comp] : null;
+  // orden: por la variación del año en curso o por su distancia (con signo) a lo habitual; sin dato o sin habitual, al final
+  const clave = x => alimOrden === "dif" ? (x.var != null && x.habitual != null ? x.var - x.habitual : null) : x.var;
+  const filas = alimentosVisibles(s, tipo).map(p => ({ p, ...p[tipo], ref: ref(p[tipo]) })).sort((a, b) => (clave(b) ?? -1e9) - (clave(a) ?? -1e9));
+  const [l1, l2] = fraseAlimentos(s, tipo);
+  $("alim-tit").textContent = l1; $("alim-frase").textContent = l2 + ".";
+  const pr = promedioAlim(s, tipo);
+  $("alim-prom").textContent = pr ? pr.txt + "." : ""; $("alim-prom-n").innerHTML = pr ? pr.n : "";
+  $("alim-raya").textContent = comp === "habitual" ? `Lo habitual en estas fechas (mediana de ${s.anios[0]}-${s.anios.at(-1)})`
+    : comp ? `Lo que pasó en las mismas fechas de ${comp}` : "";
+  $("alim-raya").hidden = !comp;
+  $("panel-alim").querySelector(".sep-ley").hidden = !comp;
+  const sinRef = comp ? filas.filter(x => x.var != null && x.ref == null).map(x => x.p.nombre.toLowerCase()) : [];
+  $("alim-nota").innerHTML = [
+    comp === "habitual" ? `La raya marca cuánto suele cambiar el precio en estas mismas fechas; en negrita y con línea punteada, los que se alejan
+      ${UMBRAL_HABITUAL} puntos o más.` : comp ? `La raya marca cuánto cambió en las mismas fechas de ${comp}.` : "",
+    sinRef.length ? `Sin raya: ${yLista(sinRef)} (${comp === "habitual" ? "pocos años con dato" : `sin dato en ${comp}`}).` : ""]
+    .filter(Boolean).join(" ");
+  $("alim-nota").hidden = !$("alim-nota").textContent;
+  // en pantallas angostas el nombre va encima de su barra, para que las barras usen todo el ancho
+  const W = Math.max(280, Math.min(900, el.clientWidth || 720)), estrecho = W < 500, fila = estrecho ? 44 : 32, sobre = estrecho ? 15 : 0;
+  const m = { l: estrecho ? 0 : 170, r: 4, t: 4, b: 24 }, H = m.t + m.b + fila * filas.length;
+  const vals = filas.flatMap(x => [x.var, x.ref]).filter(v => v != null), lo = Math.min(0, ...vals), hi = Math.max(0, ...vals);
+  const paso = [1, 2, 5, 10, 20, 50, 100].find(p => (hi - lo) / p <= (estrecho ? 4 : 7)) || 200;
+  const lo2 = Math.floor(lo / paso) * paso, hi2 = Math.ceil(hi / paso) * paso || paso;
+  // espacio para la cifra de cada barra, a cada lado que tenga barras
+  const izq = m.l + (lo < 0 ? 54 : 6), der = W - m.r - (hi > 0 ? 54 : 6);
+  const x = v => izq + (v - lo2) * (der - izq) / (hi2 - lo2 || 1);
+  let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Variación del precio ${tipo} de ${filas.length} alimentos en Piura">`;
+  for (let v = lo2; v <= hi2 + 1e-9; v += paso) svg += `<line x1="${x(v)}" x2="${x(v)}" y1="${m.t}" y2="${H - m.b}" stroke="${
+    Math.abs(v) < 1e-9 ? "var(--texto-3)" : "var(--linea)"}"/><text x="${x(v)}" y="${H - 6}" text-anchor="middle">${signo(v).replace(",0", "")}</text>`;
+  filas.forEach((f, i) => {
+    const y0 = m.t + i * fila, yc = y0 + sobre + (fila - sobre) / 2, v = f.var, r = f.ref, alto = (fila - sobre) * (estrecho ? .62 : .58);
+    const fuera = comp === "habitual" && fueraHabitual(f);
+    svg += `<g class="alim-fila${fuera ? " fuera" : ""}" data-i="${i}"><rect class="alim-fondo" x="0" y="${y0}" width="${W}" height="${fila}" fill="transparent"/>
+      <text class="nombre" x="${estrecho ? 2 : m.l - 8}" y="${estrecho ? y0 + 13 : yc + 4}" text-anchor="${estrecho ? "start" : "end"}" style="font-size:13px;fill:var(--texto)">${
+        esc(f.p.nombre)}</text>`;
+    if (v == null) svg += `<text x="${x(0) + 6}" y="${yc + 4}">sin dato</text>`;
+    else {
+      const a = Math.min(x(0), x(v)), w = Math.max(Math.abs(x(v) - x(0)), 1.5);
+      svg += `<rect x="${a.toFixed(1)}" y="${(yc - alto / 2).toFixed(1)}" width="${w.toFixed(1)}" height="${alto.toFixed(1)}" rx="2"
+        fill="${v >= 0.05 ? "var(--sube)" : v <= -0.05 ? "var(--baja)" : "var(--texto-3)"}"/>`;
+      // la cifra va más allá de la barra y de la raya, para que no se encimen
+      const xs = [x(0), x(v), ...(r != null ? [x(r)] : [])], pos = v >= 0 ? Math.max(...xs) + 6 : Math.min(...xs) - 6;
+      svg += `<text class="rotulo" x="${pos.toFixed(1)}" y="${yc + 4}" text-anchor="${v >= 0 ? "start" : "end"}">${signo(v)}</text>`;
+    }
+    // fuera de lo habitual: línea punteada fina de la raya a la punta de la barra (la distancia) y raya más gruesa
+    if (fuera) svg += `<line x1="${x(r).toFixed(1)}" x2="${x(v).toFixed(1)}" y1="${yc.toFixed(1)}" y2="${yc.toFixed(1)}" stroke="var(--texto)"
+      stroke-width="1.2" stroke-dasharray="3 2"/>`;
+    if (r != null) svg += `<line x1="${x(r).toFixed(1)}" x2="${x(r).toFixed(1)}" y1="${(yc - alto / 2 - 4).toFixed(1)}" y2="${(yc + alto / 2 + 4).toFixed(1)}" stroke="var(--texto)"
+      stroke-width="${fuera ? 4 : 2.5}"/>`;
+    svg += "</g>";
+  });
+  el.innerHTML = svg + `</svg><div class="globo"></div>`;
+  const globo = el.querySelector(".globo"), svgEl = el.querySelector("svg");
+  el.querySelectorAll(".alim-fila").forEach(g => {
+    g.addEventListener("pointermove", ev => {
+      const f = filas[+g.dataset.i], caja = svgEl.getBoundingClientRect();
+      globo.innerHTML = `<strong>${esc(f.p.nombre)}</strong><br><span class="nota-globo">${f.p.descripcion ? `${esc(f.p.descripcion)}. ` : ""}En el SISAP: «${
+        esc(f.p.sisap)}»</span><br>` + (f.var == null ? "Sin dato en estas fechas" :
+        `S/ ${num(f.base, 2)} → S/ ${num(f.reciente, 2)} por kg: <strong>${signo(f.var)}</strong>`) +
+        `<br>Lo habitual en estas fechas: ${f.habitual == null ? "sin historial suficiente" : `${signo(f.habitual)} (S/ ${num(f.habitual_base, 2)} → S/ ${
+          num(f.habitual_reciente, 2)} por kg, precios medianos de ${s.anios[0]}-${s.anios.at(-1)})`}` +
+        (fueraHabitual(f) ? `<br><strong>Fuera de lo habitual: ${num(Math.abs(f.var - f.habitual), 1)} puntos ${f.var > f.habitual ? "por encima" : "por debajo"}</strong>` : "") +
+        `<br>${s.anios.map(a => `${a}: ${signo(f.anios[a])}`).join(" · ")}` +
+        `<br>Fechas con precio: ${f.fechas[P.anio][0]} en la ${esc(P.corto)} y ${f.fechas[P.anio][1]} en ${esc(P.reciente)}` +
+        (f.vs_anio_anterior != null ? `<br>Precio frente a las mismas fechas de ${P.anio - 1}: ${signo(f.vs_anio_anterior)}` : "");
+      globo.style.display = "block";
+      const px = ev.clientX - caja.left, py = ev.clientY - caja.top;
+      globo.style.left = Math.max(0, Math.min(caja.width - globo.offsetWidth, px - globo.offsetWidth / 2)) + "px";
+      globo.style.top = (py > caja.height / 2 ? py - globo.offsetHeight - 12 : py + 16) + "px";
+    });
+    g.addEventListener("pointerleave", () => globo.style.display = "none");
+  });
+  tablaAlimentos();
+}
+function tablaAlimentos() {
+  const s = D.sisap, t = $("tabla-alim");
+  if (!s || !t) return;
+  const P = periodoAlim(s), tipo = alimTipo;
+  const corto = ([d0, d1]) => `${+d0.slice(8)}-${+d1.slice(8)} ${MES_CORTO[+d0.slice(5, 7) - 1].toLowerCase()}.`;
+  const nf = (x, a) => x.fechas?.[a] ? ` <span class="nota">(${x.fechas[a].join("/")})</span>` : "";
+  const soles = (b, r) => b == null || r == null ? "—" : `S/ ${num(b, 2)} → ${num(r, 2)}`;
+  t.innerHTML = `<thead><tr><th>Alimento (nombre en el SISAP)</th><th class="n">S/ por kg, ${corto(s.base)} → ${corto(s.reciente)}</th>
+      <th class="n">Variación ${P.anio}</th>${s.anios.map(a => `<th class="n">${a}</th>`).join("")}<th class="n">Habitual</th>
+      <th class="n">S/ por kg, habitual</th><th class="n">Precio frente a ${P.anio - 1}</th></tr></thead>
+    <tbody>${s.productos.map(p => { const x = p[tipo]; return `<tr><td>${fueraHabitual(x) ? `<strong>${esc(p.nombre)}</strong>` : esc(p.nombre)}<span
+      class="casos">${esc(p.sisap)}</span></td>
+      <td class="n">${soles(x.base, x.reciente)}</td>
+      <td class="n"><strong>${signo(x.var)}</strong>${nf(x, P.anio)}</td>${s.anios.map(a => `<td class="n">${x.anios[a] == null ? "—" : signo(x.anios[a])}${nf(x, a)}</td>`).join("")}
+      <td class="n">${x.habitual == null ? "—" : signo(x.habitual)}</td><td class="n">${soles(x.habitual_base, x.habitual_reciente)}</td>
+      <td class="n">${x.vs_anio_anterior == null ? "—" : signo(x.vs_anio_anterior)}</td></tr>`; }).join("")}</tbody>
+    <caption class="nota">Mercados ${tipo}s de Piura (cambia con el selector «Mercado» del gráfico). Cada año: variación entre las mismas fechas
+      (2.ª quincena de octubre frente a ${esc(P.reciente)}); entre paréntesis, las fechas con precio de cada periodo (octubre/noviembre).
+      Habitual: mediana de ${s.anios[0]}-${s.anios.at(-1)}, solo con 3 años o más; su precio es la mediana de los precios de esos años, en soles
+      de cada año (sin ajustar por inflación). En negrita: fuera de lo habitual (${UMBRAL_HABITUAL} puntos o más).
+      «Precio frente a ${P.anio - 1}»: el precio de ${esc(P.reciente)} frente al de las mismas fechas de ${P.anio - 1}.</caption>`;
+  const faltan = s.productos.filter(p => p[tipo].suficiente === false || p[tipo].var == null).map(p => p.nombre.toLowerCase());
+  $("alim-insuficientes").textContent = `Sin datos suficientes este periodo (menos de ${s.minimo_fechas} fechas con precio en un periodo): ${
+    faltan.length ? yLista(faltan) : "ninguno"}.`;
+  $("alim-notas").innerHTML = `<li>Precios de alimentos: ${enlace(s)}, «Mercados mayoristas y minoristas de Piura». El SISAP no dice cuáles;
+      por los precios, coinciden con el Mercado Modelo de Piura que registra la Dirección Regional de Agricultura. El SISAP no tiene descarga
+      automática: la tabla se exporta a mano cada semana.</li>
+    <li>Periodos: el mes del último dato, del 1 al día de ese dato (si tiene menos de 2 fechas, el mes anterior completo), frente a la 2.ª
+      quincena (16 a fin de mes) del mes anterior. Es la misma comparación del gráfico de precios de Lima con datos del SISAP. Se compara el
+      promedio de los días con precio de cada periodo.</li>
+    <li>Precio por kg: los precios mayoristas vienen por saco, malla, cajón o ciento; se dividen por los kilos que el SISAP indica para
+      cada unidad (saco de 50 kg, ciento de choclos de 25 kg, etc.).</li>
+    <li>Cada quincena tiene pocas fechas con precio (de 1 a 7), así que una diferencia de pocos puntos con lo habitual puede ser ruido. Se
+      destaca como «fuera de lo habitual» una diferencia de ${UMBRAL_HABITUAL} puntos o más entre la variación de ${P.anio} y la mediana de
+      ${s.anios[0]}-${s.anios.at(-1)}. Lo habitual usa en cada año las mismas fechas: del 16 al 31 de octubre frente al 1 de noviembre hasta el
+      mismo día del corte.</li>
+    <li>Un alimento aparece en el gráfico solo si tiene al menos ${s.minimo_fechas} fechas con precio en cada periodo de ${P.anio}; las fechas
+      de cada periodo están en el globo y en la tabla. Fechas con precio de este periodo: ${s.fechas_base.map(f => +f.slice(8)).join(", ")} de
+      ${MESES[+s.fechas_base[0].slice(5, 7) - 1]} y ${s.fechas_reciente.map(f => +f.slice(8)).join(", ")} de ${MESES[+s.fechas_reciente[0].slice(5, 7) - 1]}.</li>
+    <li>Nombres: el gráfico usa nombres simples; el nombre original del SISAP está en el globo y en la tabla. ${s.productos.filter(p => p.descripcion)
+      .map(p => `«${esc(p.nombre)}»: ${esc(minuscula(p.descripcion))}.`).join(" ")}</li>
+    <li>Reemplazos frente a la lista del gráfico de precios de Lima: ${yLista(s.productos.filter(p => p.reemplaza)
+      .map(p => `${p.reemplaza} → ${p.nombre.toLowerCase()}`))}. El SISAP ya no registra en Piura los productos de la izquierda.</li>
+    <li>Los precios mayorista y minorista no siempre se mueven igual; por eso se puede elegir uno u otro.</li>
+    <li>Promedio («En promedio, los alimentos…»): promedio de las variaciones, ponderado por el peso de cada alimento en la canasta del IPC,
+      solo con los alimentos del gráfico que tienen lo habitual (${s.promedio?.[tipo]?.n ?? 0} en los mercados ${tipo}s), para comparar lo mismo
+      con lo mismo; lo habitual se promedia con los mismos pesos. El INEI no publica pesos por producto ni para Piura: se usa el peso de la
+      subclase de consumo en el IPC de Lima Metropolitana, base diciembre 2021 (<a href="https://www.inei.gob.pe/media/MenuRecursivo/metodologias/metodologia_ipclm_dic_2021.pdf"
+      target="_blank" rel="noopener">INEI, Metodología del IPC de Lima Metropolitana</a>, p. 21), repartido en partes iguales entre los
+      alimentos de esta lista que caen en la misma subclase: ${[...new Set(s.productos.map(p => p.subclase))].map(c => `${esc(c.slice(7).toLowerCase())}
+      (${yLista(s.productos.filter(p => p.subclase === c).map(p => p.nombre.toLowerCase()))})`).join("; ")}.</li>
+    <li>Aceite: el SISAP cambió la presentación en 2024 (botella de 1 litro → 900 ml). La serie se empalma: lo habitual usa la de 1 litro en
+      2022-2023; las dos vienen en soles por litro.</li>
+    <li>Pescado: no se incluye. No hay una fuente oficial con precios de pescado de Piura en 2026 que se pueda descargar de forma automática
+      (los reportes diarios de PRODUCE son PDF con un certificado de seguridad incompleto y su tablero no tiene descarga; la Dirección Regional
+      de la Producción no publica una serie de precios). Cebolla blanca y lechuga no están en el SISAP de Piura.</li>`;
 }
 // Canasta básica: líneas de pobreza del INEI en el dominio Costa urbana (el INEI no publica líneas por departamento)
 function panelCanasta() {
@@ -3364,29 +3855,31 @@ function panelCanasta() {
   $("tabla-pobreza").innerHTML = `<thead><tr><th>Línea</th><th>Dominio</th>${l.total.anios.map(x => `<th class="n">${x}</th>`).join("")}</tr></thead>
     <tbody>${filasT.join("")}</tbody><caption class="nota">${enlace(D.pobreza)}. Soles por persona al mes. Piura está en los dominios Costa urbana
     y Costa rural; el INEI no publica las líneas por departamento.</caption>`;
-  const cu = l.total.costa_urbana, dif = cu.at(-1) - cu.at(-2);
-  return panel({ titulo: "¿Cuánto cuesta la canasta básica?", clase: "ancho", cifra: `S/ ${num(cu.at(-1))} en ${a}`,
-    ud: `${dif ? `S/ ${num(Math.abs(dif))} ${dif > 0 ? "más" : "menos"} que en ${l.total.anios.at(-2)}, ${dif > 0 ? "+" : "−"}${num(Math.abs(pct(dif, cu.at(-2))), 1)} %`
-      : `igual que en ${l.total.anios.at(-2)}`}. Al mes por persona: línea de pobreza total del dominio Costa urbana, que incluye la ciudad de Piura`,
-    frase: `Es el gasto mínimo por persona al mes para cubrir una canasta de alimentos y otros bienes y servicios; quien gasta menos se
-      considera pobre. La línea de pobreza extrema (solo alimentos) está en el detalle.`,
-    extra: `<div class="grafico" id="g-canasta"></div>`,
-    pie: `${pie}. Costa rural, nacional y pobreza extrema, en el detalle.` });
+  const cu = l.total.costa_urbana, dif = cu.at(-1) - cu.at(-2), anios = l.total.anios;
+  const cambio = dif ? `S/ ${num(Math.abs(dif))} ${dif > 0 ? "más" : "menos"} que en ${anios.at(-2)} (${dif > 0 ? "+" : "−"}${num(Math.abs(pct(dif, cu.at(-2))), 1)} %)`
+    : `igual que en ${anios.at(-2)}`;
+  return panel({ titulo: "¿Cuánto cuesta la canasta básica?", clase: "ancho",
+    extra: `<div class="canasta-compacta"><div><div class="cifra">S/ ${num(cu.at(-1))} en ${a}</div><div class="ud">${cambio}</div>
+        <p class="frase">Gasto mínimo por persona al mes para cubrir alimentos y otros bienes y servicios (línea de pobreza de la costa
+        urbana, que incluye la ciudad de Piura); quien gasta menos se considera pobre.</p></div>
+      <div id="g-canasta">${chispa(cu, `Línea de pobreza de la costa urbana, ${anios[0]} a ${a}`, { ini: `${anios[0]}: S/ ${num(cu[0])}`, fin: String(a),
+        periodo: `${anios[0]} a ${a}, soles por persona al mes` })}</div></div>`,
+    pie: `${pie}. Pobreza extrema, costa rural y nacional, en el detalle.` });
 }
-function graficoCanasta() {
-  const l = D.pobreza?.lineas;
-  if (!l || !$("g-canasta")) return;
-  graficoMeses($("g-canasta"), l.total.anios, [{ nombre: "Total", color: "var(--acento)", principal: true, v: l.total.costa_urbana }],
-    "lineas", { anual: true, soles: true });
-}
+function graficoCanasta() {}  // la serie de la canasta es una mini-gráfica (chispa) dentro de la tarjeta
 
 function graficosIPC() {
   const p = D.ipc;
-  if (!p?.serie?.length || !$("g-ipc-12")) return;
+  if (!p?.serie?.length || !$("g-ipc")) return;
   const s = p.serie.slice(-24), meses = s.map(x => x.mes);
-  graficoMeses($("g-ipc-12"), meses, [{ nombre: "Piura", color: "var(--acento)", principal: true, v: s.map(x => x.doce_meses) },
-    { nombre: "Nacional", color: "var(--comp1)", ancho: 1.75, v: s.map(x => x.nacional_doce_meses) }]);
-  graficoMeses($("g-ipc-mes"), meses, [{ nombre: "Piura, variación mensual", color: "var(--acento)", v: s.map(x => x.mensual) }], "barras");
+  if (ipcGraf === "anual") {
+    $("ipc-leyenda").innerHTML = `<div class="leyenda"><span style="--c:var(--acento)">Piura</span><span style="--c:var(--comp1)">Nacional</span></div>`;
+    graficoMeses($("g-ipc"), meses, [{ nombre: "Piura", color: "var(--acento)", principal: true, v: s.map(x => x.doce_meses) },
+      { nombre: "Nacional", color: "var(--comp1)", ancho: 1.75, v: s.map(x => x.nacional_doce_meses) }]);
+  } else {
+    $("ipc-leyenda").innerHTML = `<p class="nota antes-grafico">Variación de cada mes frente al anterior. Barras hacia abajo: meses en que los precios bajaron.</p>`;
+    graficoMeses($("g-ipc"), meses, [{ nombre: "Piura, variación mensual", color: "var(--acento)", v: s.map(x => x.mensual) }], "barras");
+  }
 }
 
 /* ---------- Resumen ---------- */
@@ -3476,8 +3969,19 @@ function pintarResumen() {
         fin: `${mesCorto(os.u.mes)}`, periodo: `${mayus(mesTxt(os.s[0].mes))} a ${mesTxt(os.u.mes)}` }) : oc == null ? "" : medidor(oc),
       ver: ["#salud", "Ver salud"], pie: `SUSALUD, ${esc(D.camas.periodo)}`, calc: ["ocupacion"] }));
   } else ps.camas = (sinDatos("¿Está preparada la salud?", "camas de SUSALUD").replace('class="panel ', 'class="panel compacto '));
-  if (D.ipc?.serie?.length) {
-    const s = D.ipc.serie.slice(-24), u = s.at(-1), dif = u.doce_meses - u.nacional_doce_meses;
+  // Precios: los mercados (semanal, alimentos de la región) como dato principal y la inflación (mensual) como línea secundaria
+  const ipcU = D.ipc?.serie?.at(-1), lineaIPC = ipcU ? `<p class="nota">Inflación en Piura, ${mesTxt(ipcU.mes)}: ${pct2(ipcU.doce_meses)} en 12 meses
+    (nacional ${pct2(ipcU.nacional_doce_meses)}).</p>` : "";
+  if (D.sisap) {
+    const xs = alimentosVisibles(D.sisap, "mayorista"), sube = xs.filter(p => p.mayorista.var >= 1).length, P = periodoAlim(D.sisap);
+    const pr = promedioAlim(D.sisap, "mayorista");
+    ps.ipc = (panel({ titulo: `Subieron ${sube} de ${xs.length} alimentos en los mercados de Piura`, clase: "compacto", vence: "sisap",
+      ...(pr ? { cifra: signo(pr.m.var), ud: `en promedio entre ${P.base} y ${P.reciente}, mercados mayoristas (lo habitual en estas fechas:
+        ${signo(pr.m.habitual)}; ${pr.m.n} alimentos, ponderados por su peso en el IPC)` } : { ud: `Entre ${P.base} y ${P.reciente}, mercados mayoristas` }),
+      frase: `${fraseAlimentos(D.sisap, "mayorista")[1]}.`, extra: lineaIPC,
+      ver: ["#precios", "Ver precios"], pie: `Midagri (SISAP), al ${fecha(D.sisap.fecha_corte)}${ipcU ? `; INEI, ${mesTxt(ipcU.mes)}` : ""}` }));
+  } else if (ipcU) {
+    const s = D.ipc.serie.slice(-24), u = ipcU, dif = u.doce_meses - u.nacional_doce_meses;
     ps.ipc = (panel({ titulo: `La inflación en Piura es ${dif >= 0.1 ? "mayor que" : dif <= -0.1 ? "menor que" : "similar a"} la nacional`,
       clase: "compacto", cifra: pct2(u.doce_meses), ud: `de variación de precios en 12 meses, a ${mesTxt(u.mes)}. Nacional: ${pct2(u.nacional_doce_meses)}`, vence: "ipc",
       mini: chispa(s.map(x => x.doce_meses), "Variación en 12 meses, últimos 24 meses",
@@ -3805,6 +4309,7 @@ function pintarFuentes() {
     ["Ubicación de los establecimientos de salud", D.ipress, "Mensual, a mano"],
     ["Líneas de pobreza (canasta básica)", D.pobreza && { ...D.pobreza, fecha_corte: `${fecha(D.pobreza.fecha_corte)} (año ${D.pobreza.lineas.total.anios.at(-1)})` }, "Anual (mayo), a mano"],
     ["IPC de Piura", D.ipc && { ...D.ipc, fecha_corte: `${fecha(D.ipc.fecha_corte)} (${mesTxt(D.ipc.ultimo_mes)})` }, "Mensual (día 1)", "ipc"],
+    [`Precios de ${D.sisap?.productos.length ?? ""} alimentos en los mercados de Piura (mayorista y minorista)`, D.sisap, "Semanal, a mano (se exporta el Excel del SISAP)", "sisap"],
     ["Límites distritales del mapa", D.mapa && { ...D.mapa, fecha_corte: "límites de 2007" }, "Fijo"],
     ["Vulnerabilidad por manzana (Censo 2025, Ciudad de Piura y localidades)", CENSO, "Fijo: se procesa a mano una sola vez"],
   ];
@@ -3873,11 +4378,11 @@ document.addEventListener("click", async ev => {
 function redibujar(tab) {
   if (tab === "clima") graficosClima();
   if (tab === "dengue" && D.d26) graficoSemanas();
-  if (tab === "precios") { graficosIPC(); graficoCanasta(); }
+  if (tab === "precios") { graficosIPC(); graficoAlimentos(); }
   if (tab === "salud") { graficoOcupacion(); pintarMapaSalud(); }
   if (tab === "obras") pintarMapaObras();
   // vulInd() es nulo mientras la pestaña arma su selector (el censo puede venir antes, cargado por Fuentes y método)
-  if (tab === "vulnerabilidad") { pintarVul(); D.censo && vulInd() && pintarComparacion(vulInd()); mapaLluviaVulP?.then(m => m?.invalidateSize()); }
+  if (tab === "vulnerabilidad") { pintarVul(); D.censo && vulInd() && pintarComparacion(vulInd()); mapaLluviaVulP?.then(m => m?.invalidateSize()); pintarExplorar(); }
 }
 function mostrar() {
   const h = decodeURIComponent(location.hash.slice(1)) || "resumen";
@@ -3914,10 +4419,10 @@ let listo;
 const arranque = new Promise(r => listo = r);  // se cumple cuando D tiene los datos de la carga inicial
 (async () => {
   mostrar();
-  const [gasto, inv, fen, obras, dh, d26, camas, mapa, ipc, camasSerie, ipress, pobreza, cortos, nombres, deps, revisadas, lluvia, tsm, enfen, nino12, imerg, temp, rios, censoRes] = await Promise.all(["gasto_piura.json",
+  const [gasto, inv, fen, obras, dh, d26, camas, mapa, ipc, camasSerie, ipress, pobreza, cortos, nombres, deps, revisadas, lluvia, tsm, enfen, nino12, imerg, temp, rios, censoRes, sisap] = await Promise.all(["gasto_piura.json",
     "inversiones_piura.json", "fen_piura.json", "infobras_piura.json", "dengue_historico.json", "dengue_2026.json", "camas_piura.json",
     "piura_distritos.json", "ipc_piura.json", "camas_serie.json", "ipress_piura.json", "lineas_pobreza.json", "nombres_cortos_obras.json", "nombres_entidades.json", "infobras_departamentos.json", "obras_revisadas.json",
-    "lluvia_piura.json", "tsm_paita.json", "enfen_comunicado.json", "nino12.json", "imerg_piura.json", "temperatura_piura.json", "rios_piura.json", "censo_resumen.json"].map(cargar));
+    "lluvia_piura.json", "tsm_paita.json", "enfen_comunicado.json", "nino12.json", "imerg_piura.json", "temperatura_piura.json", "rios_piura.json", "censo_resumen.json", "precios_sisap.json"].map(cargar));
   if (!gasto) {
     listo();  // la pestaña Vulnerabilidad no depende del gasto: que no se quede esperando
     $("resumen-paneles").innerHTML = `<p>No se pudieron cargar los datos. Si abriste el archivo directamente, sírvelo con
@@ -3927,7 +4432,7 @@ const arranque = new Promise(r => listo = r);  // se cumple cuando D tiene los d
   D.gasto = { ...gasto, rows: filas(gasto) };
   if (inv) { D.invMeta = inv; D.inv = Object.fromEntries(filas(inv).map(r => [r.cui, r])); }
   if (fen) D.fen = { ...fen, rows: filas(fen) };
-  Object.assign(D, { obras, dh, d26, camas, mapa, ipc, camasSerie, ipress, pobreza, cortos, nombres, deps, revisadas, lluvia, tsm, enfen, nino12, imerg, temp, rios, censoRes });
+  Object.assign(D, { obras, dh, d26, camas, mapa, ipc, camasSerie, ipress, pobreza, cortos, nombres, deps, revisadas, lluvia, tsm, enfen, nino12, imerg, temp, rios, censoRes, sisap });
   listo();
   // Nombres legibles de entidades: diccionario o, si falta, la regla sobre el nombre original
   for (const k in gasto.nombres.entidad) gasto.nombres.entidad[k] = nombres?.mef?.[k] || legible(gasto.nombres.entidad[k]);

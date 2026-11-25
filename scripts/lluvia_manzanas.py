@@ -48,7 +48,19 @@ FUENTE = ("CHIRPS v3.0 mensual (Climate Hazards Center, UC Santa Barbara), recor
 # Nombres de los indicadores del censo en la base (las letras son las de censo_inei.INDICADORES)
 NOMBRES = {"a": "sin_desague", "b": "sin_agua_red", "c": "agua_no_diaria", "d": "agua_menos_24h", "e": "menores_15",
            "f": "mayores_65", "g": "sin_essalud_privado", "h": "paredes_precarias", "i": "piso_tierra",
-           "j": "paredes_adobe_tapia"}
+           "j": "paredes_adobe_tapia",
+           # ronda de variables nuevas (24/11/2026)
+           "q": "techo_precario", "r": "dias_sin_agua", "s": "horas_sin_agua", "t": "sin_refrigeradora", "w": "sin_internet_fijo",
+           "x": "basura_sin_municipal", "le": "cocina_lena_carbon", "y": "propia_sin_titulo", "z": "sin_celular",
+           "k": "discapacidad", "l": "dificultad_caminar", "o": "sin_superior_completa", "an": "no_lee_escribe"}
+# Columnas extra del censo (rangos y la calamina): nombre en la base y etiqueta
+EXTRA_CENSO = {"s_min": ("horas_sin_agua_min", "Horas sin agua por semana: suma mínima posible (emparejando días y horas)"),
+               "s_max": ("horas_sin_agua_max", "Horas sin agua por semana: suma máxima posible (emparejando días y horas)"),
+               "mov_min": ("movimiento_min", "Dificultad para caminar o usar brazos y manos: mínimo (el mayor de los dos)"),
+               "mov_max": ("movimiento_max", "Dificultad para caminar o usar brazos y manos: máximo (suma, sin pasar el total)"),
+               "le_max": ("cocina_lena_carbon_max", "Hogares que cocinan con leña, carbón o bosta: máximo posible"),
+               "cal_n": ("techo_calamina_n", "Viviendas con techo de calamina o fibrocemento (denominador: viviendas)"),
+               "ho": ("hogares", "Hogares en viviendas particulares con ocupantes presentes")}
 # Variables del terreno (scripts/hand_manzanas.py), EXPLORATORIAS: no pasaron la validación con el desborde de 2017
 # (privado/hand_validacion.md). Se agregan tal como se calcularon, sin cálculos nuevos.
 HAND_COLS = ["hand_mediana", "hand_min", "hand_p10", "hand_pct_area_2m", "hand_pct_area_5m", "hand_pocos_pixeles",
@@ -242,8 +254,8 @@ def manzanas():
     """Manzanas del departamento con tabulado y polígono: indicadores, centroide y metadatos."""
     import geopandas
     import pyogrio
-    datos, _, P, V = censo.cargar(DEPARTAMENTO)
-    ind = censo.indicadores(datos["P"], datos["V"], P, V)
+    datos, _, P, V, H = censo.cargar(DEPARTAMENTO)
+    ind = censo.indicadores(datos["P"], datos["V"], P, V, datos["H"], H)
     dp = datos["P"]
     ind["provincia"], ind["distrito"], ind["ccpp"], ind["centro_poblado"] = dp[3].values, dp[4].values, dp[6].values, dp[5].values
     disp = ind["codigo"].str.endswith("9999")
@@ -319,6 +331,7 @@ def etiquetas(cols, v, meses):
         "km2": "Área de la manzana (km2)", "flag_extensa": "1 = manzana extensa (>0,05 km2 y <1000 viv/km2)",
         "flag_pocos_viv": "1 = menos de 10 viviendas (indicadores de vivienda poco estables)",
         "flag_pocos_pob": "1 = menos de 30 personas (indicadores de población poco estables)",
+        "flag_pocos_hog": "1 = menos de 10 hogares (indicadores de hogar poco estables)",
         "id_celda": "Celda CHIRPS asignada (fila_columna, desde la esquina noroeste)",
         "fila_celda": "Fila de la celda CHIRPS (0 = norte)", "col_celda": "Columna de la celda CHIRPS (0 = oeste)",
         "lon_celda": "Longitud del centro de la celda CHIRPS", "lat_celda": "Latitud del centro de la celda CHIRPS",
@@ -331,6 +344,7 @@ def etiquetas(cols, v, meses):
         "n_distritos": "Distritos con manzanas en la celda", "distrito_principal": "Distrito con más manzanas en la celda",
         "ubigeo_principal": "Ubigeo del distrito con más manzanas en la celda",
         "sin_essalud_privado_max": "Máximo posible sin EsSalud ni seguro privado (personas)",
+        **{n: e for n, e in EXTRA_CENSO.values()},
     }
     texto = {k: r for k, r, *_ in censo.INDICADORES}
     out = {}
@@ -395,7 +409,16 @@ def diccionario(cols_mz, cols_celda, etq, v, meses, completos, g):
             return f"Suma de los meses {vent} en la celda."
         if b.startswith("lluvia_"):
             return "Valor del ráster mensual en la celda asignada."
-        if b.endswith(("_n", "_d")):
+        if b in ("dias_sin_agua_n", "horas_sin_agua_n"):
+            return ("Suma por manzana de los " + ("días" if b.startswith("dias") else "horas") + " sin agua de cada vivienda, con el punto "
+                    "medio de cada rango (scripts/censo_inei.py, indicadores r y s). Promedio = _n / _d. En la base por celda, suma de las manzanas.")
+        if b.startswith("horas_sin_agua_m"):
+            return "Días y horas vienen en cuadros separados: emparejados de mayor a menor (mínimo de horas sin agua) o al revés (máximo)."
+        if b.startswith("movimiento_"):
+            return "No se suman caminar y brazos: una persona puede tener las dos dificultades."
+        if b == "techo_calamina_n":
+            return "No está en la página (pendiente del visto bueno de Germán). Su denominador es `viviendas`."
+        if b.endswith(("_n", "_d", "_max")) or b == "hogares":
             return "Tabulados del Censo 2025 (INEI), como en scripts/censo_inei.py. En la base por celda, suma de las manzanas."
         return ""
 
@@ -414,7 +437,11 @@ def diccionario(cols_mz, cols_celda, etq, v, meses, completos, g):
             return "grados"
         if c.startswith(("flag_",)):
             return "0/1"
-        if c.endswith(("_n", "_d", "_max")) or c.startswith("n_") or c in ("viviendas", "poblacion"):
+        if c.startswith("dias_sin_agua_n"):
+            return "días × viviendas"
+        if c.startswith("horas_sin_agua_") and not c.endswith("_d"):
+            return "horas × viviendas"
+        if c.endswith(("_n", "_d", "_max", "_min")) or c.startswith("n_") or c in ("viviendas", "poblacion", "hogares"):
             return "conteo"
         return ""
 
@@ -815,17 +842,20 @@ def main():
     print(f"Celda vecina: {vec.sum()} manzanas ({base.loc[vec, 'v'].sum()} viviendas); distancia máxima {dist.max():.1f} km")
 
     # Base por manzana: nombres claros para los indicadores y orden de columnas
-    ren = {"p": "poblacion", "v": "viviendas", "ZONA": "zona", "MANZANA": "manzana", "g_max": "sin_essalud_privado_max"}
+    ren = {"p": "poblacion", "v": "viviendas", "ZONA": "zona", "MANZANA": "manzana", "g_max": "sin_essalud_privado_max",
+           **{k: n for k, (n, _) in EXTRA_CENSO.items()}}
     for k, n in NOMBRES.items():
         ren[f"{k}_n"], ren[f"{k}_d"] = f"{n}_n", f"{n}_d"
     base["flag_pocos_viv"] = (base["v"] < censo.MINIMO["viv"]).astype(int)
     base["flag_pocos_pob"] = (base["p"] < censo.MINIMO["pob"]).astype(int)
+    base["flag_pocos_hog"] = (base["ho"] < censo.MINIMO["hog"]).astype(int)
     mz = base.rename(columns=ren)
     ident = ["codigo", "ubigeo", "provincia", "distrito", "ccpp", "centro_poblado", "zona", "manzana", "lon", "lat",
-             "flag_punto_interior", "km2", "flag_extensa", "flag_pocos_viv", "flag_pocos_pob"]
+             "flag_punto_interior", "km2", "flag_extensa", "flag_pocos_viv", "flag_pocos_pob", "flag_pocos_hog"]
     geo = ["id_celda", "fila_celda", "col_celda", "lon_celda", "lat_celda", "dist_borde_km", "flag_celda_vecina",
            "dist_vecina_km", "n_manzanas_celda", "n_viviendas_celda"]
-    censo_cols = ["viviendas", "poblacion"] + [f"{n}_{s}" for n in NOMBRES.values() for s in "nd"] + ["sin_essalud_privado_max"]
+    censo_cols = (["viviendas", "poblacion", "hogares"] + [f"{n}_{s}" for n in NOMBRES.values() for s in "nd"] + ["sin_essalud_privado_max"]
+                  + [n for k, (n, _) in EXTRA_CENSO.items() if k != "ho"])
     lluvia_cols = list(celda) + [c + "_bil" for c in celda if c.startswith("lluvia_")]
     mz = mz[ident + geo + censo_cols + lluvia_cols]
     if (SALIDA / "hand_manzana.csv").exists():  # variables exploratorias del terreno, si ya se calcularon
