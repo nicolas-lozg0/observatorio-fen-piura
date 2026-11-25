@@ -407,10 +407,10 @@ def main():
                   // los 5 sectores: más de la mitad afectada, de mayor a menor número, con su barra y su cifra
                   criticos: (() => { const ids = [...document.querySelectorAll('#vul-criticos [data-hex]')].map(b => b.dataset.hex);
                     const hs = ids.map(id => D.censo.hexagonos.features.find(x => x.id === id).properties[i.k]);
-                    return ids.length === 5 && hs.every(x => x[0] > x[1] / 2) && hs.every((x, j) => !j || hs[j - 1][0] >= x[0])
+                    return ids.length === 5 && hs.every(x => x[0] > x[1] / 2 && x[1] >= 30) && hs.every((x, j) => !j || hs[j - 1][0] >= x[0])
                       && document.querySelectorAll('#vul-criticos .barra-crit').length === 5
-                      && /sectores más críticos están en/.test($('vul-criticos-titulo').textContent)
-                      && /^Sectores donde más de la mitad de las viviendas no tienen desagüe/.test($('vul-criticos-sub').textContent); })(),
+                      && /^Sectores con más viviendas sin desagüe por red pública/.test($('vul-criticos-titulo').textContent)
+                      && /^Sectores de 350 m con al menos 30 viviendas donde más de la mitad de las viviendas no tienen desagüe/.test($('vul-criticos-sub').textContent); })(),
                   proporcion: [proporcion(26.7), proporcion(62), proporcion(97)].map(x => x.join('|')) };
             }""")
             revisar(rv == {"canvas": True, "leyenda": 10, "barra": 100, "sinManzanas": True, "filas": 4, "total": True, "clases": [0, 1, 3, 4],
@@ -436,8 +436,8 @@ def main():
                   const dest = destacadas(datos), filasDest = [...document.querySelectorAll('#vul-localidades .par.destacada')].map(f => f.dataset.loc).sort().join();
                   const ciudad = datos.find(x => x.id === 'metro').lluvia;
                   r[anio] = { puntos: pts.sort().join() === datos.map(x => x.id + '|' + x.lluvia).sort().join(), barras: desde('#vul-localidades .par') === esperado,
-                    // Explorar relaciones, nivel localidad (lluvia de ese año contra el indicador): los mismos puntos que datosLocalidades
-                    tabla: desde('#vul-tabla-loc tr') === esperado, grafico: datosExplorar('loc', 'll:' + anio, 'c:' + vulInd().k)
+                    // gráfico de puntos (lluvia de ese año contra el indicador): los mismos puntos que datosLocalidades
+                    tabla: desde('#vul-tabla-loc tr') === esperado, grafico: datosPuntos('ll:' + anio, 'c:' + vulInd().k)
                       .map(q => clave(q.id, q.y, q.x)).sort().join() === esperado,
                     conLluvia: datos.every(x => typeof x.lluvia === 'number'), resaltadas: filasDest === [...dest].sort().join(),
                     frase: new RegExp(`^En ${anio} llovió más en .+La ciudad de Piura recibió ${num(ciudad)} mm`).test($('vul-lluvia-frase').textContent.replace(/\\s+/g, ' ')),
@@ -452,7 +452,7 @@ def main():
                 encuadrar(m); await espera(300); await vulNivel(m);
                 r.estilos = getComputedStyle(document.querySelector('#vul-localidades .par')).display === 'grid'
                   && getComputedStyle(document.querySelector('#vul-lluvia-leyenda .franjas-ley span'), '::before').width === '14px';
-                // tercio superior: con 6 filas, las 2 más altas de cada variable; los empates entran (b empata con a en %, c con b en lluvia)
+                // cuadrante: por encima del promedio simple en las dos (lluvia 443, % 29): a y b
                 const f = (id, lluvia, p) => ({ id, lluvia, p });
                 r.tercio = [...destacadas([f('a', 900, 50), f('b', 800, 50), f('c', 800, 10), f('d', 100, 60), f('e', 50, 5), f('f', 10, 1)])].sort().join();
                 r.marca = MARCA_DESTACADA(vulInd());
@@ -470,46 +470,77 @@ def main():
             ok_anio = {"puntos": True, "barras": True, "tabla": True, "grafico": True, "conLluvia": True, "resaltadas": True, "frase": True,
                        "franjas": 5, "m1983": True}
             revisar(rc == {"selector": "1983,1998,2017,2023|2017", "2017": ok_anio, "1998": ok_anio, "nombres": True, "vivienda": True,
-                           "estilos": True, "tercio": "a,b", "marca": "Mucha lluvia y sin desagüe", "ordenLluvia": True,
+                           "estilos": True, "tercio": "a,b", "marca": "Más lluvia y sin desagüe", "ordenLluvia": True,
                            "primeras": True, "todas": True},
                     f"vulnerabilidad, lluvia y localidades: {rc}")
-            # Explorar relaciones (parte 3): manzanas en canvas con su mínimo de casos, correlación ponderada por viviendas, leyenda
-            # con círculos (provincia con todas las localidades; distrito con una), columnas de lluvia con separación opcional y
-            # clic que lleva el mapa a la manzana
+            # Lluvia y localidades, vista de puntos (25/11/2026): un punto por localidad, ejes guiados (lluvia del mapa × indicador
+            # del panel), pregunta guiada que cambia el indicador del panel, cuadrante sombreado, etiquetas sin superponerse,
+            # correlaciones en el detalle y la nota de CHIRPS solo con lluvia en un eje; la vista de barras comparte titular y nota
             rx = pg.evaluate("""async () => { const espera = ms => new Promise(r => setTimeout(r, ms)), r = {};
-                for (let k = 0; k < 100 && $('f-exp-x').disabled; k++) await espera(100);
-                const set = (id, v) => { const e = $(id); if (e.type === 'checkbox') e.checked = v; else e.value = v; e.dispatchEvent(new Event('change')); };
-                set('f-exp-x', 'll:2017'); set('f-exp-y', 'c:a'); set('f-exp-nivel', 'mz'); set('f-exp-loc', '');
-                await pintarExplorar();
-                const pts = expPintado.pts, a = D.censo.indicadores.find(i => i.k === 'a');
-                r.n = pts.length; r.minimo = pts.every(q => q.f.properties.a[1] >= 10 && !q.f.properties.km2);
-                r.valores = pts.slice(0, 200).every(q => q.y === valVul(a, ...q.f.properties.a.slice(0, 2)));
-                r.titular = /correlación ponderada por viviendas de -?[0-9]/.test($('exp-titular').textContent) && $('exp-titular').textContent.includes(num(pts.length));
-                r.leyenda = document.querySelectorAll('#exp-leyenda .circulo').length >= 5 && getComputedStyle(document.querySelector('#exp-leyenda .circulo'), '::before').borderRadius === '50%';
-                r.columnas = /en columnas/.test($('exp-nota').textContent);
-                const x0 = pts.slice(0, 50).map(q => q.sx); set('f-exp-separar', true); await pintarExplorar();
-                r.separa = expPintado.pts.slice(0, 50).some((q, j) => Math.abs(q.sx - x0[j]) > 0.5) && expPintado.pts.slice(0, 50).every(q => Math.abs(q.sx - (48 + q.x * 0)) >= 0);
-                set('f-exp-separar', false);
-                // correlación ponderada: recta creciente = 1, decreciente = −1; el peso cambia el resultado
-                const c = xs => corrPond(xs.map(([x, y, peso]) => ({ x, y, peso })));
+                const tit = $('vul-comp-titular').textContent;
+                document.querySelector('.vista-comp [data-vista=puntos]').click(); await espera(300);
+                r.vista = $('vista-barras').hidden && !$('vista-puntos').hidden && $('vul-comp-titular').textContent === tit;
+                const pts = $('pts-grafico')._pintado.pts;
+                r.puntos = document.querySelectorAll('#pts-grafico circle').length === D.censo.localidades.length && pts.length === D.censo.localidades.length;
+                // cuadrante sombreado en el tono del indicador; sus puntos en ese color; «promedio» fuera del área de datos
+                const P = $('pts-grafico')._pintado;
+                r.cuadrante = !!document.querySelector('#pts-grafico rect') && document.querySelectorAll('#pts-grafico .prom').length === 2 && P.tono === '--v4'
+                  && [...document.querySelectorAll('#pts-grafico circle')].filter(c => c.getAttribute('fill') === `var(${P.tono})`).length === destacadas(datosLocalidades(vulInd())).size
+                  && [...document.querySelectorAll('#pts-grafico .prom-rot')].every(t => { const b = t.getBBox(), a = document.querySelector('#pts-grafico .prom').getBBox(); return b.x >= +document.querySelectorAll('#pts-grafico .prom')[1].getAttribute('x2') || b.y + b.height <= a.y + 1; });
+                const et = [...document.querySelectorAll('#pts-grafico .et')].map(e => e.getBoundingClientRect());
+                r.etiquetas = et.length > 0 && et.every((p, a) => et.every((q, b) => a === b || p.right <= q.left + .5 || q.right <= p.left + .5 || p.bottom <= q.top + .5 || q.bottom <= p.top + .5));
+                r.ejes = !document.querySelector('#pts-grafico text[transform]') && $('pts-grafico').querySelector('.eje-y').textContent.includes('%');
+                r.sinCoef = !/[0-9],[0-9]{2}\\b/.test($('vul-comp-titular').textContent) && /Correlación sin ponderar: -?[0-9]/.test($('pts-detalle').textContent)
+                  && /ponderada por viviendas/.test($('pts-detalle').textContent) && /ciudad de Piura/.test($('pts-detalle').textContent);
+                r.chirps = /CHIRPS/.test($('vul-comp-nota').textContent);
+                // pregunta guiada: cambia el indicador del panel (sincronía) y el eje vertical
+                $('f-pregunta').value = 'j'; $('f-pregunta').dispatchEvent(new Event('change')); await espera(500);
+                r.pregunta = $('f-vul').value === 'j' && $('vul-titulo').textContent === tituloVul(vulInd()) && $('pts-grafico')._pintado.Y.i.k === 'j';
+                $('f-vul').value = 'e'; cambiarVul({ target: $('f-vul') }); await espera(300);
+                r.otra = $('f-pregunta').value === '' && /Indicador elegido arriba/.test($('f-pregunta').selectedOptions[0].textContent);
+                // Personalizar: un par sin lluvia quita la nota de CHIRPS; el color por provincia pone la leyenda en círculos
+                $('pts-personalizar').open = true; await espera(100);
+                $('f-pts-x').value = 'c:a'; $('f-pts-x').dispatchEvent(new Event('change'));
+                $('f-pts-prov').checked = true; $('f-pts-prov').dispatchEvent(new Event('change')); await espera(200);
+                r.custom = !/CHIRPS/.test($('vul-comp-nota').textContent) && document.querySelectorAll('#pts-leyenda .circulo').length >= 5;
+                $('f-pts-prov').checked = false; $('pts-personalizar').open = false;
+                $('f-pregunta').value = 'a'; $('f-pregunta').dispatchEvent(new Event('change')); await espera(300);
+                r.vuelve = $('pts-grafico')._pintado.X.lluvia && /CHIRPS/.test($('vul-comp-nota').textContent);
+                // correlación: recta creciente = 1, decreciente = −1; el peso cambia el resultado
+                const c = (xs, w) => corrPond(xs.map(([x, y, peso]) => ({ x, y, peso })), w);
                 r.corr = [c([[1, 2, 1], [2, 4, 1], [3, 6, 5]]), c([[1, 3, 1], [2, 2, 1], [3, 1, 1]])].map(v => v.toFixed(3)).join()
-                  + '|' + c([[0, 0, 1], [1, 0, 1], [2, 3, 1]]).toFixed(3) + ',' + c([[0, 0, 1], [1, 0, 10], [2, 3, 1]]).toFixed(3);  // 0,866 sin peso; 0,739 con peso 10 al medio
-                // una localidad: color por distrito (la Ciudad de Piura, sus 3 distritos)
-                set('f-exp-loc', 'metro'); await pintarExplorar();
-                r.distritos = document.querySelectorAll('#exp-leyenda .circulo').length === 3 && expPintado.pts.every(q => q.loc === 'metro');
-                // nivel localidad: un punto por localidad, con tamaño según viviendas
-                set('f-exp-loc', ''); set('f-exp-nivel', 'loc'); await pintarExplorar();
-                const pl = expPintado.pts, metro = pl.find(q => q.id === 'metro');
-                r.loc = pl.length === D.censo.localidades.length && pl.every(q => q.r <= 22 && q.r <= metro.r);
-                // clic en una manzana: el mapa va a ella (nivel de manzanas, con borde)
-                set('f-exp-nivel', 'mz'); set('f-exp-loc', 'metro'); await pintarExplorar();
-                const q = expPintado.pts[0]; await irDesdeExplorar(q); const m = await vulP;
-                r.clic = nivelDe(m) === 'mz' && !!vulCapas.resalte && m.getBounds().contains(L.geoJSON(q.f).getBounds().getCenter());
-                set('f-exp-loc', ''); quitarResalte(m); encuadrar(m); await vulNivel(m);
+                  + '|' + c([[0, 0, 1], [1, 0, 10], [2, 3, 1]], false).toFixed(3) + ',' + c([[0, 0, 1], [1, 0, 10], [2, 3, 1]]).toFixed(3);
+                r.debil = titularRelacion({ lluvia: true, anio: 2017 }, { i: vulInd() }, [{ id: 'a', nombre: 'A', x: 1, y: 1 }, { id: 'b', nombre: 'B', x: 2, y: 3 }, { id: 'c', nombre: 'C', x: 3, y: 3 }, { id: 'd', nombre: 'D', x: 4, y: 1 }], { ids: new Set() }).includes('no hay una relación clara');
+                document.querySelector('.vista-comp [data-vista=barras]').click(); await espera(200);
+                r.barras = !$('vista-barras').hidden && $('vista-puntos').hidden;
                 return r; }""")
-            revisar(rx == {**rx, "minimo": True, "valores": True, "titular": True, "leyenda": True, "columnas": True, "separa": True,
-                           "corr": "1.000,-1.000|0.866,0.739", "distritos": True, "loc": True, "clic": True} and rx["n"] > 10000,
-                    f"vulnerabilidad, explorar relaciones: {rx}")
+            revisar(rx == {"vista": True, "puntos": True, "cuadrante": True, "etiquetas": True, "ejes": True, "sinCoef": True, "chirps": True,
+                           "pregunta": True, "otra": True, "custom": True, "vuelve": True, "corr": "1.000,-1.000|0.866,0.739", "debil": True, "barras": True},
+                    f"vulnerabilidad, gráfico de puntos: {rx}")
+            # Íconos con un indicador bajo (no sabe leer ni escribir, 2 %): cuadrícula de 100 con su frase y texto alternativo,
+            # barras por distrito con la misma escala, sectores ordenados por número con al menos 200 personas y sin «Sector sin nombre»
+            rb = pg.evaluate("""async () => { const espera = ms => new Promise(r => setTimeout(r, ms)), r = {};
+                $('f-vul').value = 'an'; cambiarVul({ target: $('f-vul') }); await espera(400);
+                const g = document.querySelector('#vul-frases .grilla100 svg'), bs = [...document.querySelectorAll('#vul-frases .fila-barra')];
+                r.grilla = !!g && g.querySelectorAll('.base path').length === 100 && /de cada 100/.test(g.getAttribute('aria-label'))
+                  && g.querySelectorAll('.relleno path').length === (p => Math.floor(p) + (p % 1 >= .25 ? 1 : 0))(pct(...vulTotal('an').slice(0, 2)));
+                // tira de puntos: un punto por distrito, la marca de la ciudad, sin barras; etiquetas sin superponerse
+                const ets = [...document.querySelectorAll('#vul-tira .et')].map(e => e.getBoundingClientRect());
+                r.tira = document.querySelectorAll('#vul-tira circle').length === 3 && !!document.querySelector('#vul-tira .total') && !bs.length
+                  && !document.querySelector('#vul-frases .fila-casas') && /de cada 100/.test(document.querySelector('#vul-tira svg').getAttribute('aria-label'))
+                  && /^Va de .+ a .+\\.$/.test(document.querySelector('.tira-frase').textContent)
+                  && ets.every((p, a) => ets.every((q, b) => a === b || p.right <= q.left + .5 || q.right <= p.left + .5 || p.bottom <= q.top + .5 || q.bottom <= p.top + .5));
+                // íconos parciales: recortados (clipPath) en el mismo color, sin opacidad; bajo un cuarto de ícono, nada
+                r.parcial = /clipPath/.test(casasSvg(33)) && !/fill-opacity/.test(casasSvg(33)) && !/clipPath/.test(casasSvg(32)) && casasSvg(32).match(/<path/g).length === 13;
+                const ids = [...document.querySelectorAll('#vul-criticos [data-hex]')].map(b => b.dataset.hex), hs = ids.map(id => D.censo.hexagonos.features.find(x => x.id === id).properties.an);
+                r.sectores = ids.length === 5 && hs.every(x => x[1] >= 200) && hs.every((x, j) => !j || hs[j - 1][0] >= x[0]) && /^Sectores con más personas que no saben leer ni escribir/.test($('vul-criticos-titulo').textContent);
+                r.decimos100 = [decimos100(2.04), decimos100(0.3), decimos100(1)].map(x => x.join('|')).join(';');
+                r.tope = [topeBarras(2.4), topeBarras(7.1), topeBarras(0.3), topeBarras(10)].join();
+                r.sinNombre = !document.body.textContent.includes('Sector sin nombre') && D.censo.hexagonos.features.every(h => h.properties.n);
+                $('f-vul').value = 'a'; cambiarVul({ target: $('f-vul') }); await espera(300);
+                return r; }""")
+            revisar(rb == {"grilla": True, "tira": True, "parcial": True, "sectores": True, "decimos100": "2 de cada 100|true;menos de 1 de cada 100|false;1 de cada 100|false",
+                           "tope": "3,10,1,10", "sinNombre": True}, f"vulnerabilidad, íconos con indicador bajo: {rb}")
             # Sincronía: con cada localidad y cada indicador (26 × 23), todos los bloques muestran el mismo indicador y la misma cifra
             # total: título, cifra, frases (con su ícono), leyenda (reparto en servicios; simple en población), mapa (color del
             # grupo), sectores, ayuda, barras pareadas (fila elegida, base en viviendas o personas, orden inicial), tabla y gráfico
@@ -527,13 +558,19 @@ def main():
                     const filasF = [...document.querySelectorAll('#vul-frases .fila-casas')];
                     let capa = vulCapas[nivelDe(m)], l; capa?.eachLayer(x => { l ||= x; });
                     const sel = document.querySelector('#vul-localidades .par.sel');
-                    const fila = document.querySelector(`#vul-tabla-loc tr[data-loc="${vulLoc}"]`), punto = datosExplorar('loc', 'c:' + i.k, 'c:' + i.k, vulLoc)[0];
-                    const textoPob = ['vul-resumen', 'vul-mapa', 'vul-sectores', 'vul-lluvia-panel'].map(id => $(id).textContent).join(' ');
+                    const fila = document.querySelector(`#vul-tabla-loc tr[data-loc="${vulLoc}"]`), punto = datosPuntos('c:' + i.k, 'c:' + i.k).find(q => q.id === vulLoc);
+                    const bajo = escala100(i), filasB = [...document.querySelectorAll('#vul-frases .fila-barra')], grilla = document.querySelector('#vul-frases .grilla100');
+                    // la línea de detalle (tablas, fuente y «Cómo se calcula», con textos generales) no cuenta
+                    const sinPie = (() => { const c = $('vul-lluvia-panel').cloneNode(true); c.querySelectorAll('.vul-pie-linea, #vul-pie, #vul-calculo').forEach(e => e.remove()); return c.textContent; })();
+                    const textoPob = ['vul-resumen', 'vul-mapa', 'vul-sectores'].map(id => $(id).textContent).join(' ') + ' ' + sinPie;
                     const ok = {
                       titulo: $('vul-titulo').textContent === tituloVul(i),
                       cifra: $('vul-cifra').textContent.includes(vulPct(i, t)) && $('vul-cifra').textContent.includes(num(mag ? t[1] : t[0])),
                       frases: mag ? filasF.length === (metro ? 3 : 2) && filasF.every(f => f.textContent.startsWith('En promedio') && !f.querySelector('svg'))
                           && (metro || filasF[0].textContent.includes(` de ${loc.nombre} `) && filasF[0].textContent.includes(fmtVul(i, pT)))
+                        : bajo ? !filasF.length && document.querySelectorAll('#vul-tira circle').length === (metro ? 3 : 1) && grilla?.textContent.includes(pctTxt(pT))
+                          && grilla.querySelector('path').getAttribute('d') === (gr.icono === 'persona' ? PERSONA : CASA)
+                          && (metro || document.querySelector('#vul-tira .et-total').textContent.startsWith(loc.nombre))
                         : (metro ? filasF.length === 3 : filasF[0]?.querySelector('p').textContent.startsWith(loc.nombre + ':')
                           && filasF[0].querySelector('p').textContent.includes(pctTxt(pT)))
                         && filasF.every(f => f.querySelector('path').getAttribute('d') === (gr.icono === 'persona' ? PERSONA : CASA)),
@@ -541,7 +578,7 @@ def main():
                         : !document.querySelector('#vul-leyenda .reparto') && !!document.querySelector('#vul-leyenda .leyenda-pob'),
                       // sin sectores con base suficiente (ej. Tambogrande, agua las 24 horas) el mapa queda vacío, y está bien
                       mapa: m.hasLayer(capa) && (l ? hexEstilo(l.feature).fillColor === token(gr.tonos[claseVul(i, l.feature)]) : !visibles(nivelDe(m)).features.length),
-                      sectores: mag ? /Sectores con más|base suficiente/.test($('vul-criticos-titulo').textContent)
+                      sectores: mag || bajo ? /Sectores con más|base suficiente/.test($('vul-criticos-titulo').textContent)
                         : gr.criterio ? !/mayor proporción/.test($('vul-criticos-titulo').textContent) : /mayor proporción de|base suficiente/.test($('vul-criticos-titulo').textContent),
                       // selector: el indicador está en el grupo que dice su «grupo»; días y horas sin vista de número
                       grupo: $('f-vul').selectedOptions[0].parentElement.label === GRUPOS_SELECTOR[i.grupo]

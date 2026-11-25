@@ -17,7 +17,7 @@ Qué hace:
   4. Guarda docs/data/censo_piura.json: GeoJSON en WGS84, geometría simplificada, con numerador y denominador de
      cada indicador por manzana, los totales por distrito y las validaciones.
 
-Uso: python3 scripts/censo_inei.py
+Uso: python3 scripts/censo_inei.py  (con --solo-nombres, solo renombra los sectores en los JSON ya publicados)
 """
 import json
 import re
@@ -394,7 +394,7 @@ def indicadores(dp, dv, P, V, dh=None, H=None):
 # Mínimo de la base para dibujar: 30 en el nivel 9; 20 en el 10 (con 30 quedaría oculto el 10 % de las viviendas).
 NIVELES = {9: 30, 10: 20}
 # API pública de OpenStreetMap y un espejo de la lista del wiki de OSM, por si el principal está cargado
-OVERPASS_ESPEJOS = ["https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter"]
+OVERPASS_ESPEJOS = ["https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter", "https://maps.mail.ru/osm/tools/overpass/api/interpreter"]
 # Cortes de las 5 clases (en %), fijos a propósito (ronda 17): una sola escala en palabras para servicios y vivienda, y
 # los cortes de la ronda 16 para los demográficos. No se mueven aunque una clase quede casi vacía: así se compara entre localidades.
 ESCALA = [5, 20, 50, 80]
@@ -480,10 +480,12 @@ def consulta_overpass(q, cache):
             time.sleep(20 * intento)
 
 
-def nombres_osm(hexs, loc):
-    """Nombre reconocible de cada hexágono con OpenStreetMap (una sola consulta a Overpass por localidad):
-    1) zona residencial con nombre que contiene el centro; 2) barrio o caserío a menos de 400 m; 3) «cerca de [vía]» a menos
-    de 300 m. Si nada aplica, queda vacío (la página dice «sector sin nombre»)."""
+def nombres_osm(hexs, loc, nombre_loc=""):
+    """Nombre reconocible de cada hexágono con OpenStreetMap (dos consultas a Overpass por localidad, guardadas):
+    1) zona residencial con nombre que contiene el centro; 2) barrio o caserío a menos de 400 m; 3) «cerca de [vía principal]»
+    a menos de 300 m; 4) «cerca de [hito]» (colegio, mercado, iglesia, parque, plaza, posta u hospital) a menos de 300 m;
+    5) «cerca de [calle]» de cualquier clase a menos de 300 m; 6) «al norte/sur/este/oeste de [barrio o zona más cercana]»,
+    sin límite de distancia. Así ningún sector queda sin nombre (25/11/2026)."""
     from shapely.geometry import LineString, Point, Polygon
     la = [h["centro"][0] for h in hexs]
     lo = [h["centro"][1] for h in hexs]
@@ -492,12 +494,24 @@ def nombres_osm(hexs, loc):
          f'way["landuse"="residential"]["name"]({caja});'
          f'way["highway"~"^(trunk|primary|secondary|tertiary)$"]["name"]({caja}););out geom;')
     el = consulta_overpass(q, CRUDO.parent / "osm" / f"overpass_{loc}.json")
+    # calles menores e hitos (consulta aparte para no invalidar la guardada)
+    q2 = (f'[out:json][timeout:180];(way["highway"~"^(residential|unclassified|living_street|pedestrian)$"]["name"]({caja}););out geom;'
+          f'(nwr["amenity"~"^(school|college|university|marketplace|place_of_worship|hospital|clinic|doctors|police|fire_station)$"]["name"]({caja});'
+          f'nwr["leisure"~"^(park|stadium|sports_centre)$"]["name"]({caja});nwr["place"="square"]["name"]({caja}););out center;')
+    el2 = consulta_overpass(q2, CRUDO.parent / "osm" / f"overpass_hitos_{loc}.json")
     zonas = [(Polygon([(p["lon"], p["lat"]) for p in e["geometry"]]), e["tags"]["name"]) for e in el
              if e["type"] == "way" and e["tags"].get("landuse") == "residential" and len(e.get("geometry", [])) >= 4]
     lugares = [(Point(e["lon"], e["lat"]), e["tags"]["name"]) for e in el if e["type"] == "node"]
     vias = [(LineString([(p["lon"], p["lat"]) for p in e["geometry"]]), e["tags"]["name"]) for e in el
             if e["type"] == "way" and "highway" in e["tags"] and len(e.get("geometry", [])) >= 2]
-    print(f"OpenStreetMap: {len(zonas)} zonas residenciales, {len(lugares)} barrios o caseríos y {len(vias)} vías con nombre")
+    calles = [(LineString([(p["lon"], p["lat"]) for p in e["geometry"]]), e["tags"]["name"]) for e in el2
+              if e.get("tags", {}).get("highway") and len(e.get("geometry", [])) >= 2]
+    hitos = [(Point(c["lon"], c["lat"]), e["tags"]["name"]) for e in el2 if not e.get("tags", {}).get("highway")
+             for c in [e.get("center") or ({"lon": e["lon"], "lat": e["lat"]} if "lon" in e else None)] if c]
+    # referencias para la dirección: barrios, caseríos y el centro de las zonas residenciales
+    refs = lugares + [(p.centroid, n) for p, n in zonas if p.is_valid]
+    print(f"OpenStreetMap: {len(zonas)} zonas residenciales, {len(lugares)} barrios o caseríos, {len(vias)} vías principales, "
+          f"{len(calles)} calles y {len(hitos)} hitos con nombre")
     grado = 111_320  # metros por grado (aprox.)
     for h in hexs:
         c = Point(h["centro"][1], h["centro"][0])
@@ -505,10 +519,40 @@ def nombres_osm(hexs, loc):
         cerca = lambda xs: min(((g.distance(c) * grado, n) for g, n in xs), default=(1e9, None))
         d1, n1 = cerca(lugares)
         d2, n2 = cerca(vias)
-        # ronda 18: «Sector [nombre]» si el centro cae en la zona; «Sector cerca de [nombre]» si es un barrio o vía cercana
-        h["properties"]["n"] = (f"Sector {limpiar_nombre(z[0])}" if z else f"Sector cerca de {limpiar_nombre(n1)}" if d1 < 400
-                                else f"Sector cerca de {limpiar_nombre(n2)}" if d2 < 300 else "")
+        d3, n3 = cerca(hitos)
+        d4, n4 = cerca(calles)
+        # ronda 18: «Sector [nombre]» si el centro cae en la zona; «Sector cerca de [nombre]» si es un barrio, vía o hito cercano
+        n = (f"Sector {limpiar_nombre(z[0])}" if z else f"Sector cerca de {limpiar_nombre(n1)}" if d1 < 400
+             else f"Sector cerca de {limpiar_nombre(n2)}" if d2 < 300 else f"Sector cerca de {limpiar_nombre(n3)}" if d3 < 300
+             else f"Sector cerca de {limpiar_nombre(n4)}" if d4 < 300 else "")
+        if not n:
+            ref = min(refs, key=lambda r: r[0].distance(c), default=None)
+            n = (f"Sector {direccion(ref[0], c)} de {limpiar_nombre(ref[1])}" if ref
+                 else f"Sector {direccion(Point(sum(lo) / len(lo), sum(la) / len(la)), c)} de {nombre_loc or 'la localidad'}")
+        h["properties"]["n"] = n
     return hexs
+
+
+def direccion(desde, hacia):
+    """«al norte», «al sur», «al este» u «al oeste»: el eje dominante del desplazamiento (la longitud, corregida por la latitud)."""
+    import math
+    dx = (hacia.x - desde.x) * math.cos(math.radians(desde.y))
+    dy = hacia.y - desde.y
+    return ("al este" if dx > 0 else "al oeste") if abs(dx) > abs(dy) else ("al norte" if dy > 0 else "al sur")
+
+
+def renombrar():
+    """Solo vuelve a poner los nombres de los sectores de 350 m en los JSON ya publicados (no lee los archivos del INEI)."""
+    base = json.loads((DATOS / "censo_piura.json").read_text(encoding="utf-8"))
+    for x in base["localidades"]:
+        if x["id"] == "metro":
+            nombres_osm(base["hexagonos"]["features"], "metro", x["nombre"])
+        else:
+            d = json.loads((DATOS / x["archivo"]).read_text(encoding="utf-8"))
+            nombres_osm(d["hexagonos"]["features"], x["id"], x["nombre"])
+            guardar(x["archivo"], d)
+            time.sleep(1)
+    guardar("censo_piura.json", base)
 
 
 MINUSCULAS = {"de", "del", "la", "las", "los", "el", "y", "e", "en"}
@@ -717,7 +761,7 @@ def main():
     localidades, archivos = [], []
     for loc in ["metro"] + [slug(NOMBRES_LOC[nombres_ccpp[k]]) for k in elegidas]:
         u = unidos[unidos["loc"] == loc]
-        hexs = nombres_osm(hexagonos(u, claves, 9), loc)  # solo el nivel 9 lleva nombres: de ahí salen los sectores críticos
+        hexs = nombres_osm(hexagonos(u, claves, 9), loc, "Ciudad de Piura" if loc == "metro" else next(v for v in NOMBRES_LOC.values() if slug(v) == loc))  # solo el nivel 9 lleva nombres: de ahí salen los sectores críticos
         hexs10 = hexagonos(u, claves, 10)
         oculto = {res: 100 * sum(h["properties"]["v"] for h in hs if h["properties"]["a"][1] < NIVELES[res]) / max(1, int(u["v"].sum()))
                   for res, hs in ((9, hexs), (10, hexs10))}
@@ -771,4 +815,4 @@ def main():
         print(f"Tamaño de {nombre}: {tam_mb:.2f} MB" + (" (pasa de 3 MB)" if tam_mb > 3 else ""))
 
 if __name__ == "__main__":
-    main()
+    renombrar() if "--solo-nombres" in sys.argv else main()

@@ -109,7 +109,10 @@ for nivel in (hx, h10["features"]):  # los dos niveles suman lo mismo que las ma
         for j in (0, 1):
             assert sum(h["properties"][k][j] for h in nivel) == sum(p[k][j] for p in normales), (k, j)
         assert all(0 <= h["properties"][k][0] <= TOPE.get(k, 1) * h["properties"][k][1] for h in nivel), k
-assert sum(1 for h in hx if h["properties"]["n"]) > 0.8 * len(hx), "la mayoría de los sectores debe tener nombre"
+# 25/11/2026: todos los sectores de 350 m tienen nombre (vía, hito o «al norte de [barrio]»), también en las otras localidades
+for x in locs:
+    hs = hx if x["id"] == "metro" else json.loads((DATOS / x["archivo"]).read_text(encoding="utf-8"))["hexagonos"]["features"]
+    assert all(h["properties"]["n"] for h in hs), (x["id"], sum(1 for h in hs if not h["properties"]["n"]))
 assert all(set(i["frase"]) and len(i["frase"]) == 3 for i in d["indicadores"])
 
 # Ciudad de Piura: sus manzanas del mapa; la coincidencia cuenta las de todas las localidades
@@ -139,7 +142,7 @@ print(f"Densidad: {area_hex:.0f} ha de manzanas en los sectores de Ciudad de Piu
 # Nombres de los sectores (ronda 18): «Sector …» o vacío, sin «Asentamiento Humano» ni «AA.HH.» (pasan a «A. H.»), sin espacios dobles
 import re as _re
 nombres = [h["properties"]["n"] for h in d["hexagonos"]["features"]]
-assert all(n == "" or n.startswith("Sector ") for n in nombres), [n for n in nombres if n and not n.startswith("Sector ")][:5]
+assert all(n.startswith("Sector ") for n in nombres), [n for n in nombres if n and not n.startswith("Sector ")][:5]
 assert not [n for n in nombres if _re.search(r"(?i)asentamiento humano|AA\.?HH|  ", n)], [n for n in nombres if _re.search(r"(?i)asentamiento humano|AA\.?HH|  ", n)][:5]
 assert "Piura metropolitana" not in RUTA.read_text(encoding="utf-8")
 
