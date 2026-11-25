@@ -375,8 +375,8 @@ def main():
                 const i = vulInd(), t = vulTotal(i.k), filas = [...document.querySelectorAll('#vul-tabla tr')];
                 const total = filas.at(-1).querySelector('td.n .casos').textContent.replace(/\\s/g, '');
                 const h = D.censo.hexagonos.features[0], conA = a => ({ properties: { ...h.properties, a } });
-                return { canvas: !!document.querySelector('#mapa-vul canvas'), leyenda: document.querySelectorAll('#vul-leyenda .grilla-clases li').length + document.querySelectorAll('#vul-leyenda .lista-clases li').length,
-                  barra: Math.round([...document.querySelectorAll('#vul-leyenda .barra-clases span')].reduce((s, x) => s + +x.style.getPropertyValue('--p'), 0)),
+                return { canvas: !!document.querySelector('#mapa-vul canvas'), leyenda: document.querySelectorAll('#vul-reparto .grilla-clases li').length + document.querySelectorAll('#vul-reparto .lista-clases li').length,
+                  barra: Math.round([...document.querySelectorAll('#vul-reparto .barra-clases span')].reduce((s, x) => s + +x.style.getPropertyValue('--p'), 0)),
                   sinManzanas: !vulDatos.metro.mz && !vulDatos.metro.h10,  // no se descargan hasta acercar el mapa
                   filas: filas.length, total: total === (num(t[0]) + 'de' + num(t[1])).replace(/\\s/g, ''),
                   // sin desagüe, escala fija 5, 20, 50, 80: 4,9 % en la 1.ª clase, 5 % en la 2.ª, 50 % en la 4.ª, 100 % en la 5.ª
@@ -384,8 +384,8 @@ def main():
                   rotulos: [etiquetasVul(i).at(-1), rangosVul(i).at(-1), rangosVul(i)[0], rangosVul({ cortes: [4, 8, 12, 16] }).at(-1), rangosVul({ cortes: [4, 8, 12, 16] })[0]],
                   // los % de la leyenda suman 100 (mayor resto) y una clase con casos que redondea a 0 dice «menos de 1 %»
                   enteros: [enteros100([1, 1, 1]), enteros100([0.2, 50, 49.8, 0, 0]), pctClase(0, 3), pctClase(0, 0)].map(String),
-                  suma100: [...document.querySelectorAll('#vul-leyenda .grilla-clases b')].reduce((s, b) => s + (parseInt(b.textContent) || 0), 0),
-                  fraseBarra: document.querySelector('#vul-leyenda .frase-barra').textContent.startsWith('De cada 100 viviendas de la ciudad de Piura, '),
+                  suma100: [...document.querySelectorAll('#vul-reparto .grilla-clases b')].reduce((s, b) => s + (parseInt(b.textContent) || 0), 0),
+                  fraseBarra: document.querySelector('#vul-reparto .frase-barra').textContent.startsWith('De cada 100 viviendas de la ciudad de Piura, '),
                   // barras pareadas: una fila por localidad, de mayor a menor %, la elegida marcada y el promedio en la nota
                   comparacion: (() => { const fs = [...document.querySelectorAll('#vul-localidades .par')], ps = fs.map(f => +f.dataset.p);
                     const ls = D.censo.localidades, prom = pct(ls.reduce((s, x) => s + x.a[0], 0), ls.reduce((s, x) => s + x.a[1], 0));
@@ -478,8 +478,10 @@ def main():
             # correlaciones en el detalle y la nota de CHIRPS solo con lluvia en un eje; la vista de barras comparte titular y nota
             rx = pg.evaluate("""async () => { const espera = ms => new Promise(r => setTimeout(r, ms)), r = {};
                 const tit = $('vul-comp-titular').textContent;
+                // la vista de puntos es la principal (por defecto)
+                r.vista = $('vista-barras').hidden && !$('vista-puntos').hidden && document.querySelector('.vista-comp [aria-pressed=true]').dataset.vista === 'puntos';
                 document.querySelector('.vista-comp [data-vista=puntos]').click(); await espera(300);
-                r.vista = $('vista-barras').hidden && !$('vista-puntos').hidden && $('vul-comp-titular').textContent === tit;
+                r.vista &&= $('vul-comp-titular').textContent === tit;
                 const pts = $('pts-grafico')._pintado.pts;
                 r.puntos = document.querySelectorAll('#pts-grafico circle').length === D.censo.localidades.length && pts.length === D.censo.localidades.length;
                 // cuadrante sombreado en el tono del indicador; sus puntos en ese color; «promedio» fuera del área de datos
@@ -511,11 +513,20 @@ def main():
                 r.corr = [c([[1, 2, 1], [2, 4, 1], [3, 6, 5]]), c([[1, 3, 1], [2, 2, 1], [3, 1, 1]])].map(v => v.toFixed(3)).join()
                   + '|' + c([[0, 0, 1], [1, 0, 10], [2, 3, 1]], false).toFixed(3) + ',' + c([[0, 0, 1], [1, 0, 10], [2, 3, 1]]).toFixed(3);
                 r.debil = titularRelacion({ lluvia: true, anio: 2017 }, { i: vulInd() }, [{ id: 'a', nombre: 'A', x: 1, y: 1 }, { id: 'b', nombre: 'B', x: 2, y: 3 }, { id: 'c', nombre: 'C', x: 3, y: 3 }, { id: 'd', nombre: 'D', x: 4, y: 1 }], { ids: new Set() }).includes('no hay una relación clara');
+                // concordancia del titular en días (masculino plural), horas (femenino plural) y lluvia contra población (femenino)
+                const sube = [1, 2, 3, 4].map(k => ({ id: 'q' + k, nombre: 'Q' + k, x: k, y: k })), ind = k => ({ i: D.censo.indicadores.find(x => x.k === k) });
+                r.concordancia = /los días sin agua por semana tienden a ser más altos/.test(titularRelacion({ lluvia: true, anio: 2017 }, ind('r'), sube, { ids: new Set() }))
+                  && /las horas sin agua por semana tienden a ser más altas/.test(titularRelacion({ lluvia: true, anio: 2017 }, ind('s'), sube, { ids: new Set() }))
+                  && /la población tiende a ser más alta/.test(titularRelacion({ lluvia: true, anio: 2017 }, { tot: 'p' }, sube, { ids: new Set() }))
+                  && /donde los días sin agua por semana son mayores, el porcentaje de .+ tiende a ser más alto/.test(titularRelacion(ind('r'), ind('a'), sube, { ids: new Set() }));
+                // ningún punto se corta en los bordes del gráfico
+                const caja = document.querySelector('#pts-grafico svg').getBoundingClientRect();
+                r.bordes = [...document.querySelectorAll('#pts-grafico circle')].every(c => { const b = c.getBoundingClientRect(); return b.left >= caja.left && b.right <= caja.right && b.top >= caja.top && b.bottom <= caja.bottom; });
                 document.querySelector('.vista-comp [data-vista=barras]').click(); await espera(200);
                 r.barras = !$('vista-barras').hidden && $('vista-puntos').hidden;
                 return r; }""")
             revisar(rx == {"vista": True, "puntos": True, "cuadrante": True, "etiquetas": True, "ejes": True, "sinCoef": True, "chirps": True,
-                           "pregunta": True, "otra": True, "custom": True, "vuelve": True, "corr": "1.000,-1.000|0.866,0.739", "debil": True, "barras": True},
+                           "pregunta": True, "otra": True, "custom": True, "vuelve": True, "corr": "1.000,-1.000|0.866,0.739", "debil": True, "concordancia": True, "bordes": True, "barras": True},
                     f"vulnerabilidad, gráfico de puntos: {rx}")
             # Íconos con un indicador bajo (no sabe leer ni escribir, 2 %): cuadrícula de 100 con su frase y texto alternativo,
             # barras por distrito con la misma escala, sectores ordenados por número con al menos 200 personas y sin «Sector sin nombre»
@@ -566,16 +577,17 @@ def main():
                     const ok = {
                       titulo: $('vul-titulo').textContent === tituloVul(i),
                       cifra: $('vul-cifra').textContent.includes(vulPct(i, t)) && $('vul-cifra').textContent.includes(num(mag ? t[1] : t[0])),
-                      frases: mag ? filasF.length === (metro ? 3 : 2) && filasF.every(f => f.textContent.startsWith('En promedio') && !f.querySelector('svg'))
-                          && (metro || filasF[0].textContent.includes(` de ${loc.nombre} `) && filasF[0].textContent.includes(fmtVul(i, pT)))
+                      frases: mag ? filasF.length === (metro ? 3 : 2) && filasF.every(f => f.querySelectorAll('svg.semana text').length === 7 && / a la semana sin agua$/.test(f.querySelector('p').textContent))
+                          && (metro || filasF[0].textContent.startsWith(loc.nombre + ':') && filasF[0].textContent.includes(cifraMag(i, pT)))
                         : bajo ? !filasF.length && document.querySelectorAll('#vul-tira circle').length === (metro ? 3 : 1) && grilla?.textContent.includes(pctTxt(pT))
                           && grilla.querySelector('path').getAttribute('d') === (gr.icono === 'persona' ? PERSONA : CASA)
                           && (metro || document.querySelector('#vul-tira .et-total').textContent.startsWith(loc.nombre))
                         : (metro ? filasF.length === 3 : filasF[0]?.querySelector('p').textContent.startsWith(loc.nombre + ':')
                           && filasF[0].querySelector('p').textContent.includes(pctTxt(pT)))
                         && filasF.every(f => f.querySelector('path').getAttribute('d') === (gr.icono === 'persona' ? PERSONA : CASA)),
-                      leyenda: gr.reparto ? !!document.querySelector('#vul-leyenda .reparto') && $('vul-leyenda').textContent.includes(nombreTexto(loc))
-                        : !document.querySelector('#vul-leyenda .reparto') && !!document.querySelector('#vul-leyenda .leyenda-pob'),
+                      // sobre el mapa, la leyenda compacta; el reparto, en la columna izquierda (solo servicios, vivienda y hogar)
+                      leyenda: !!document.querySelector('#vul-leyenda .leyenda-pob') && (gr.reparto ? !!document.querySelector('#vul-reparto .reparto') && $('vul-reparto').textContent.includes(nombreTexto(loc))
+                        : !document.querySelector('#vul-reparto .reparto')),
                       // sin sectores con base suficiente (ej. Tambogrande, agua las 24 horas) el mapa queda vacío, y está bien
                       mapa: m.hasLayer(capa) && (l ? hexEstilo(l.feature).fillColor === token(gr.tonos[claseVul(i, l.feature)]) : !visibles(nivelDe(m)).features.length),
                       sectores: mag || bajo ? /Sectores con más|base suficiente/.test($('vul-criticos-titulo').textContent)
@@ -625,7 +637,7 @@ def main():
                 r.loc = !!vulDatos.catacaos?.h9 && document.querySelector('#vul-localidades .par.sel')?.textContent.includes('Catacaos')
                   && document.querySelector('#vul-frases .fila-casas p').textContent.startsWith('Catacaos:')
                   && document.querySelectorAll('#vul-frases .fila-casas').length === 2 && !vulCapas.resalte
-                  && document.querySelector('#vul-leyenda .frase-barra').textContent.includes('de Catacaos')
+                  && document.querySelector('#vul-reparto .frase-barra').textContent.includes('de Catacaos')
                   && ['h9', 'h10', 'mz'].filter(n => vulCapas[n] && m.hasLayer(vulCapas[n])).length === 1;
                 m.setZoom(15); await espera(300); await vulNivel(m);
                 r.sin130 = m.hasLayer(vulCapas.mz) && !vulCapas.h10 && !vulDatos.catacaos.h10;
@@ -641,6 +653,7 @@ def main():
             pg.clock.set_fixed_time(datetime.now() + timedelta(days=60))
             pg.goto(base + "#resumen")
             pg.wait_for_function("document.querySelectorAll('#resumen-paneles .panel').length >= 5", timeout=15000)
+            pg.wait_for_timeout(1000)  # los avisos se agregan después de dibujar las tarjetas
             n = pg.evaluate("document.querySelectorAll('#resumen-paneles .vencido').length")
             revisar(n >= 3, f"con 60 días de retraso simulado se ven {n} avisos 'Dato no actualizado' en el resumen")
             nav.close()
